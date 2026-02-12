@@ -62,16 +62,16 @@ for (let i = 0; i < particles.length; i++) {
   }
 }
 
-// Physics constants - BALANCED
-const springK = 100;    // Soft springs
-const springDamp = 4;
-const anchorFar = 120;  // Strong but not immovable
-const anchorNear = 0;   // Zero at grab
-const anchorFalloff = 0.04; // Moderate falloff
-const grabKBase = 300;  // Base grab strength
-const grabRadius = 0.08; // Matches blob size
-const drag = 0.97;
-const snapDist = 0.35;  // 35% stretch = snap (easier to break)
+// Physics constants - DEBUG: cranked grab way up
+const springK = 50;     // Very soft springs
+const springDamp = 2;
+const anchorFar = 40;   // Weak anchor
+const anchorNear = 0;   
+const anchorFalloff = 0.05;
+const grabKBase = 800;  // VERY strong grab
+const grabRadius = 0.12; // Larger grab area
+const drag = 0.98;
+const snapDist = 0.3;   // Easy snap
 
 let touchX = 0, touchY = 0;
 let touching = false;
@@ -89,6 +89,14 @@ canvas.addEventListener('mousedown', e => {
   touchX = p.x; touchY = p.y;
   grabPoint.x = p.x; grabPoint.y = p.y;
   touching = true;
+  console.log('Touch at:', p.x.toFixed(3), p.y.toFixed(3));
+  // Log nearby particles
+  for (const pt of particles) {
+    const d = Math.sqrt((pt.x-p.x)**2 + (pt.y-p.y)**2);
+    if (d < grabRadius) {
+      console.log('  Particle in range, dist:', d.toFixed(3));
+    }
+  }
 });
 canvas.addEventListener('mousemove', e => {
   if (!touching) return;
@@ -190,26 +198,16 @@ function update() {
     p.vx += ax;
     p.vy += ay;
     
-    // Grab - pull toward touch with RESISTANCE CURVE
+    // Grab - simple, strong
     if (touching) {
       const dtx = p.x - touchX;
       const dty = p.y - touchY;
       const distToTouch = Math.sqrt(dtx*dtx + dty*dty);
       
       if (distToTouch < grabRadius) {
-        // How far has this particle stretched from rest?
-        const stretchX = p.x - p.restX;
-        const stretchY = p.y - p.restY;
-        const stretchDist = Math.sqrt(stretchX*stretchX + stretchY*stretchY);
-        
-        // Resistance: starts easy, gets harder as you stretch
-        // grabK decreases as stretch increases
-        const resistance = 1 / (1 + stretchDist * 15);
-        const grabK = grabKBase * resistance;
-        
         const influence = 1 - (distToTouch / grabRadius);
-        const gx = (touchX - p.x) * grabK * influence * dt;
-        const gy = (touchY - p.y) * grabK * influence * dt;
+        const gx = (touchX - p.x) * grabKBase * influence * dt;
+        const gy = (touchY - p.y) * grabKBase * influence * dt;
         p.vx += gx;
         p.vy += gy;
       }
