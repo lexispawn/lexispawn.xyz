@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-<title>ARENA v12</title>
+<title>ARENA v13</title>
 <style>
 * { margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; overflow: hidden; background: #020206; touch-action: none; }
@@ -35,19 +35,21 @@ resize();
 window.addEventListener('resize', resize);
 
 // ============================================
-// PHYSICS - GLOB SEPARATION RESTORED
+// PHYSICS - CONSERVATIVE FIXES
 // ============================================
 const NUM_PARTICLES = 32;
 const REST_RADIUS = 0.15;
 const GRAB_RADIUS = 0.18;
-const SNAP_DISTANCE = 0.45;
+const SNAP_DISTANCE = 0.48;
 
-const SPRING_K = 55;
-const SPRING_DAMP = 2.5;
-const ANCHOR_BASE = 50;           // FIX: Lowered from 120 - springs are structure
-const DAMPING_COEFF = 2.5;        // Slightly less drag for more life
-const GRAB_K_BASE = 180;          // FIX: Lowered from 400 - sink into material
-const SNAP_ANCHOR_DECAY = 600;    // ms for anchor to rebuild after snap
+const SPRING_K = 65;              // Springs provide structure
+const SPRING_DAMP = 3;
+const ANCHOR_BASE = 80;           // Reasonable - not too stiff, not chaos
+const DAMPING_COEFF = 2.8;
+const GRAB_K_BASE = 160;          // Sink into material
+const SNAP_ANCHOR_DECAY = 450;    // ms
+const SNAP_ANCHOR_MIN = 0.15;     // Don't go to zero - keep SOME pull home
+const SNAP_IMPULSE = 2.2;
 
 class Particle {
   constructor(x, y) {
@@ -58,7 +60,7 @@ class Particle {
     this.restX = x;
     this.restY = y;
     this.radius = 0.05 + Math.random() * 0.018;
-    this.snapTime = 0;  // When this particle was involved in a snap
+    this.snapTime = -10000; // Long ago
   }
 }
 
@@ -132,18 +134,13 @@ function updatePhysics(dt, now) {
     const dy = spring.p2.y - spring.p1.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     
-    // SNAP
     if (dist > spring.restLength * (1 + SNAP_DISTANCE)) {
       spring.broken = true;
-      
-      // Mark BOTH particles as recently snapped
       spring.p1.snapTime = now;
       spring.p2.snapTime = now;
       
-      // Snap impulse
       const breakX = (spring.p1.x + spring.p2.x) / 2;
       const breakY = (spring.p1.y + spring.p2.y) / 2;
-      const impulse = 3.0;  // Slightly stronger
       
       const n1x = spring.p1.x - breakX;
       const n1y = spring.p1.y - breakY;
@@ -152,10 +149,10 @@ function updatePhysics(dt, now) {
       const l1 = Math.sqrt(n1x*n1x + n1y*n1y) + 0.001;
       const l2 = Math.sqrt(n2x*n2x + n2y*n2y) + 0.001;
       
-      spring.p1.vx += (n1x/l1) * impulse;
-      spring.p1.vy += (n1y/l1) * impulse;
-      spring.p2.vx += (n2x/l2) * impulse;
-      spring.p2.vy += (n2y/l2) * impulse;
+      spring.p1.vx += (n1x/l1) * SNAP_IMPULSE;
+      spring.p1.vy += (n1y/l1) * SNAP_IMPULSE;
+      spring.p2.vx += (n2x/l2) * SNAP_IMPULSE;
+      spring.p2.vy += (n2y/l2) * SNAP_IMPULSE;
       
       snapFlashes.push({ x: breakX, y: breakY, intensity: 1.0, birth: now });
       continue;
@@ -179,16 +176,14 @@ function updatePhysics(dt, now) {
     spring.p2.vy -= fy * dt;
   }
   
-  // Per-particle forces
   for (const p of particles) {
-    // FIX: POST-SNAP ANCHOR DECAY
-    // Recently snapped particles have reduced anchor, rebuilds over time
-    let anchorMultiplier = 1.0;
+    // Post-snap anchor reduction (but never zero)
+    let anchorMult = 1.0;
     const timeSinceSnap = now - p.snapTime;
     if (timeSinceSnap < SNAP_ANCHOR_DECAY) {
-      // Ease from 0 to 1 over decay period (quadratic ease-in)
       const t = timeSinceSnap / SNAP_ANCHOR_DECAY;
-      anchorMultiplier = t * t;  // Starts near 0, reaches 1
+      // Ease from SNAP_ANCHOR_MIN to 1.0
+      anchorMult = SNAP_ANCHOR_MIN + (1.0 - SNAP_ANCHOR_MIN) * t * t;
     }
     
     const dxFromGrab = p.restX - grabX;
@@ -203,8 +198,7 @@ function updatePhysics(dt, now) {
       const grabInfluence = 1 - Math.min(distFromGrab / (GRAB_RADIUS * 2.5), 1);
       const grabInfluenceSq = grabInfluence * grabInfluence;
       
-      // Resistance curve
-      const resistanceFactor = 1 / (1 + displacement * 3);
+      const resistanceFactor = 1 / (1 + displacement * 3.5);
       const effectiveGrabK = GRAB_K_BASE * resistanceFactor;
       
       const tx = touchX - p.x;
@@ -212,22 +206,20 @@ function updatePhysics(dt, now) {
       p.vx += tx * effectiveGrabK * grabInfluenceSq * dt;
       p.vy += ty * effectiveGrabK * grabInfluenceSq * dt;
       
-      // Grabbed particles: reduced anchor (but still affected by snap decay)
-      const anchorStrength = ANCHOR_BASE * (1 - grabInfluenceSq * 0.9) * anchorMultiplier;
+      // Grabbed: reduced anchor but still some
+      const anchorStrength = ANCHOR_BASE * (1 - grabInfluenceSq * 0.85) * anchorMult;
       const adx = p.restX - p.x;
       const ady = p.restY - p.y;
       p.vx += adx * anchorStrength * dt;
       p.vy += ady * anchorStrength * dt;
       
     } else {
-      // Not grabbed: anchor with snap decay applied
       const adx = p.restX - p.x;
       const ady = p.restY - p.y;
-      p.vx += adx * ANCHOR_BASE * anchorMultiplier * dt;
-      p.vy += ady * ANCHOR_BASE * anchorMultiplier * dt;
+      p.vx += adx * ANCHOR_BASE * anchorMult * dt;
+      p.vy += ady * ANCHOR_BASE * anchorMult * dt;
     }
     
-    // Dt-scaled drag
     const dragFactor = Math.exp(-DAMPING_COEFF * dt);
     p.vx *= dragFactor;
     p.vy *= dragFactor;
@@ -236,28 +228,23 @@ function updatePhysics(dt, now) {
     p.y += p.vy * dt;
   }
   
-  // Repair springs when close (and enough time has passed)
   if (!touchActive) {
     for (const spring of springs) {
       if (!spring.broken) continue;
       const dx = spring.p2.x - spring.p1.x;
       const dy = spring.p2.y - spring.p1.y;
-      if (Math.sqrt(dx * dx + dy * dy) < spring.restLength * 1.2) {
+      if (Math.sqrt(dx * dx + dy * dy) < spring.restLength * 1.15) {
         spring.broken = false;
       }
     }
   }
   
-  // Decay snap flashes
   snapFlashes = snapFlashes.filter(f => now - f.birth < 350);
   for (const f of snapFlashes) {
     f.intensity = 1 - (now - f.birth) / 350;
   }
 }
 
-// ============================================
-// INPUT
-// ============================================
 function getWorldPos(e) {
   const rect = canvas.getBoundingClientRect();
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -313,9 +300,6 @@ canvas.addEventListener('touchmove', onMove, { passive: false });
 canvas.addEventListener('touchend', onEnd);
 canvas.addEventListener('touchcancel', onEnd);
 
-// ============================================
-// GLITTER
-// ============================================
 const NUM_GLITTER = 18;
 const glitter = [];
 for (let i = 0; i < NUM_GLITTER; i++) {
@@ -331,9 +315,6 @@ for (let i = 0; i < NUM_GLITTER; i++) {
   });
 }
 
-// ============================================
-// SHADER
-// ============================================
 const vsSource = `
 attribute vec2 aPos;
 varying vec2 vUV;
@@ -352,43 +333,30 @@ uniform vec3 uParticles[${NUM_PARTICLES}];
 uniform vec4 uGlitter[${NUM_GLITTER}];
 uniform vec3 uSnapFlashes[8];
 
-#define PI 3.14159265
-
-float hash(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
 float noise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
+  vec2 i = floor(p); vec2 f = fract(p);
   f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1,0)), f.x),
              mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y);
 }
 
 float fbm(vec2 p) {
-  float v = 0.0;
-  float a = 0.5;
-  for (int i = 0; i < 4; i++) {
-    v += a * noise(p);
-    p *= 2.0;
-    a *= 0.5;
-  }
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }
   return v;
 }
 
 float metaball(vec2 p, vec2 c, float r) {
   vec2 d = p - c;
-  float d2 = dot(d, d);
-  float r2 = r * r;
+  float d2 = dot(d, d), r2 = r * r;
   return (r2 * r2) / ((d2 + r2) * (d2 + r2));
 }
 
 float field(vec2 p) {
   float sum = 0.0;
-  for (int i = 0; i < ${NUM_PARTICLES}; i++) {
-    sum += metaball(p, uParticles[i].xy, uParticles[i].z);
-  }
+  for (int i = 0; i < ${NUM_PARTICLES}; i++) sum += metaball(p, uParticles[i].xy, uParticles[i].z);
   return sum;
 }
 
@@ -408,99 +376,59 @@ void main() {
   
   vec3 bgColor = vec3(0.006, 0.01, 0.02);
   
-  // Snap flashes
   float flashSum = 0.0;
   for (int i = 0; i < 8; i++) {
-    vec2 fp = uSnapFlashes[i].xy;
     float fi = uSnapFlashes[i].z;
     if (fi > 0.01) {
-      float fd = length(p - fp);
+      float fd = length(p - uSnapFlashes[i].xy);
       flashSum += fi * 0.025 / (fd * fd + 0.0008);
     }
   }
   vec3 flashColor = vec3(0.85, 1.0, 0.95) * flashSum;
   
-  // Glitter
   float glitterSum = 0.0;
   for (int i = 0; i < ${NUM_GLITTER}; i++) {
-    vec2 gp = uGlitter[i].xy;
-    float gSize = uGlitter[i].z;
-    float gBright = uGlitter[i].w;
-    float d = length(p - gp);
-    float glow = gBright * pow(max(0.0, 1.0 - d / gSize), 6.0);
-    glitterSum += glow;
+    float d = length(p - uGlitter[i].xy);
+    glitterSum += uGlitter[i].w * pow(max(0.0, 1.0 - d / uGlitter[i].z), 6.0);
   }
   vec3 glitterColor = vec3(0.6, 1.0, 0.9) * glitterSum;
   
-  // Glow zone
   if (f < threshold) {
     float gNorm = f / threshold;
-    
-    vec3 glow = vec3(0.0);
-    glow += vec3(0.02, 0.10, 0.08) * pow(gNorm, 0.3) * 3.0;
-    glow += vec3(0.05, 0.25, 0.20) * pow(gNorm, 1.0) * 2.5;
-    glow += vec3(0.10, 0.45, 0.35) * pow(gNorm, 2.5) * 2.0;
+    vec3 glow = vec3(0.02, 0.10, 0.08) * pow(gNorm, 0.3) * 3.0
+              + vec3(0.05, 0.25, 0.20) * pow(gNorm, 1.0) * 2.5
+              + vec3(0.10, 0.45, 0.35) * pow(gNorm, 2.5) * 2.0;
     glow *= 0.9 + sin(uTime * 1.5) * 0.1;
-    
     gl_FragColor = vec4(bgColor + glow + glitterColor + flashColor, 1.0);
     return;
   }
   
-  // Inside blob
   float depth = smoothstep(threshold, threshold * 8.0, f);
   vec3 normal = fieldNormal(p);
   
-  vec3 surfaceCol = vec3(0.35, 0.90, 0.75);
-  vec3 subCol = vec3(0.15, 0.70, 0.60);
-  vec3 midCol = vec3(0.06, 0.50, 0.48);
-  vec3 deepCol = vec3(0.02, 0.30, 0.35);
-  vec3 coreCol = vec3(0.01, 0.12, 0.18);
+  vec3 baseColor = vec3(0.35, 0.90, 0.75);
+  baseColor = mix(baseColor, vec3(0.15, 0.70, 0.60), smoothstep(0.05, 0.15, depth));
+  baseColor = mix(baseColor, vec3(0.06, 0.50, 0.48), smoothstep(0.12, 0.30, depth));
+  baseColor = mix(baseColor, vec3(0.02, 0.30, 0.35), smoothstep(0.25, 0.55, depth));
+  baseColor = mix(baseColor, vec3(0.01, 0.12, 0.18), smoothstep(0.45, 0.85, depth));
   
-  vec3 baseColor = surfaceCol;
-  baseColor = mix(baseColor, subCol, smoothstep(0.05, 0.15, depth));
-  baseColor = mix(baseColor, midCol, smoothstep(0.12, 0.30, depth));
-  baseColor = mix(baseColor, deepCol, smoothstep(0.25, 0.55, depth));
-  baseColor = mix(baseColor, coreCol, smoothstep(0.45, 0.85, depth));
-  
-  float subPattern = fbm(p * 10.0 + uTime * 0.12);
-  baseColor = mix(baseColor, baseColor * 1.5, subPattern * 0.5 * (1.0 - depth));
-  
-  float veins = fbm(p * 18.0 + vec2(uTime * 0.06, -uTime * 0.09));
-  veins = smoothstep(0.35, 0.65, veins);
-  baseColor = mix(baseColor, baseColor * 0.5, veins * 0.4 * depth);
-  
-  float incl = noise(p * 45.0 + uTime * 0.6);
-  incl = smoothstep(0.82, 0.92, incl) * (1.0 - depth * 0.7);
-  baseColor += vec3(0.5, 0.9, 0.8) * incl * 0.8;
-  
-  float caustic = noise(p * 25.0 + vec2(sin(uTime * 0.4), cos(uTime * 0.5)) * 0.8);
-  caustic = pow(caustic, 2.5) * (1.0 - depth * 0.6);
-  baseColor += vec3(0.25, 0.5, 0.45) * caustic * 0.6;
+  baseColor = mix(baseColor, baseColor * 1.5, fbm(p * 10.0 + uTime * 0.12) * 0.5 * (1.0 - depth));
+  baseColor = mix(baseColor, baseColor * 0.5, smoothstep(0.35, 0.65, fbm(p * 18.0 + vec2(uTime * 0.06, -uTime * 0.09))) * 0.4 * depth);
+  baseColor += vec3(0.5, 0.9, 0.8) * smoothstep(0.82, 0.92, noise(p * 45.0 + uTime * 0.6)) * (1.0 - depth * 0.7) * 0.8;
+  baseColor += vec3(0.25, 0.5, 0.45) * pow(noise(p * 25.0 + vec2(sin(uTime * 0.4), cos(uTime * 0.5)) * 0.8), 2.5) * (1.0 - depth * 0.6) * 0.6;
   
   vec3 L1 = normalize(vec3(0.4, 0.5, 1.0));
-  vec3 L2 = normalize(vec3(-0.3, 0.4, 0.8));
   vec3 V = vec3(0.0, 0.0, 1.0);
-  
-  float diff = max(dot(normal, L1), 0.0) * 0.5 + max(dot(normal, L2), 0.0) * 0.3 + 0.35;
-  
-  vec3 H = normalize(L1 + V);
-  float spec = pow(max(dot(normal, H), 0.0), 50.0) * 1.0 * (1.0 - depth * 0.7);
-  
-  float NoV = max(dot(normal, V), 0.0);
-  float fresnel = pow(1.0 - NoV, 3.5) * 0.8;
-  
-  vec3 sss = vec3(0.10, 0.40, 0.35) * depth * 0.7;
+  float diff = max(dot(normal, L1), 0.0) * 0.5 + max(dot(normal, normalize(vec3(-0.3, 0.4, 0.8))), 0.0) * 0.3 + 0.35;
+  float spec = pow(max(dot(normal, normalize(L1 + V)), 0.0), 50.0) * (1.0 - depth * 0.7);
+  float fresnel = pow(1.0 - max(dot(normal, V), 0.0), 3.5) * 0.8;
   
   vec3 color = baseColor * diff;
-  color += sss;
+  color += vec3(0.10, 0.40, 0.35) * depth * 0.7;
   color += vec3(1.0, 1.0, 0.98) * spec;
   color += vec3(0.2, 0.5, 0.45) * fresnel;
-  
-  float edge = 1.0 - smoothstep(threshold * 0.9, threshold * 1.5, f);
-  color += vec3(0.15, 0.5, 0.42) * edge;
-  
-  color += glitterColor * 0.5;
-  color += flashColor;
+  color += vec3(0.15, 0.5, 0.42) * (1.0 - smoothstep(threshold * 0.9, threshold * 1.5, f));
+  color += glitterColor * 0.5 + flashColor;
   
   gl_FragColor = vec4(color, 1.0);
 }`;
@@ -509,10 +437,7 @@ function createShader(type, source) {
   const s = gl.createShader(type);
   gl.shaderSource(s, source);
   gl.compileShader(s);
-  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-    console.error(gl.getShaderInfoLog(s));
-    return null;
-  }
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); return null; }
   return s;
 }
 
@@ -546,7 +471,6 @@ function render() {
   const now = performance.now();
   const dt = (now - lastTime) / 1000;
   lastTime = now;
-  const t = (now - startTime) / 1000;
   
   updatePhysics(dt, now);
   
@@ -557,27 +481,22 @@ function render() {
     particleData[i * 3 + 2] = particles[i].radius;
   }
   
+  const t = (now - startTime) / 1000;
   const glitterData = new Float32Array(NUM_GLITTER * 4);
   for (let i = 0; i < NUM_GLITTER; i++) {
     const g = glitter[i];
-    const orbitR = 0.015;
-    const ox = Math.sin(t * g.speed + g.phase) * orbitR;
-    const oy = Math.cos(t * g.speed * 0.7 + g.phase) * orbitR;
-    glitterData[i * 4] = g.baseX + ox;
-    glitterData[i * 4 + 1] = g.baseY + oy;
+    glitterData[i * 4] = g.baseX + Math.sin(t * g.speed + g.phase) * 0.015;
+    glitterData[i * 4 + 1] = g.baseY + Math.cos(t * g.speed * 0.7 + g.phase) * 0.015;
     glitterData[i * 4 + 2] = g.size;
-    const twinkle = Math.pow(Math.sin(t * g.speed * 4 + g.phase * 3) * 0.5 + 0.5, 3.0);
-    glitterData[i * 4 + 3] = g.brightness * (0.3 + twinkle * 0.7);
+    glitterData[i * 4 + 3] = g.brightness * (0.3 + Math.pow(Math.sin(t * g.speed * 4 + g.phase * 3) * 0.5 + 0.5, 3.0) * 0.7);
   }
   
-  const flashData = new Float32Array(8 * 3);
+  const flashData = new Float32Array(24);
   for (let i = 0; i < 8; i++) {
     if (i < snapFlashes.length) {
       flashData[i * 3] = snapFlashes[i].x;
       flashData[i * 3 + 1] = snapFlashes[i].y;
       flashData[i * 3 + 2] = snapFlashes[i].intensity;
-    } else {
-      flashData[i * 3 + 2] = 0;
     }
   }
   
