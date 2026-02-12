@@ -29,22 +29,22 @@ resize();
 addEventListener('resize', resize);
 
 // ============================================
-// PHYSICS - FROM WORKING MINIMAL VERSION
+// PHYSICS - MOBILE OPTIMIZED
 // ============================================
 const NUM_PARTICLES = 24;
 const restRadius = 0.12;
 
-// Tuned constants that work
-const springK = 100;
-const springDamp = 5;
-const anchorFar = 70;
+// MOBILE TUNED - bigger grab, easier break, less anchor
+const springK = 80;
+const springDamp = 4;
+const anchorFar = 35;  // was 70 - less snap back
 const anchorNear = 0;
-const anchorFalloff = 0.05;
-const grabKBase = 220;
-const grabRadius = 0.10;
-const drag = 0.95;
-const snapDist = 0.6;
-const maxVel = 0.4;
+const anchorFalloff = 0.08;  // wider falloff
+const grabKBase = 350;  // was 220 - stronger grab
+const grabRadius = 0.25;  // was 0.10 - MUCH bigger for fingers
+const drag = 0.92;  // was 0.95 - more momentum
+const snapDist = 0.4;  // was 0.6 - easier to break
+const maxVel = 0.6;  // was 0.4 - faster movement
 
 const particles = [];
 const springs = [];
@@ -81,6 +81,8 @@ for (let i = 0; i < particles.length; i++) {
 
 let touchX = 0, touchY = 0, touching = false;
 let grabPoint = { x: 0, y: 0 };
+let lastTouchX = 0, lastTouchY = 0;
+let velocity = { x: 0, y: 0 };
 
 function toWorld(clientX, clientY) {
   return {
@@ -92,12 +94,16 @@ function toWorld(clientX, clientY) {
 canvas.onmousedown = e => {
   const p = toWorld(e.clientX, e.clientY);
   touchX = p.x; touchY = p.y;
+  lastTouchX = p.x; lastTouchY = p.y;
   grabPoint.x = p.x; grabPoint.y = p.y;
   touching = true;
 };
 canvas.onmousemove = e => {
   if (!touching) return;
   const p = toWorld(e.clientX, e.clientY);
+  velocity.x = p.x - lastTouchX;
+  velocity.y = p.y - lastTouchY;
+  lastTouchX = touchX; lastTouchY = touchY;
   touchX = p.x; touchY = p.y;
 };
 canvas.onmouseup = canvas.onmouseleave = () => { touching = false; };
@@ -107,6 +113,7 @@ canvas.ontouchstart = e => {
   const t = e.touches[0];
   const p = toWorld(t.clientX, t.clientY);
   touchX = p.x; touchY = p.y;
+  lastTouchX = p.x; lastTouchY = p.y;
   grabPoint.x = p.x; grabPoint.y = p.y;
   touching = true;
 };
@@ -115,6 +122,9 @@ canvas.ontouchmove = e => {
   if (!touching) return;
   const t = e.touches[0];
   const p = toWorld(t.clientX, t.clientY);
+  velocity.x = p.x - lastTouchX;
+  velocity.y = p.y - lastTouchY;
+  lastTouchX = touchX; lastTouchY = touchY;
   touchX = p.x; touchY = p.y;
 };
 canvas.ontouchend = canvas.ontouchcancel = () => { touching = false; };
@@ -135,8 +145,8 @@ function updatePhysics(dt) {
       s.broken = true;
       s.a.snapped = s.b.snapped = true;
       const nx = dx/d, ny = dy/d;
-      s.a.vx -= nx * 0.6; s.a.vy -= ny * 0.6;
-      s.b.vx += nx * 0.6; s.b.vy += ny * 0.6;
+      s.a.vx -= nx * 0.8; s.a.vy -= ny * 0.8;
+      s.b.vx += nx * 0.8; s.b.vy += ny * 0.8;
       snapFlashes.push({ x: (s.a.x+s.b.x)/2, y: (s.a.y+s.b.y)/2, t: now });
       continue;
     }
@@ -159,12 +169,12 @@ function updatePhysics(dt) {
     
     let anchorStrength;
     if (p.snapped) {
-      anchorStrength = 8;
+      anchorStrength = 6;  // was 8
     } else if (touching) {
       const t = Math.min(distFromGrab / anchorFalloff, 1);
       anchorStrength = anchorNear + (anchorFar - anchorNear) * t * t;
     } else {
-      anchorStrength = anchorFar * 0.5;
+      anchorStrength = anchorFar * 0.4;  // was 0.5
     }
     
     const ax = (p.restX - p.x) * anchorStrength * dt;
@@ -177,7 +187,7 @@ function updatePhysics(dt) {
       if (distToTouch < grabRadius) {
         const stretchX = p.x - p.restX, stretchY = p.y - p.restY;
         const stretchDist = Math.sqrt(stretchX*stretchX + stretchY*stretchY);
-        const resistance = 1 / (1 + stretchDist * 8);
+        const resistance = 1 / (1 + stretchDist * 5);  // was 8 - less resistance
         const grabK = grabKBase * resistance;
         const influence = 1 - (distToTouch / grabRadius);
         p.vx += (touchX - p.x) * grabK * influence * dt;
@@ -191,19 +201,19 @@ function updatePhysics(dt) {
     p.x += p.vx * dt; p.y += p.vy * dt;
   }
   
-  // Repair
+  // Repair - slower on mobile for more satisfying breaks
   if (!touching) {
     for (const s of springs) {
       if (!s.broken) continue;
       const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
-      if (Math.sqrt(dx*dx + dy*dy) < s.rest * 1.1) {
+      if (Math.sqrt(dx*dx + dy*dy) < s.rest * 1.05) {  // was 1.1 - tighter repair threshold
         s.broken = false;
         s.a.snapped = s.b.snapped = false;
       }
     }
   }
   
-  snapFlashes = snapFlashes.filter(f => now - f.t < 300);
+  snapFlashes = snapFlashes.filter(f => now - f.t < 400);  // was 300 - longer flashes
 }
 
 // ============================================
@@ -317,7 +327,7 @@ function render(){
   for(let i=0;i<Math.min(8,snapFlashes.length);i++){
     fd[i*3]=snapFlashes[i].x;
     fd[i*3+1]=snapFlashes[i].y;
-    fd[i*3+2]=1-(now-snapFlashes[i].t)/300;
+    fd[i*3+2]=1-(now-snapFlashes[i].t)/400;
   }
   
   gl.uniform1f(uT,time);
