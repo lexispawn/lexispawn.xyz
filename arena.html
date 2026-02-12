@@ -32,7 +32,7 @@ const cx = 0.5, cy = 0.5; // center in normalized coords
 const numRings = 2;
 const restRadius = 0.08;
 
-particles.push({ x: cx, y: cy, vx: 0, vy: 0, restX: cx, restY: cy });
+particles.push({ x: cx, y: cy, vx: 0, vy: 0, restX: cx, restY: cy, snapped: false });
 
 for (let ring = 1; ring <= numRings; ring++) {
   const count = 6 * ring;
@@ -41,7 +41,7 @@ for (let ring = 1; ring <= numRings; ring++) {
     const a = (i / count) * Math.PI * 2;
     const px = cx + Math.cos(a) * r;
     const py = cy + Math.sin(a) * r;
-    particles.push({ x: px, y: py, vx: 0, vy: 0, restX: px, restY: py });
+    particles.push({ x: px, y: py, vx: 0, vy: 0, restX: px, restY: py, snapped: false });
   }
 }
 
@@ -62,16 +62,16 @@ for (let i = 0; i < particles.length; i++) {
   }
 }
 
-// Physics constants - HYPER LOCALIZED
-const springK = 120;    // Soft springs
-const springDamp = 5;
-const anchorFar = 400;  // VERY strong - 85% barely moves
+// Physics constants - BALANCED
+const springK = 100;    // Soft springs
+const springDamp = 4;
+const anchorFar = 120;  // Strong but not immovable
 const anchorNear = 0;   // Zero at grab
-const anchorFalloff = 0.025; // SHARP falloff - only tiny zone is free
-const grabK = 350;      
-const grabRadius = 0.03; // TINY - just the touch point
-const drag = 0.96;
-const snapDist = 0.4;   // 40% stretch = snap
+const anchorFalloff = 0.04; // Moderate falloff
+const grabKBase = 300;  // Base grab strength
+const grabRadius = 0.08; // Matches blob size
+const drag = 0.97;
+const snapDist = 0.35;  // 35% stretch = snap (easier to break)
 
 let touchX = 0, touchY = 0;
 let touching = false;
@@ -135,12 +135,14 @@ function update() {
     // Snap check
     if (d > s.rest * (1 + snapDist)) {
       s.broken = true;
-      // Small impulse
+      s.a.snapped = true;
+      s.b.snapped = true;
+      // Impulse to push apart
       const nx = dx / d, ny = dy / d;
-      s.a.vx -= nx * 0.5;
-      s.a.vy -= ny * 0.5;
-      s.b.vx += nx * 0.5;
-      s.b.vy += ny * 0.5;
+      s.a.vx -= nx * 0.8;
+      s.a.vy -= ny * 0.8;
+      s.b.vx += nx * 0.8;
+      s.b.vy += ny * 0.8;
       continue;
     }
     
@@ -172,12 +174,15 @@ function update() {
     const distFromGrab = Math.sqrt(dgx*dgx + dgy*dgy);
     
     // Anchor - ZERO at grab, STRONG far from grab
+    // Snapped particles have WEAK anchor (they're their own blob now)
     let anchorStrength;
-    if (touching) {
+    if (p.snapped) {
+      anchorStrength = 10; // Very weak - drifts as separate blob
+    } else if (touching) {
       const t = Math.min(distFromGrab / anchorFalloff, 1);
       anchorStrength = anchorNear + (anchorFar - anchorNear) * t * t;
     } else {
-      anchorStrength = anchorFar * 0.5; // Return home after release
+      anchorStrength = anchorFar * 0.6; // Return home after release
     }
     
     const ax = (p.restX - p.x) * anchorStrength * dt;
@@ -185,13 +190,23 @@ function update() {
     p.vx += ax;
     p.vy += ay;
     
-    // Grab - pull toward touch
+    // Grab - pull toward touch with RESISTANCE CURVE
     if (touching) {
       const dtx = p.x - touchX;
       const dty = p.y - touchY;
       const distToTouch = Math.sqrt(dtx*dtx + dty*dty);
       
       if (distToTouch < grabRadius) {
+        // How far has this particle stretched from rest?
+        const stretchX = p.x - p.restX;
+        const stretchY = p.y - p.restY;
+        const stretchDist = Math.sqrt(stretchX*stretchX + stretchY*stretchY);
+        
+        // Resistance: starts easy, gets harder as you stretch
+        // grabK decreases as stretch increases
+        const resistance = 1 / (1 + stretchDist * 15);
+        const grabK = grabKBase * resistance;
+        
         const influence = 1 - (distToTouch / grabRadius);
         const gx = (touchX - p.x) * grabK * influence * dt;
         const gy = (touchY - p.y) * grabK * influence * dt;
@@ -240,8 +255,8 @@ function draw() {
   }
   
   // Draw particles
-  ctx.fillStyle = 'rgba(100, 220, 180, 0.8)';
   for (const p of particles) {
+    ctx.fillStyle = p.snapped ? 'rgba(255, 150, 100, 0.9)' : 'rgba(100, 220, 180, 0.8)';
     ctx.beginPath();
     ctx.arc(p.x * w, p.y * h, 8, 0, Math.PI * 2);
     ctx.fill();
