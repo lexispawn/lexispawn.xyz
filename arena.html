@@ -40,17 +40,17 @@ window.addEventListener('resize', resize);
 // ============================================
 const NUM_PARTICLES = 32;
 const REST_RADIUS = 0.15;
-const GRAB_RADIUS = 0.12;
-const SNAP_DISTANCE = 0.5;
+const GRAB_RADIUS = 0.20;     // Larger - grab more of the blob
+const SNAP_DISTANCE = 0.45;
 
-// V10 base values that worked:
-const SPRING_K = 60;
-const SPRING_DAMP = 3;
-const MAX_ANCHOR = 180;       // Far from grab = essentially fixed
-const MIN_ANCHOR = 5;         // At grab point = nearly free (not zero to avoid instability)
-const ANCHOR_FALLOFF = 0.22;  // How quickly anchor increases from grab point
-const GRAB_K = 35;            // Slightly higher than v10's 25 so grab wins more
-const DRAG = 0.97;            // Claude fix: 0.97 instead of 0.9 for more life
+// FIXED based on actual feedback:
+const SPRING_K = 55;          // Springs are primary structure
+const SPRING_DAMP = 2.5;
+const MAX_ANCHOR = 50;        // LOW - anchor is safety net, not structure
+const MIN_ANCHOR = 0;         // ZERO at grab point - grab wins completely
+const ANCHOR_FALLOFF = 0.20;
+const GRAB_K = 180;           // HIGH - grab must WIN decisively (3x+ anchor)
+const DRAG = 0.98;            // More life, more wobble
 
 // Post-snap: particles that snapped get reduced anchor temporarily
 const SNAP_ANCHOR_DURATION = 600;  // ms
