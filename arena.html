@@ -62,14 +62,14 @@ for (let i = 0; i < particles.length; i++) {
   }
 }
 
-// Physics constants - VERY CONSERVATIVE
-const springK = 800;
-const springDamp = 20;
-const anchorK = 100;    // Pull back to rest
-const grabK = 300;      // Follow touch
-const grabRadius = 0.12;
-const drag = 0.92;
-const snapDist = 0.6;   // 60% stretch = snap
+// Physics constants - GRAB WINS
+const springK = 200;    // Soft springs
+const springDamp = 8;
+const anchorK = 30;     // Weak anchor - springs are structure
+const grabK = 500;      // Strong grab - must win
+const grabRadius = 0.15;
+const drag = 0.95;
+const snapDist = 0.5;   // 50% stretch = snap
 
 let touchX = 0, touchY = 0;
 let touching = false;
