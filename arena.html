@@ -3,35 +3,359 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-<title>ARENA v6 — Physics + Density</title>
+<title>ARENA</title>
 <style>
-* { margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #06060a; touch-action: none; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #08080e;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  font-family: 'Helvetica Neue', sans-serif;
+}
 canvas { display: block; width: 100%; height: 100%; }
-#hint { position: fixed; bottom: 12%; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.15); font: 11px sans-serif; letter-spacing: 3px; text-transform: uppercase; pointer-events: none; transition: opacity 1s; }
+
+/* Tool Selection UI */
+#tool-bar {
+  position: fixed;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 100;
+}
+.tool-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: rgba(20,20,30,0.8);
+  color: rgba(255,255,255,0.6);
+  font-size: 22px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tool-btn.active {
+  border-color: rgba(100,220,180,0.6);
+  background: rgba(40,80,70,0.8);
+  color: rgba(180,255,230,0.9);
+}
+.tool-btn:hover { border-color: rgba(255,255,255,0.3); }
+
+/* Score Display */
+#score-display {
+  position: fixed;
+  top: 5%;
+  right: 5%;
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
+  text-align: right;
+  z-index: 100;
+}
+#score-display .score { font-size: 32px; font-weight: 200; }
+#score-display .streak { color: rgba(100,220,180,0.8); }
+
+/* Material Indicator */
+#material-indicator {
+  position: fixed;
+  top: 5%;
+  left: 5%;
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  z-index: 100;
+}
+
+/* Hint */
+#hint {
+  position: fixed;
+  bottom: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.18);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  pointer-events: none;
+  transition: opacity 1s;
+  z-index: 100;
+}
 </style>
 </head>
 <body>
+
 <canvas id="c"></canvas>
+
+<div id="material-indicator">slime</div>
+
+<div id="score-display">
+  <div class="score">0</div>
+  <div class="streak"></div>
+</div>
+
+<div id="tool-bar">
+  <button class="tool-btn active" data-tool="hand" title="Bare Hand">✋</button>
+  <button class="tool-btn" data-tool="blade" title="Blade">🔪</button>
+  <button class="tool-btn" data-tool="press" title="Press Tool">👊</button>
+  <button class="tool-btn" data-tool="tip" title="Precision Tip">✏️</button>
+</div>
+
 <div id="hint">touch · pull · release</div>
+
 <script>
+// ============================================
+// ARENA CORE ARCHITECTURE
+// ============================================
+
+const Arena = {
+  // Current state
+  currentMaterial: 'slime',
+  currentTool: 'hand',
+  score: 0,
+  streak: 0,
+  
+  // Material rotation (contrast engine)
+  materialSequence: [],
+  materialIndex: 0,
+  
+  // All materials the system knows about
+  materials: {
+    slime: { ready: true, renderer: null },
+    crystal: { ready: false, renderer: null },
+    kineticSand: { ready: false, renderer: null },
+    thickFluid: { ready: false, renderer: null },
+    glassRibbon: { ready: false, renderer: null },
+    bubbleWrap: { ready: false, renderer: null }
+  },
+  
+  // Tools
+  tools: ['hand', 'blade', 'press', 'tip'],
+  
+  // Scoring framework (stubbed for all materials)
+  scoring: {
+    slime: {
+      strandLength: 0,      // longer = more tension built
+      thinningPrecision: 0, // how translucent before break
+      cleanSnap: false,     // vs premature release
+      recoilQuality: 0      // full wobble = clean break
+    },
+    crystal: {
+      pressureAccumulated: 0,
+      crackPropagation: 0,
+      shatterCoverage: 0,
+      timingPrecision: 0
+    },
+    kineticSand: {
+      cutSmoothness: 0,
+      depthConsistency: 0,
+      faceQuality: 0,
+      coverage: 0
+    },
+    thickFluid: {
+      pressureConsistency: 0,
+      breakthroughTiming: 0,
+      pathDirectness: 0,
+      heatAccumulation: 0
+    },
+    glassRibbon: {
+      peelCompleteness: 0,
+      curlQuality: 0,
+      speedConsistency: 0,
+      edgeFindingSpeed: 0
+    },
+    bubbleWrap: {
+      rhythmConsistency: 0,
+      coverageSpeed: 0,
+      completionPercent: 0,
+      streakLength: 0
+    }
+  },
+  
+  // Contrast pairings for habituation prevention
+  // Never put two similar materials back to back
+  contrastPairs: {
+    // slow sustained → instant explosive
+    thickFluid: ['crystal', 'bubbleWrap'],
+    // instant explosive → slow sustained or rhythmic
+    crystal: ['thickFluid', 'slime', 'glassRibbon'],
+    // individual precision → rhythmic multiples
+    slime: ['bubbleWrap', 'crystal', 'kineticSand'],
+    // rhythmic → precision or sustained
+    bubbleWrap: ['slime', 'glassRibbon', 'thickFluid'],
+    // earned effort → creative reveal or contrast
+    kineticSand: ['glassRibbon', 'crystal', 'bubbleWrap'],
+    // creative → effort or explosive
+    glassRibbon: ['kineticSand', 'crystal', 'thickFluid']
+  },
+  
+  // Generate material sequence that maximizes contrast
+  generateSequence(length = 10) {
+    const seq = [];
+    const materials = Object.keys(this.materials);
+    
+    // Start with slime (it's what we have)
+    seq.push('slime');
+    
+    for (let i = 1; i < length; i++) {
+      const prev = seq[i - 1];
+      const goodFollows = this.contrastPairs[prev] || materials;
+      // Pick from good follows, avoiding immediate repeat
+      const options = goodFollows.filter(m => m !== prev);
+      seq.push(options[Math.floor(Math.random() * options.length)]);
+    }
+    
+    this.materialSequence = seq;
+    this.materialIndex = 0;
+    return seq;
+  },
+  
+  // Advance to next material
+  nextMaterial() {
+    this.materialIndex++;
+    if (this.materialIndex >= this.materialSequence.length) {
+      this.generateSequence();
+    }
+    this.currentMaterial = this.materialSequence[this.materialIndex];
+    this.updateMaterialIndicator();
+    return this.currentMaterial;
+  },
+  
+  // Tool selection
+  selectTool(tool) {
+    if (this.tools.includes(tool)) {
+      this.currentTool = tool;
+      this.updateToolUI();
+    }
+  },
+  
+  // Calculate score for an interaction
+  calculateScore(material, metrics) {
+    const weights = {
+      slime: { strandLength: 30, thinningPrecision: 25, cleanSnap: 25, recoilQuality: 20 },
+      crystal: { pressureAccumulated: 20, crackPropagation: 30, shatterCoverage: 30, timingPrecision: 20 },
+      kineticSand: { cutSmoothness: 30, depthConsistency: 20, faceQuality: 30, coverage: 20 },
+      thickFluid: { pressureConsistency: 25, breakthroughTiming: 30, pathDirectness: 25, heatAccumulation: 20 },
+      glassRibbon: { peelCompleteness: 35, curlQuality: 25, speedConsistency: 20, edgeFindingSpeed: 20 },
+      bubbleWrap: { rhythmConsistency: 30, coverageSpeed: 20, completionPercent: 30, streakLength: 20 }
+    };
+    
+    const w = weights[material] || {};
+    let score = 0;
+    for (const [key, weight] of Object.entries(w)) {
+      score += (metrics[key] || 0) * weight;
+    }
+    
+    // Tool modifier (some tools better for some materials)
+    const toolBonus = this.getToolBonus(material, this.currentTool);
+    score *= toolBonus;
+    
+    return Math.round(score);
+  },
+  
+  getToolBonus(material, tool) {
+    // Tool × Material bonuses
+    const bonuses = {
+      slime: { hand: 1.0, blade: 0.8, press: 0.9, tip: 1.1 },
+      crystal: { hand: 0.9, blade: 0.8, press: 1.2, tip: 1.0 },
+      kineticSand: { hand: 1.0, blade: 1.2, press: 0.9, tip: 1.0 },
+      thickFluid: { hand: 1.0, blade: 0.9, press: 1.1, tip: 0.8 },
+      glassRibbon: { hand: 1.0, blade: 1.1, press: 0.7, tip: 1.2 },
+      bubbleWrap: { hand: 1.0, blade: 0.5, press: 1.3, tip: 0.9 }
+    };
+    return (bonuses[material] && bonuses[material][tool]) || 1.0;
+  },
+  
+  // Record score
+  addScore(points) {
+    this.score += points;
+    if (points > 50) {
+      this.streak++;
+    } else {
+      this.streak = 0;
+    }
+    this.updateScoreDisplay();
+  },
+  
+  // UI updates
+  updateScoreDisplay() {
+    document.querySelector('#score-display .score').textContent = this.score;
+    const streakEl = document.querySelector('#score-display .streak');
+    streakEl.textContent = this.streak > 1 ? `${this.streak}× streak` : '';
+  },
+  
+  updateMaterialIndicator() {
+    const names = {
+      slime: 'slime',
+      crystal: 'crystal',
+      kineticSand: 'kinetic sand',
+      thickFluid: 'thick fluid',
+      glassRibbon: 'glass ribbon',
+      bubbleWrap: 'bubble wrap'
+    };
+    document.getElementById('material-indicator').textContent = names[this.currentMaterial] || this.currentMaterial;
+  },
+  
+  updateToolUI() {
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tool === this.currentTool);
+    });
+  }
+};
+
+// Tool selection handlers
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => Arena.selectTool(btn.dataset.tool));
+});
+
+// Initialize sequence
+Arena.generateSequence();
+Arena.updateMaterialIndicator();
+
+// ============================================
+// WEBGL SETUP
+// ============================================
+
 const canvas = document.getElementById('c');
 const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
 const hint = document.getElementById('hint');
 
-if (!gl) { document.body.innerHTML = '<p style="color:#fff;padding:40px">WebGL required</p>'; throw 'No WebGL'; }
+if (!gl) {
+  document.body.innerHTML = '<p style="color:#fff;padding:40px">WebGL required</p>';
+  throw 'No WebGL';
+}
 
-let W, H, dpr;
+let W, H, dpr, aspect;
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2);
   W = window.innerWidth;
   H = window.innerHeight;
   canvas.width = W * dpr;
   canvas.height = H * dpr;
+  aspect = W / H;
   gl.viewport(0, 0, canvas.width, canvas.height);
 }
 resize();
 window.addEventListener('resize', resize);
+
+// ============================================
+// SHADER: SLIME (FULL FIDELITY)
+// ============================================
+// EXPERIENTIAL SPEC:
+// - Touch it and it accepts me. Warm. Yielding. Almost affectionate.
+// - Pull and it resists by CLINGING TO ITSELF. Wants to stay whole.
+// - Strand forms, thins, becomes TRANSLUCENT. Visible countdown.
+// - Brain predicts snap. Material holds on past what seems possible.
+// - Snap FASTER than expected. Both ends recoil. Aftershocks.
+// - Satisfaction but also micro-grief. Something continuous became two.
+// - Immediate pull to make another strand.
 
 const vsSource = `
 attribute vec2 aPos;
@@ -41,31 +365,21 @@ void main() {
   gl_Position = vec4(aPos, 0.0, 1.0);
 }`;
 
-// ============================================
-// V6: PHYSICS + DENSITY RESTORATION
-// Real spring physics in JS, density layers in shader
-// ============================================
-const fsSource = `
+const fsSlime = `
 precision highp float;
 varying vec2 vUV;
 
 uniform float uTime;
 uniform vec2 uResolution;
-
-// Physics state from JS
-uniform vec2 uDeformPoint;     // Where deformation is applied
-uniform vec2 uDeformVelocity;  // Current velocity of deform point
-uniform float uDeformMag;      // Magnitude of deformation
+uniform vec2 uTouch;
 uniform float uTouchActive;
+uniform float uStretch;
+uniform float uTension;
 uniform float uSnapped;
-uniform vec2 uSnapDir;
+uniform vec2 uStretchDir;
+uniform vec2 uGrabPoint;
 
-#define PI 3.14159265
-#define saturate(x) clamp(x, 0.0, 1.0)
-
-// ============================================
-// NOISE (Simplex 3D)
-// ============================================
+// Simplex 3D noise
 vec3 mod289(vec3 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
 vec4 mod289(vec4 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
 vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
@@ -84,7 +398,10 @@ float snoise(vec3 v) {
   vec3 x2 = x0 - i2 + C.yyy;
   vec3 x3 = x0 - D.yyy;
   i = mod289(i);
-  vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+  vec4 p = permute(permute(permute(
+    i.z + vec4(0.0, i1.z, i2.z, 1.0))
+    + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+    + i.x + vec4(0.0, i1.x, i2.x, 1.0));
   float n_ = 0.142857142857;
   vec3 ns = n_ * D.wyz - D.xzx;
   vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
@@ -111,592 +428,695 @@ float snoise(vec3 v) {
   return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
 }
 
-// FBM for density layers
-float fbm(vec3 p, int octaves) {
-  float v = 0.0;
-  float a = 0.5;
-  vec3 shift = vec3(100.0);
-  for (int i = 0; i < 5; i++) {
-    if (i >= octaves) break;
-    v += a * snoise(p);
-    p = p * 2.0 + shift;
-    a *= 0.5;
-  }
-  return v;
+float sdBlob(vec2 p, float r) {
+  float d = length(p) - r;
+  float wobble = snoise(vec3(p * 2.5, uTime * 0.35)) * 0.035;
+  wobble += snoise(vec3(p * 4.0, uTime * 0.5)) * 0.015;
+  d += wobble;
+  return d;
 }
 
-// ============================================
-// SMOOTH MINIMUM
-// ============================================
-float sminSimple(float a, float b, float k) {
-  float h = max(k - abs(a - b), 0.0) / k;
-  return min(a, b) - h * h * k * 0.25;
-}
-
-// ============================================
-// PHYSICS-BASED DEFORMATION
-// ============================================
-vec2 applyDeformation(vec2 p, vec2 center, float radius) {
-  vec2 fromCenter = p - center;
-  float dist = length(fromCenter);
-  
-  // Influence falls off with distance from center
-  float influence = smoothstep(radius * 1.8, 0.0, dist);
-  influence = pow(influence, 1.3); // Sharper falloff
-  
-  // Direction from center to deform point
-  vec2 deformDir = normalize(uDeformPoint - center + 0.001);
-  
-  // Points aligned with pull direction move more
-  float alignment = max(0.0, dot(normalize(fromCenter + 0.001), deformDir));
-  float pullInfluence = influence * (0.4 + alignment * 0.6);
-  
-  // PHYSICS: Deformation based on actual displacement, not position
-  vec2 displacement = uDeformPoint - center;
-  float deformAmount = length(displacement);
-  
-  // Apply deformation with velocity-based lag
-  // Points further from grab point lag behind (simulates mass)
-  float lag = 1.0 - influence * 0.3;
-  vec2 deformed = p + deformDir * pullInfluence * uDeformMag * lag * 0.5;
-  
-  // VOLUME PRESERVATION: Perpendicular bulge
-  vec2 perpDir = vec2(-deformDir.y, deformDir.x);
-  float perpInfluence = influence * (1.0 - alignment * 0.5);
-  float bulge = uDeformMag * 0.15 * perpInfluence;
-  float perpDist = dot(fromCenter, perpDir);
-  deformed += perpDir * sign(perpDist) * bulge;
-  
-  // SECONDARY MOTION: Velocity-based wobble
-  float velMag = length(uDeformVelocity);
-  if (velMag > 0.001) {
-    vec2 velDir = uDeformVelocity / velMag;
-    // Perpendicular to velocity = wobble direction
-    vec2 wobbleDir = vec2(-velDir.y, velDir.x);
-    float wobble = sin(dist * 20.0 + uTime * 8.0) * velMag * influence * 0.15;
-    deformed += wobbleDir * wobble;
-  }
-  
-  // SNAP RECOIL
-  if (uSnapped > 0.01) {
-    float snapInfluence = influence * smoothstep(-0.2, 0.8, dot(normalize(fromCenter + 0.001), uSnapDir));
-    
-    // Primary recoil
-    deformed -= uSnapDir * snapInfluence * uSnapped * 0.25;
-    
-    // Oscillation (overshoot)
-    float osc = sin(dist * 30.0 - (1.0 - uSnapped) * 25.0) * uSnapped * 0.04;
-    deformed += uSnapDir * osc * snapInfluence;
-    
-    // Perpendicular jiggle
-    vec2 perpSnap = vec2(-uSnapDir.y, uSnapDir.x);
-    float jiggle = sin(dist * 35.0 - (1.0 - uSnapped) * 30.0) * uSnapped * 0.025;
-    deformed += perpSnap * jiggle * influence;
-  }
-  
-  return deformed;
-}
-
-// ============================================
-// BLOB SDF WITH ORGANIC EDGE
-// ============================================
-float sdBlob(vec2 p, vec2 center, float radius) {
-  vec2 d = p - center;
-  float dist = length(d) - radius;
-  
-  // Organic wobble on boundary
-  float angle = atan(d.y, d.x);
-  dist += snoise(vec3(angle * 2.0, length(d) * 5.0, uTime * 0.3)) * 0.025;
-  dist += snoise(vec3(angle * 4.0, length(d) * 8.0, uTime * 0.5)) * 0.012;
-  
-  return dist;
-}
-
-// ============================================
-// STRAND SDF
-// ============================================
-float sdStrand(vec2 p, vec2 start, vec2 end, float baseWidth, float tipWidth) {
-  vec2 dir = end - start;
-  float len = length(dir);
-  if (len < 0.01) return 1000.0;
-  
-  vec2 norm = dir / len;
-  float along = dot(p - start, norm);
-  float t = clamp(along / len, 0.0, 1.0);
-  
-  // Variable thickness
-  float thickness = mix(baseWidth, tipWidth, pow(t, 0.5));
-  
-  // Wobble
-  vec2 perp = vec2(-norm.y, norm.x);
-  float wobble = sin(t * 18.0 + uTime * 3.0) * t * t * 0.008;
-  wobble += sin(t * 28.0 + uTime * 4.5) * t * t * 0.004;
-  
-  vec2 closest = start + norm * along + perp * wobble;
-  
-  return length(p - closest) - thickness;
-}
-
-// ============================================
-// LIGHTING
-// ============================================
-float fresnelSchlick(float cosTheta, float f0) {
-  return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
-}
-
-float distributionGGX(float NoH, float roughness) {
-  float a = roughness * roughness;
-  float a2 = a * a;
-  float NoH2 = NoH * NoH;
-  float denom = NoH2 * (a2 - 1.0) + 1.0;
-  return a2 / (PI * denom * denom + 0.0001);
-}
-
-// ============================================
-// MAIN
-// ============================================
 void main() {
   vec2 uv = vUV;
-  float aspect = uResolution.x / uResolution.y;
-  vec2 p = (uv - 0.5) * vec2(aspect, 1.0);
-  
+  vec2 p = (uv - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
+
   vec2 center = vec2(0.0, 0.02);
-  float baseRadius = 0.32;
+  float baseRadius = 0.33;
+
+  vec2 deformP = p;
   
-  // Apply physics-based deformation
-  vec2 deformedP = applyDeformation(p, center, baseRadius);
-  
-  // Main blob SDF
-  float d = sdBlob(deformedP, center, baseRadius);
-  
-  // Strand when pulling
-  if (uTouchActive > 0.1 && uDeformMag > 0.08) {
-    vec2 strandStart = center + normalize(uDeformPoint - center + 0.001) * baseRadius * 0.7;
-    vec2 strandEnd = uDeformPoint;
-    float strandD = sdStrand(p, strandStart, strandEnd, 0.045, 0.012);
-    d = sminSimple(d, strandD, 0.07);
+  // Grab-point anchored deformation
+  if (uTouchActive > 0.1 && uStretch > 0.01) {
+    vec2 touchP = (uTouch - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
+    vec2 grabP = (uGrabPoint - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
+    
+    vec2 pullVec = touchP - grabP;
+    vec2 pullDir = normalize(pullVec + 0.001);
+    float pullMag = length(pullVec);
+    
+    vec2 fromGrab = p - grabP;
+    float distFromGrab = length(fromGrab);
+    float grabInfluence = smoothstep(baseRadius * 1.0, 0.0, distFromGrab);
+    grabInfluence = pow(grabInfluence, 1.5);
+    
+    float alignWithPull = max(0.0, dot(normalize(fromGrab + 0.001), pullDir));
+    grabInfluence *= (0.6 + alignWithPull * 0.4);
+    
+    vec2 pullOffset = pullDir * grabInfluence * uStretch * 0.4;
+    deformP = p - pullOffset;
+    
+    // Volume conservation
+    vec2 fromCenter = p - center;
+    float distFromCenter = length(fromCenter);
+    vec2 awayFromGrab = normalize(center - grabP + 0.001);
+    float oppInfluence = smoothstep(baseRadius * 1.5, 0.0, distFromCenter);
+    float oppAlign = max(0.0, dot(normalize(fromCenter + 0.001), awayFromGrab));
+    float bulge = uStretch * 0.04 * oppInfluence * oppAlign;
+    deformP -= awayFromGrab * bulge;
   }
-  
+
+  // Snap recoil
+  if (uSnapped > 0.01) {
+    vec2 fromCenter = p - center;
+    float alignWithSnap = dot(normalize(fromCenter + 0.001), uStretchDir);
+    float snapMask = smoothstep(-0.3, 0.8, alignWithSnap);
+    float snapDist = length(fromCenter);
+    float snapRadial = smoothstep(baseRadius * 2.0, 0.0, snapDist);
+    
+    float wave = sin(snapDist * 25.0 - (1.0 - uSnapped) * 20.0) * 0.025 * uSnapped;
+    deformP -= uStretchDir * snapMask * snapRadial * uSnapped * 0.2;
+    deformP += normalize(fromCenter + 0.001) * wave * snapRadial;
+    
+    vec2 perpSnap = vec2(-uStretchDir.y, uStretchDir.x);
+    float jiggle = sin(snapDist * 30.0 - (1.0 - uSnapped) * 25.0) * 0.012 * uSnapped;
+    deformP += perpSnap * jiggle * snapRadial;
+  }
+
+  float d = sdBlob(deformP - center, baseRadius);
+
   // Background
-  vec3 bgColor = vec3(0.02, 0.025, 0.04);
-  bgColor += vec3(0.01, 0.012, 0.025) * (1.0 - length(p) * 0.4);
-  
-  // Outer glow
-  if (d > 0.012) {
-    float glowDist = smoothstep(0.18, 0.0, d);
-    float tensionGlow = uDeformMag * 0.4;
-    vec3 glowColor = vec3(0.04, 0.16, 0.14) * glowDist * (0.3 + tensionGlow);
+  vec3 bgColor = vec3(0.03, 0.03, 0.045);
+  bgColor += vec3(0.008, 0.012, 0.025) * (1.0 - length(p) * 0.6);
+  float shadow = smoothstep(0.1, -0.15, p.y + 0.35) * 0.08;
+  bgColor -= vec3(shadow);
+
+  if (d > 0.015) {
+    float glowDist = smoothstep(0.12, 0.0, d);
+    vec3 glowColor = vec3(0.06, 0.2, 0.18) * glowDist * (0.2 + uTension * 0.25);
     gl_FragColor = vec4(bgColor + glowColor, 1.0);
     return;
   }
-  
-  // ============================================
-  // DENSITY LAYERS (the key fix)
-  // ============================================
-  
-  // Depth into blob (0 at edge, 1 at center)
-  float rawDepth = -d / baseRadius;
-  float depth = smoothstep(0.0, 0.85, rawDepth);
-  
-  // LAYER 1: Surface (bright, reflective)
-  float surfaceLayer = smoothstep(0.0, 0.15, rawDepth) * (1.0 - smoothstep(0.15, 0.35, rawDepth));
-  
-  // LAYER 2: Subsurface (translucent, colored)
-  float subLayer = smoothstep(0.1, 0.4, rawDepth) * (1.0 - smoothstep(0.4, 0.7, rawDepth));
-  
-  // LAYER 3: Core (dense, dark, pulsing)
-  float coreLayer = smoothstep(0.5, 0.9, rawDepth);
-  
-  // Noise for each layer (different scales)
-  float surfaceNoise = fbm(vec3(deformedP * 8.0, uTime * 0.2), 3) * 0.5 + 0.5;
-  float subNoise = fbm(vec3(deformedP * 4.0 + 50.0, uTime * 0.15), 4) * 0.5 + 0.5;
-  float coreNoise = fbm(vec3(deformedP * 2.0 + 100.0, uTime * 0.1), 3) * 0.5 + 0.5;
-  
-  // ============================================
-  // COLORS PER LAYER
-  // ============================================
-  
-  // Surface colors (lighter, more saturated)
-  vec3 surfaceCol1 = vec3(0.08, 0.50, 0.42);
-  vec3 surfaceCol2 = vec3(0.12, 0.55, 0.35);
-  vec3 surfaceColor = mix(surfaceCol1, surfaceCol2, surfaceNoise);
-  
-  // Subsurface colors (muted, organic)
-  vec3 subCol1 = vec3(0.04, 0.35, 0.32);
-  vec3 subCol2 = vec3(0.06, 0.40, 0.28);
-  vec3 subCol3 = vec3(0.03, 0.28, 0.38);
-  vec3 subColor = mix(mix(subCol1, subCol2, subNoise), subCol3, subNoise * subNoise);
-  
-  // Core colors (dark, dense)
-  vec3 coreCol1 = vec3(0.015, 0.12, 0.14);
-  vec3 coreCol2 = vec3(0.02, 0.08, 0.12);
-  vec3 coreColor = mix(coreCol1, coreCol2, coreNoise);
-  // Core pulse
-  float corePulse = sin(uTime * 1.5 + coreNoise * 3.0) * 0.5 + 0.5;
-  coreColor += vec3(0.01, 0.04, 0.03) * corePulse;
-  
-  // Blend layers
-  vec3 baseColor = surfaceColor * surfaceLayer +
-                   subColor * subLayer +
-                   coreColor * coreLayer;
-  
-  // Fill gaps with interpolation
-  float totalWeight = surfaceLayer + subLayer + coreLayer;
-  if (totalWeight < 0.3) {
-    // Edge region - fade from surface
-    baseColor = mix(surfaceColor * 0.8, baseColor, totalWeight / 0.3);
-  }
-  
-  // ============================================
-  // DENSITY TEXTURES (veins, cells, inclusions)
-  // ============================================
-  
-  // Veins (worley-like, follows depth)
-  float veinNoise = snoise(vec3(deformedP * 12.0, uTime * 0.08));
-  float veinNoise2 = snoise(vec3(deformedP * 18.0 + 30.0, uTime * 0.12));
-  float veins = smoothstep(0.3, 0.5, abs(veinNoise)) * smoothstep(0.2, 0.5, abs(veinNoise2));
-  veins *= subLayer + coreLayer * 0.5; // Veins visible in middle/deep
-  baseColor = mix(baseColor, baseColor * 0.7 + vec3(0.01, 0.06, 0.05), veins * 0.4);
-  
-  // Cellular structures
-  float cells = snoise(vec3(deformedP * 25.0, uTime * 0.05));
-  float cellEdge = smoothstep(0.0, 0.08, abs(cells - 0.3));
-  baseColor = mix(baseColor + vec3(0.02, 0.04, 0.03), baseColor, cellEdge * (1.0 - surfaceLayer));
-  
-  // Bright inclusions (small, scattered)
-  float incl = snoise(vec3(deformedP * 40.0, uTime * 0.3));
-  float inclusions = smoothstep(0.85, 0.92, incl) * depth;
-  baseColor += vec3(0.15, 0.30, 0.25) * inclusions;
-  
-  // Dark inclusions (dense spots)
-  float darkIncl = snoise(vec3(deformedP * 35.0 + 200.0, uTime * 0.2));
-  float darkSpots = smoothstep(0.88, 0.95, darkIncl) * coreLayer;
-  baseColor *= (1.0 - darkSpots * 0.5);
-  
-  // ============================================
-  // TENSION COLOR SHIFT
-  // ============================================
-  float tension = uDeformMag;
-  vec3 tensionColor = vec3(0.40, 0.18, 0.06);
-  baseColor = mix(baseColor, tensionColor, tension * 0.25 * (1.0 - coreLayer));
-  
-  // Stretch stress lines
-  if (tension > 0.1) {
-    vec2 stretchDir = normalize(uDeformPoint - center + 0.001);
-    float stretchAlign = abs(dot(normalize(deformedP - center + 0.001), stretchDir));
-    float stressLine = sin(stretchAlign * 50.0 + length(deformedP - center) * 30.0) * 0.5 + 0.5;
-    stressLine = smoothstep(0.4, 0.6, stressLine) * tension * stretchAlign;
-    baseColor = mix(baseColor, tensionColor * 1.2, stressLine * 0.15);
-  }
-  
-  // ============================================
-  // NORMALS FROM SDF
-  // ============================================
-  float eps = 0.004;
-  vec2 dp1 = applyDeformation(p + vec2(eps, 0.0), center, baseRadius);
-  vec2 dp2 = applyDeformation(p - vec2(eps, 0.0), center, baseRadius);
-  vec2 dp3 = applyDeformation(p + vec2(0.0, eps), center, baseRadius);
-  vec2 dp4 = applyDeformation(p - vec2(0.0, eps), center, baseRadius);
-  float dx = sdBlob(dp1, center, baseRadius) - sdBlob(dp2, center, baseRadius);
-  float dy = sdBlob(dp3, center, baseRadius) - sdBlob(dp4, center, baseRadius);
-  vec3 normal = normalize(vec3(-dx, -dy, 0.1));
-  
-  // ============================================
-  // LIGHTING
-  // ============================================
-  vec3 view = vec3(0.0, 0.0, 1.0);
+
+  // Normal for lighting
+  float eps = 0.002;
+  float dx = sdBlob(deformP - center + vec2(eps, 0.0), baseRadius) - sdBlob(deformP - center - vec2(eps, 0.0), baseRadius);
+  float dy = sdBlob(deformP - center + vec2(0.0, eps), baseRadius) - sdBlob(deformP - center - vec2(0.0, eps), baseRadius);
+  vec3 normal = normalize(vec3(-dx, -dy, 0.06));
+
+  float depth = smoothstep(0.0, -baseRadius * 0.8, d);
+
+  // Internal noise patterns
+  float n1 = snoise(vec3(deformP * 2.5, uTime * 0.15)) * 0.5 + 0.5;
+  float n2 = snoise(vec3(deformP * 4.0 + 3.0, uTime * 0.2)) * 0.5 + 0.5;
+  float n3 = snoise(vec3(deformP * 1.5 + 7.0, uTime * 0.1)) * 0.5 + 0.5;
+
+  vec3 col1 = vec3(0.04, 0.42, 0.38);
+  vec3 col2 = vec3(0.08, 0.52, 0.30);
+  vec3 col3 = vec3(0.03, 0.30, 0.42);
+  vec3 col4 = vec3(0.06, 0.38, 0.25);
+
+  vec3 baseColor = mix(mix(col1, col2, n1), mix(col3, col4, n2), n3);
+  baseColor *= (0.5 + depth * 0.5);
+
+  // Subsurface scattering
+  float sss = depth;
+  float sssNoise = snoise(vec3(deformP * 3.0, uTime * 0.25)) * 0.3 + 0.7;
+  vec3 sssColor = vec3(0.08, 0.35, 0.28) * sss * sssNoise * 0.3;
+
+  // Tension warmth
+  vec3 tensionColor = vec3(0.45, 0.22, 0.08);
+  baseColor = mix(baseColor, tensionColor, uTension * 0.2);
+
+  // Lighting
   vec3 light1 = normalize(vec3(0.35, 0.55, 1.0));
   vec3 light2 = normalize(vec3(-0.4, 0.25, 0.7));
-  
-  float NoV = max(dot(normal, view), 0.001);
-  float NoL1 = max(dot(normal, light1), 0.0);
-  float NoL2 = max(dot(normal, light2), 0.0);
-  
-  vec3 H1 = normalize(light1 + view);
-  vec3 H2 = normalize(light2 + view);
-  float NoH1 = max(dot(normal, H1), 0.0);
-  float NoH2 = max(dot(normal, H2), 0.0);
-  
-  // Diffuse with depth-based absorption
-  float diffuse = saturate(NoL1 * 0.5 + NoL2 * 0.25 + 0.2);
-  diffuse *= (1.0 - coreLayer * 0.4); // Core absorbs more
-  
-  // Specular (sharper on surface, softer deep)
-  float roughness = 0.3 + depth * 0.25;
-  float spec1 = distributionGGX(NoH1, roughness) * NoL1;
-  float spec2 = distributionGGX(NoH2, roughness + 0.1) * NoL2;
-  float specular = (spec1 * 0.65 + spec2 * 0.35);
-  specular *= (1.0 - coreLayer * 0.6); // Less spec in core
-  
-  // Fresnel (rim light)
-  float f0 = 0.04;
-  float fresnel = fresnelSchlick(NoV, f0);
-  
-  // SSS (subsurface scattering)
-  vec3 sssColor = vec3(0.06, 0.28, 0.24);
-  float sssAmount = subLayer * 0.5 + surfaceLayer * 0.2;
-  sssAmount *= (1.0 + subNoise * 0.3);
-  vec3 sss = sssColor * sssAmount;
-  
-  // ============================================
-  // COMPOSE
-  // ============================================
-  vec3 color = baseColor * diffuse;
-  color += sss;
-  color += vec3(0.90, 0.95, 1.0) * specular * 0.55;
-  color += vec3(0.12, 0.22, 0.20) * fresnel * 0.45;
-  
-  // Surface sheen
-  float sheen = pow(NoH1, 12.0) * 0.10 + pow(NoH2, 10.0) * 0.05;
-  sheen *= surfaceLayer;
-  color += surfaceColor * sheen * 1.8;
-  
+  float diff1 = max(dot(normal, light1), 0.0) * 0.5;
+  float diff2 = max(dot(normal, light2), 0.0) * 0.25;
+
+  vec3 view = vec3(0.0, 0.0, 1.0);
+  float spec1 = pow(max(dot(normalize(light1 + view), normal), 0.0), 80.0) * 1.0;
+  float spec2 = pow(max(dot(normalize(light2 + view), normal), 0.0), 40.0) * 0.5;
+  float sheen1 = pow(max(dot(normalize(light1 + view), normal), 0.0), 12.0) * 0.15;
+  float sheen2 = pow(max(dot(normalize(light2 + view), normal), 0.0), 8.0) * 0.08;
+  float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 4.0) * 0.45;
+
+  vec3 color = baseColor * (0.12 + diff1 + diff2);
+  color += sssColor;
+  color += vec3(0.9, 0.95, 1.0) * (spec1 + spec2);
+  color += baseColor * 1.5 * (sheen1 + sheen2);
+  color += vec3(0.12, 0.2, 0.22) * fresnel;
+  color += vec3(0.6, 0.8, 0.75) * fresnel * 0.12;
+
+  // Internal marbling
+  float marble1 = snoise(vec3(deformP * 6.0 + vec2(uTime * 0.08, uTime * -0.06), uTime * 0.12));
+  float marble2 = snoise(vec3(deformP * 9.0 + vec2(uTime * -0.05, uTime * 0.09), uTime * 0.08));
+  float marblePattern = smoothstep(0.1, 0.4, marble1) * smoothstep(0.0, 0.35, marble2);
+  color += vec3(0.04, 0.15, 0.12) * marblePattern * depth * 0.3;
+
+  // Micro bubbles
+  float bubble = snoise(vec3(deformP * 30.0, uTime * 0.8));
+  float bubbleMask = smoothstep(0.88, 0.95, bubble) * depth;
+  color += vec3(0.4, 0.7, 0.6) * bubbleMask * 0.35;
+
+  // Air pockets
+  float pocket = snoise(vec3(deformP * 12.0, uTime * 0.15));
+  float pocketMask = smoothstep(0.82, 0.92, pocket) * depth;
+  float pocketHighlight = pow(max(dot(normal, light1), 0.0), 20.0);
+  color += vec3(0.15, 0.3, 0.25) * pocketMask * 0.2;
+  color += vec3(0.5, 0.7, 0.6) * pocketMask * pocketHighlight * 0.3;
+
+  // STRETCH STRAND - thinning until translucent, the countdown
+  if (uTouchActive > 0.1 && uStretch > 0.12) {
+    vec2 touchP = (uTouch - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
+    vec2 grabP = (uGrabPoint - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
+    
+    vec2 strandStart = grabP;
+    vec2 strandEnd = touchP;
+    vec2 strandDir = strandEnd - strandStart;
+    float strandLen = length(strandDir);
+    vec2 strandNorm = normalize(strandDir + 0.001);
+    vec2 strandPerp = vec2(-strandNorm.y, strandNorm.x);
+
+    float along = dot(p - strandStart, strandNorm);
+    float perp = dot(p - strandStart, strandPerp);
+
+    if (along > 0.0 && along < strandLen) {
+      float t = along / strandLen;
+      
+      // Strand tapers - thick at base, impossibly thin at tip
+      float baseWidth = 0.05 * (1.0 - uStretch * 0.25);
+      float tipWidth = 0.008; // Even thinner
+      float strandWidth = mix(baseWidth, tipWidth, pow(t, 0.5));
+      
+      // Wobble increases toward tip - precarious
+      float wobbleAmt = t * t * 0.01;
+      float wobble = sin(t * 15.0 + uTime * 2.5) * wobbleAmt;
+      wobble += sin(t * 25.0 + uTime * 3.8) * wobbleAmt * 0.5;
+      float adjPerp = perp - wobble;
+      
+      if (abs(adjPerp) < strandWidth) {
+        float surface = 1.0 - abs(adjPerp) / strandWidth;
+        surface = pow(surface, 0.5);
+        
+        vec3 sNorm = normalize(vec3(-strandPerp * (1.0 - surface) * 0.5, 0.3));
+        float sDiff = max(dot(sNorm, light1), 0.0);
+        float sSpec = pow(max(dot(normalize(sNorm + view), light1), 0.0), 60.0);
+        
+        vec3 strandColor = baseColor * (0.25 + sDiff * 0.5);
+        strandColor += sssColor * 0.4;
+        strandColor += vec3(0.8, 0.9, 0.85) * sSpec * 0.5;
+        
+        // SSS through thin strand - TRANSLUCENT at the tip
+        float thinSSS = (1.0 - surface) * t * 0.4;
+        strandColor += vec3(0.15, 0.5, 0.4) * thinSSS;
+        
+        // More translucent toward tip (the countdown)
+        float translucency = pow(t, 1.5) * 0.3;
+        strandColor = mix(strandColor, vec3(0.1, 0.4, 0.35), translucency);
+        
+        float sFresnel = pow(1.0 - surface, 3.0) * 0.2;
+        strandColor += vec3(0.3, 0.5, 0.45) * sFresnel;
+        
+        float strandAlpha = surface * smoothstep(1.0, 0.75, t);
+        color = mix(color, strandColor, strandAlpha);
+      }
+    }
+  }
+
+  // SNAP SPLATTER - the micro-grief made visible
+  if (uSnapped > 0.01) {
+    for (float i = 0.0; i < 12.0; i++) {
+      float seed1 = fract(sin(i * 43.17) * 137.29);
+      float seed2 = fract(sin(i * 91.33) * 57.81);
+      
+      vec2 splatDir = normalize(uStretchDir + vec2(
+        cos(i * 0.52 + seed1 * 6.28) * 0.6,
+        sin(i * 0.52 + seed2 * 6.28) * 0.6
+      ));
+      float splatDist = (0.15 + seed1 * 0.35) * (1.0 - uSnapped * 0.5);
+      vec2 splatPos = center + uStretchDir * baseRadius * 0.8 + splatDir * splatDist;
+      float splatSize = (0.008 + seed2 * 0.018) * uSnapped;
+      
+      float sd = length(p - splatPos) - splatSize;
+      if (sd < 0.0) {
+        float splatSurface = smoothstep(0.0, -splatSize, sd);
+        vec3 splatNorm = normalize(vec3(normalize(p - splatPos), 0.3));
+        float splatDiff = max(dot(splatNorm, light1), 0.0);
+        float splatSpec = pow(max(dot(normalize(splatNorm + view), light1), 0.0), 40.0);
+        vec3 splatColor = baseColor * (0.3 + splatDiff * 0.4) + vec3(0.7, 0.8, 0.75) * splatSpec * 0.3;
+        color = mix(color, splatColor, splatSurface * uSnapped);
+      }
+    }
+    
+    vec2 breakPoint = center + uStretchDir * baseRadius * 0.9;
+    float flashDist = length(p - breakPoint);
+    float flash = smoothstep(0.15, 0.0, flashDist) * uSnapped * 0.4;
+    color += vec3(0.3, 0.6, 0.5) * flash;
+  }
+
+  float edgeBlend = smoothstep(-0.002, 0.012, d);
+  color = mix(color, bgColor, edgeBlend);
+  color += vec3(0.12, 0.28, 0.22) * uSnapped * 0.35;
+
   gl_FragColor = vec4(color, 1.0);
 }`;
 
-// Compile shaders
+// ============================================
+// MATERIAL STUBS (Architecture knows about all)
+// ============================================
+
+/*
+CRYSTAL SHADER STUB
+-------------------
+EXPERIENTIAL SPEC (from CREATIVE-BRIEF.md):
+
+This one doesn't welcome me. It doesn't yield. It doesn't acknowledge. It *waits*.
+
+I press. Nothing. The surface is hard. My finger pad deforms against it — 
+I'm the one changing shape, not the crystal. It gives nothing back.
+
+I press harder. Still nothing visible. But I know something is happening inside. 
+The energy I'm putting in has nowhere to go. Crystal can't stretch to absorb it. 
+Can't flow to dissipate it. It's storing everything I give.
+
+Pressure accumulates. Invisible. I can't see it but I can feel it — potential building.
+
+A crack. Not where I'm pressing — somewhere else. A flaw in the geometry. 
+The pressure found the weakest point and escaped there. A tiny line appears, catching light.
+
+Then propagation. More cracks racing outward from the first. Branching. 
+Following the crystal's internal structure. Accelerating.
+
+Shatter. Not slow. Everything at once. Fragments flying. 
+Prismatic scatter as light catches a hundred new faces.
+
+IMPLEMENTATION NOTES:
+- SDF for crystal geometry (sharp faceted edges)
+- Crack propagation via Voronoi or fracture pattern
+- Pressure accumulation as internal glow/strain texture
+- Prismatic refraction in fragment shader
+- Particle burst on shatter
+- Haptic: Nothing during pressure (eerie), sharp staccato burst on shatter
+*/
+const fsCrystal = `
+precision highp float;
+varying vec2 vUV;
+uniform float uTime;
+void main() {
+  // STUB: Crystal material
+  // See CREATIVE-BRIEF.md for experiential spec
+  gl_FragColor = vec4(0.2, 0.3, 0.5, 1.0);
+}`;
+
+/*
+KINETIC SAND SHADER STUB
+------------------------
+EXPERIENTIAL SPEC (from CREATIVE-BRIEF.md):
+
+This one has weight. Gravity lives in it. It sits there, dense and patient.
+
+I press my finger in. No stretch, no strand, no cling. It simply *parts*. 
+Grains sliding against each other, making room. The resistance isn't elastic — 
+it's frictional. Millions of tiny contacts.
+
+My finger drags through. The texture against my skin is almost massage. 
+Not smooth — granular. Individual.
+
+And then — the reveal. Where my finger passed, the face is *smooth*. 
+Not ragged. Not torn. Smooth. A perfect cross-section.
+
+The smoothness is a gift. The sand did the beautiful part; I just initiated.
+
+IMPLEMENTATION NOTES:
+- Particle-based rendering for grain texture
+- Cohesion forces between particles
+- Clean-cut face reveal via SDF boolean
+- Smooth cross-section shader effect
+- Haptic: Continuous granular texture during drag, subtle pulse on reveal
+*/
+const fsKineticSand = `
+precision highp float;
+varying vec2 vUV;
+uniform float uTime;
+void main() {
+  // STUB: Kinetic Sand material
+  // See CREATIVE-BRIEF.md for experiential spec
+  gl_FragColor = vec4(0.6, 0.5, 0.3, 1.0);
+}`;
+
+/*
+THICK FLUID SHADER STUB
+-----------------------
+EXPERIENTIAL SPEC (from CREATIVE-BRIEF.md):
+
+Warm. Dense. It doesn't move unless I make it.
+
+I press in. Immediate resistance — not hard like crystal, but *thick*. 
+The material pushes back with weight. Every millimeter costs effort.
+
+Heat builds at the contact point. The friction of sustained pressure feels warm.
+
+The resistance sustains longer than expected. No breaking point, only continuous yield. 
+Each millimeter is earned the same as the last.
+
+And then — breakthrough. The resistance suddenly isn't there. 
+My finger pushes forward faster than expected. The material is behind me now.
+
+The release is a flood. Warm. The pressure that was holding releases as warmth 
+spreading through my whole hand.
+
+IMPLEMENTATION NOTES:
+- Viscous fluid simulation (simplified)
+- Heat accumulation visual (warm color shift at pressure point)
+- Sustained resistance curve (no snap, gradual yield)
+- Breakthrough moment with velocity change
+- Haptic: Deep continuous vibration, building intensity, warm pulse flood on breakthrough
+*/
+const fsThickFluid = `
+precision highp float;
+varying vec2 vUV;
+uniform float uTime;
+void main() {
+  // STUB: Thick Fluid material
+  // See CREATIVE-BRIEF.md for experiential spec
+  gl_FragColor = vec4(0.4, 0.25, 0.2, 1.0);
+}`;
+
+/*
+GLASS RIBBON SHADER STUB
+------------------------
+EXPERIENTIAL SPEC (from CREATIVE-BRIEF.md):
+
+This one requires finding an edge. The material presents as continuous surface, 
+but somewhere there's a seam. A corner that can be lifted. The search is part of it.
+
+I find it. My fingernail catches underneath. I pull up and — movement. The edge lifts.
+
+Now the peel begins. This one I control. I set the pace. 
+The ribbon detaches incrementally. A whisper of adhesion releasing.
+
+The ribbon curls. Not because I'm curling it — because that's what it does when freed. 
+The material wants to coil. As I pull, it spirals on itself.
+
+Each millimeter of peel adds to the curl. I'm creating something — 
+a spiral object that didn't exist before.
+
+This satisfaction is different. It's *creative*. I'm not destroying — I'm *revealing*.
+
+IMPLEMENTATION NOTES:
+- Edge detection zone for grab initiation
+- Peel progress as bezier curve unfurling
+- Automatic curl formation (spiral SDF)
+- Transparency/glass shader for ribbon
+- Haptic: Gentle continuous purr during peel, subtle pulse as curl forms
+*/
+const fsGlassRibbon = `
+precision highp float;
+varying vec2 vUV;
+uniform float uTime;
+void main() {
+  // STUB: Glass Ribbon material
+  // See CREATIVE-BRIEF.md for experiential spec
+  gl_FragColor = vec4(0.7, 0.8, 0.9, 1.0);
+}`;
+
+/*
+BUBBLE WRAP SHADER STUB
+-----------------------
+EXPERIENTIAL SPEC (from CREATIVE-BRIEF.md):
+
+This one is about multiples. Not one satisfaction — a field of them.
+
+I find a bubble. Small dome of trapped air. I press. The air compresses. 
+The plastic film stretches. Resistance builds.
+
+Pop. Sharp. Quick. Decisive. The bubble is flat now. One done.
+
+But there are so many more. A grid of promises. Each bubble a tiny package of potential.
+
+Rhythm emerges. I'm not thinking about individual bubbles anymore. 
+My finger is moving on its own. Finding, pressing, popping, moving. A beat.
+
+Pop pop pop pop. The rhythm IS the satisfaction now. Not any single pop — the sequence. 
+Progress made audible.
+
+I'm clearing the field. Every bubble popped is territory claimed. 
+The goal isn't one pop — it's ALL the pops. Completion.
+
+IMPLEMENTATION NOTES:
+- Grid of bubble SDFs
+- Individual bubble state (intact/popped)
+- Pop animation (dome collapse)
+- Sequential clearing mechanic
+- Progress tracking (percentage cleared)
+- Haptic: Sharp pop pulse, rhythm-matched to finger speed
+*/
+const fsBubbleWrap = `
+precision highp float;
+varying vec2 vUV;
+uniform float uTime;
+void main() {
+  // STUB: Bubble Wrap material
+  // See CREATIVE-BRIEF.md for experiential spec
+  gl_FragColor = vec4(0.8, 0.8, 0.85, 1.0);
+}`;
+
+// ============================================
+// SHADER COMPILATION
+// ============================================
+
 function createShader(type, source) {
   const s = gl.createShader(type);
   gl.shaderSource(s, source);
   gl.compileShader(s);
   if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-    console.error(gl.getShaderInfoLog(s));
+    console.error('Shader error:', gl.getShaderInfoLog(s));
     return null;
   }
   return s;
 }
 
-const vs = createShader(gl.VERTEX_SHADER, vsSource);
-const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
-const prog = gl.createProgram();
-gl.attachShader(prog, vs);
-gl.attachShader(prog, fs);
-gl.linkProgram(prog);
-gl.useProgram(prog);
+function createProgram(vsSource, fsSource) {
+  const vs = createShader(gl.VERTEX_SHADER, vsSource);
+  const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
+  const program = gl.createProgram();
+  gl.attachShader(program, vs);
+  gl.attachShader(program, fs);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error('Link error:', gl.getProgramInfoLog(program));
+    return null;
+  }
+  return program;
+}
 
-// Fullscreen quad
+// Create all programs
+const programs = {
+  slime: createProgram(vsSource, fsSlime),
+  crystal: createProgram(vsSource, fsCrystal),
+  kineticSand: createProgram(vsSource, fsKineticSand),
+  thickFluid: createProgram(vsSource, fsThickFluid),
+  glassRibbon: createProgram(vsSource, fsGlassRibbon),
+  bubbleWrap: createProgram(vsSource, fsBubbleWrap)
+};
+
+// Use slime initially
+let currentProgram = programs.slime;
+gl.useProgram(currentProgram);
+
+// Geometry buffer
 const buf = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, buf);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-const aPos = gl.getAttribLocation(prog, 'aPos');
-gl.enableVertexAttribArray(aPos);
-gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-// Uniforms
-const uTime = gl.getUniformLocation(prog, 'uTime');
-const uResolution = gl.getUniformLocation(prog, 'uResolution');
-const uDeformPoint = gl.getUniformLocation(prog, 'uDeformPoint');
-const uDeformVelocity = gl.getUniformLocation(prog, 'uDeformVelocity');
-const uDeformMag = gl.getUniformLocation(prog, 'uDeformMag');
-const uTouchActive = gl.getUniformLocation(prog, 'uTouchActive');
-const uSnapped = gl.getUniformLocation(prog, 'uSnapped');
-const uSnapDir = gl.getUniformLocation(prog, 'uSnapDir');
+function setupAttributes(program) {
+  const aPos = gl.getAttribLocation(program, 'aPos');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+}
+setupAttributes(currentProgram);
 
-// ============================================
-// PHYSICS STATE
-// ============================================
-const center = { x: 0.5, y: 0.48 };
-const baseRadius = 0.24;
-
-// Spring-mass system for deformation point
-const physics = {
-  // Current position (where the deform is applied)
-  x: 0, y: 0,
-  // Velocity
-  vx: 0, vy: 0,
-  // Target (touch point when active, rest when not)
-  targetX: 0, targetY: 0,
-  // Rest position (center of blob)
-  restX: 0, restY: 0,
-  // Spring constants
-  stiffness: 12,      // How fast it follows
-  damping: 0.75,      // Oscillation decay
-  mass: 1.0,
-  // State
-  active: false,
-  magnitude: 0,       // Current stretch amount
-  snapped: 0,
-  snapDirX: 0,
-  snapDirY: 1
+// Uniform locations (slime-specific, will need per-material)
+const loc = (n) => gl.getUniformLocation(currentProgram, n);
+let uniforms = {
+  uTime: loc('uTime'),
+  uResolution: loc('uResolution'),
+  uTouch: loc('uTouch'),
+  uTouchActive: loc('uTouchActive'),
+  uStretch: loc('uStretch'),
+  uTension: loc('uTension'),
+  uSnapped: loc('uSnapped'),
+  uStretchDir: loc('uStretchDir'),
+  uGrabPoint: loc('uGrabPoint')
 };
 
+// ============================================
+// INTERACTION STATE
+// ============================================
+
+let state = {
+  touchActive: 0,
+  touchX: 0.5, touchY: 0.5,
+  grabX: 0.5, grabY: 0.5,
+  stretch: 0,
+  targetStretch: 0,
+  tension: 0,
+  snapped: 0,
+  stretchDirX: 0, stretchDirY: 1,
+  grabbed: false,
+  hintHidden: false,
+  
+  // Scoring state
+  interactionStart: 0,
+  maxStretch: 0,
+  stretchHistory: []
+};
+
+const blobCX = 0.5;
+const blobCY = 0.48;
+
 function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return {
-    x: (clientX - rect.left) / rect.width,
-    y: 1 - (clientY - rect.top) / rect.height
-  };
+  if (e.touches) return { x: e.touches[0].clientX / W, y: 1.0 - e.touches[0].clientY / H };
+  return { x: e.clientX / W, y: 1.0 - e.clientY / H };
 }
 
-function toWorld(pos) {
-  const aspect = W / H;
-  return {
-    x: (pos.x - 0.5) * aspect,
-    y: pos.y - 0.5
-  };
-}
+canvas.addEventListener('touchstart', e => { e.preventDefault(); onDown(getPos(e)); }, { passive: false });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); onMove(getPos(e)); }, { passive: false });
+canvas.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
+canvas.addEventListener('mousedown', e => onDown(getPos(e)));
+canvas.addEventListener('mousemove', e => { if (state.grabbed) onMove(getPos(e)); });
+canvas.addEventListener('mouseup', () => onUp());
+canvas.addEventListener('mouseleave', () => onUp());
 
-function isInBlob(pos) {
-  const w = toWorld(pos);
-  const cx = (center.x - 0.5) * (W / H);
-  const cy = center.y - 0.5;
-  const dist = Math.sqrt((w.x - cx) ** 2 + (w.y - cy) ** 2);
-  return dist < baseRadius * 1.3;
-}
-
-function onStart(e) {
-  e.preventDefault();
-  const pos = getPos(e);
-  if (isInBlob(pos)) {
-    const w = toWorld(pos);
-    physics.active = true;
-    physics.targetX = w.x;
-    physics.targetY = w.y;
-    // Start at touch point
-    physics.x = w.x;
-    physics.y = w.y;
-    physics.vx = 0;
-    physics.vy = 0;
-    physics.snapped = 0;
-    hint.style.opacity = '0';
-  }
-}
-
-function onMove(e) {
-  if (!physics.active) return;
-  e.preventDefault();
-  const pos = getPos(e);
-  const w = toWorld(pos);
-  physics.targetX = w.x;
-  physics.targetY = w.y;
-}
-
-function onEnd(e) {
-  if (!physics.active) return;
+function onDown(pos) {
+  const dx = (pos.x - blobCX) * aspect;
+  const dy = pos.y - blobCY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
   
-  if (physics.magnitude > 0.12) {
-    // Calculate snap direction from current velocity or position
-    const dx = physics.x - physics.restX;
-    const dy = physics.y - physics.restY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist > 0.01) {
-      physics.snapDirX = dx / dist;
-      physics.snapDirY = dy / dist;
+  if (dist < 0.4) {
+    state.touchActive = 1;
+    state.touchX = pos.x;
+    state.touchY = pos.y;
+    state.grabX = pos.x;
+    state.grabY = pos.y;
+    state.grabbed = true;
+    state.interactionStart = performance.now();
+    state.maxStretch = 0;
+    state.stretchHistory = [];
+    
+    if (!state.hintHidden) {
+      hint.style.opacity = '0';
+      state.hintHidden = true;
     }
-    physics.snapped = 1.0;
   }
-  
-  physics.active = false;
 }
 
-canvas.addEventListener('mousedown', onStart);
-canvas.addEventListener('mousemove', onMove);
-canvas.addEventListener('mouseup', onEnd);
-canvas.addEventListener('mouseleave', onEnd);
-canvas.addEventListener('touchstart', onStart, { passive: false });
-canvas.addEventListener('touchmove', onMove, { passive: false });
-canvas.addEventListener('touchend', onEnd);
-canvas.addEventListener('touchcancel', onEnd);
-
-// ============================================
-// PHYSICS UPDATE
-// ============================================
-let lastTime = performance.now();
-
-function updatePhysics(dt) {
-  // Clamp dt to avoid instability
-  dt = Math.min(dt, 0.033);
+function onMove(pos) {
+  if (!state.grabbed) return;
   
-  // Rest position is blob center
-  const aspect = W / H;
-  physics.restX = (center.x - 0.5) * aspect;
-  physics.restY = center.y - 0.5;
+  state.touchX = pos.x;
+  state.touchY = pos.y;
+
+  const dx = (pos.x - blobCX) * aspect;
+  const dy = pos.y - blobCY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
   
-  if (physics.active) {
-    // FOLLOW: Spring toward touch target
-    const dx = physics.targetX - physics.x;
-    const dy = physics.targetY - physics.y;
+  const deadZone = 0.03;
+  const effectiveDist = Math.max(0, dist - deadZone);
+  
+  state.targetStretch = Math.min(1, Math.pow(effectiveDist / 0.5, 0.55));
+  state.maxStretch = Math.max(state.maxStretch, state.targetStretch);
+  state.stretchHistory.push(state.targetStretch);
+  
+  if (dist > 0.01) {
+    state.stretchDirX = dx / dist;
+    state.stretchDirY = dy / dist;
+  }
+
+  // Haptics - building pulses during stretch
+  if (state.tension > 0.25 && Math.random() < 0.12) {
+    if (navigator.vibrate) navigator.vibrate(Math.floor(4 + state.tension * 18));
+  }
+  if (state.tension > 0.75 && Math.random() < 0.08) {
+    if (navigator.vibrate) navigator.vibrate(Math.floor(15 + state.tension * 25));
+  }
+}
+
+function onUp() {
+  if (state.stretch > 0.65) {
+    // SNAP - calculate score
+    const metrics = {
+      strandLength: state.maxStretch,
+      thinningPrecision: state.maxStretch > 0.8 ? 1.0 : state.maxStretch / 0.8,
+      cleanSnap: state.stretch > 0.7 ? 1.0 : 0.5,
+      recoilQuality: 1.0
+    };
     
-    // Spring force
-    const fx = dx * physics.stiffness;
-    const fy = dy * physics.stiffness;
+    const score = Arena.calculateScore('slime', metrics);
+    Arena.addScore(score);
     
-    // Apply force (F = ma, a = F/m)
-    physics.vx += fx * dt;
-    physics.vy += fy * dt;
+    // Snap haptic - sharp burst, then diminishing ripples
+    state.snapped = 1;
+    if (navigator.vibrate) navigator.vibrate([30, 10, 40, 8, 25, 5, 15]);
     
-    // Damping
-    physics.vx *= Math.pow(physics.damping, dt * 60);
-    physics.vy *= Math.pow(physics.damping, dt * 60);
-    
-    // Update position
-    physics.x += physics.vx * dt;
-    physics.y += physics.vy * dt;
-    
-  } else {
-    // RETURN: Spring back to rest with oscillation
-    const dx = physics.restX - physics.x;
-    const dy = physics.restY - physics.y;
-    
-    // Stronger spring for return (snappy)
-    const returnStiffness = 25;
-    const returnDamping = 0.65; // Less damping = more bounce
-    
-    const fx = dx * returnStiffness;
-    const fy = dy * returnStiffness;
-    
-    physics.vx += fx * dt;
-    physics.vy += fy * dt;
-    
-    physics.vx *= Math.pow(returnDamping, dt * 60);
-    physics.vy *= Math.pow(returnDamping, dt * 60);
-    
-    physics.x += physics.vx * dt;
-    physics.y += physics.vy * dt;
+    setTimeout(() => {
+      state.stretch = 0;
+      state.tension = 0;
+      state.snapped = 0;
+    }, 1200);
+  } else if (state.grabbed && state.stretch > 0.1) {
+    // Premature release - lower score
+    const metrics = {
+      strandLength: state.maxStretch * 0.5,
+      thinningPrecision: 0.3,
+      cleanSnap: 0,
+      recoilQuality: 0.5
+    };
+    const score = Arena.calculateScore('slime', metrics);
+    Arena.addScore(Math.floor(score * 0.3));
   }
   
-  // Calculate magnitude (distance from rest)
-  const mx = physics.x - physics.restX;
-  const my = physics.y - physics.restY;
-  physics.magnitude = Math.sqrt(mx * mx + my * my) * 3.0; // Scale for shader
-  physics.magnitude = Math.min(physics.magnitude, 1.0);
-  
-  // Decay snapped
-  if (physics.snapped > 0) {
-    physics.snapped *= Math.pow(0.92, dt * 60);
-    if (physics.snapped < 0.001) physics.snapped = 0;
-  }
+  state.touchActive = 0;
+  state.grabbed = false;
 }
 
 // ============================================
 // RENDER LOOP
 // ============================================
-let startTime = performance.now();
 
-function render() {
-  const now = performance.now();
-  const dt = (now - lastTime) / 1000;
-  lastTime = now;
-  
-  updatePhysics(dt);
-  
-  const t = (now - startTime) / 1000;
-  
-  gl.uniform1f(uTime, t);
-  gl.uniform2f(uResolution, canvas.width, canvas.height);
-  gl.uniform2f(uDeformPoint, physics.x, physics.y);
-  gl.uniform2f(uDeformVelocity, physics.vx, physics.vy);
-  gl.uniform1f(uDeformMag, physics.magnitude);
-  gl.uniform1f(uTouchActive, physics.active ? 1.0 : 0.0);
-  gl.uniform1f(uSnapped, physics.snapped);
-  gl.uniform2f(uSnapDir, physics.snapDirX, physics.snapDirY);
-  
+const startTime = performance.now();
+
+function frame() {
+  requestAnimationFrame(frame);
+  const t = (performance.now() - startTime) * 0.001;
+
+  if (state.grabbed && state.snapped < 0.5) {
+    state.stretch += (state.targetStretch - state.stretch) * 0.12;
+  } else if (!state.grabbed && state.snapped < 0.5) {
+    state.stretch *= 0.92;
+    state.targetStretch *= 0.92;
+    if (state.stretch < 0.001) { state.stretch = 0; state.targetStretch = 0; }
+  }
+
+  state.tension = Math.pow(state.stretch, 1.8);
+
+  if (state.snapped > 0.005) {
+    state.snapped *= 0.975;
+    if (state.snapped < 0.005) state.snapped = 0;
+  }
+
+  // Set uniforms
+  gl.uniform1f(uniforms.uTime, t);
+  gl.uniform2f(uniforms.uResolution, W, H);
+  gl.uniform2f(uniforms.uTouch, state.touchX, state.touchY);
+  gl.uniform1f(uniforms.uTouchActive, state.touchActive);
+  gl.uniform1f(uniforms.uStretch, state.stretch);
+  gl.uniform1f(uniforms.uTension, state.tension);
+  gl.uniform1f(uniforms.uSnapped, state.snapped);
+  gl.uniform2f(uniforms.uStretchDir, state.stretchDirX, state.stretchDirY);
+  gl.uniform2f(uniforms.uGrabPoint, state.grabX, state.grabY);
+
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  requestAnimationFrame(render);
 }
-render();
+
+frame();
+
+// ============================================
+// ARENA API (for external control)
+// ============================================
+
+window.Arena = Arena;
+
 </script>
 </body>
 </html>
