@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>ARENA</title>
+<title>Slime Minimal</title>
 <style>
 * { margin: 0; padding: 0; }
-body { background: #020206; overflow: hidden; touch-action: none; }
+body { background: #111; overflow: hidden; touch-action: none; }
 canvas { display: block; }
 </style>
 </head>
@@ -14,320 +14,290 @@ canvas { display: block; }
 <canvas id="c"></canvas>
 <script>
 const canvas = document.getElementById('c');
-const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
+const ctx = canvas.getContext('2d');
 
-let W, H, dpr, aspect;
 function resize() {
-  dpr = Math.min(devicePixelRatio || 1, 2);
-  W = innerWidth; H = innerHeight;
-  aspect = W / H;
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-  gl.viewport(0, 0, canvas.width, canvas.height);
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 }
 resize();
-addEventListener('resize', resize);
+window.addEventListener('resize', resize);
 
-// ============================================
-// PHYSICS - FROM WORKING MINIMAL VERSION
-// ============================================
-const NUM_PARTICLES = 24;
-const restRadius = 0.12;
-
-// Tuned constants that work
-const springK = 100;
-const springDamp = 5;
-const anchorFar = 70;
-const anchorNear = 0;
-const anchorFalloff = 0.05;
-const grabKBase = 220;
-const grabRadius = 0.10;
-const drag = 0.95;
-const snapDist = 0.6;
-const maxVel = 0.4;
-
+// Simple particles
 const particles = [];
 const springs = [];
-const cx = 0, cy = 0.05;
+const cx = 0.5, cy = 0.5; // center in normalized coords
 
-// Create blob
-particles.push({ x: cx, y: cy, vx: 0, vy: 0, restX: cx, restY: cy, snapped: false, r: 0.045 });
-for (let ring = 1; ring <= 2; ring++) {
-  const count = 6 + ring * 4;
-  const r = restRadius * (ring / 2.2);
+// Create blob - fewer particles for stability
+const numRings = 2;
+const restRadius = 0.08;
+
+particles.push({ x: cx, y: cy, vx: 0, vy: 0, restX: cx, restY: cy, snapped: false });
+
+for (let ring = 1; ring <= numRings; ring++) {
+  const count = 6 * ring;
+  const r = restRadius * (ring / numRings);
   for (let i = 0; i < count; i++) {
-    const a = (i / count) * Math.PI * 2 + ring * 0.15;
+    const a = (i / count) * Math.PI * 2;
     const px = cx + Math.cos(a) * r;
     const py = cy + Math.sin(a) * r;
-    particles.push({ 
-      x: px, y: py, vx: 0, vy: 0, 
-      restX: px, restY: py, snapped: false,
-      r: 0.035 + Math.random() * 0.015
-    });
+    particles.push({ x: px, y: py, vx: 0, vy: 0, restX: px, restY: py, snapped: false });
   }
 }
 
-// Connect springs
+// Connect nearby particles
 for (let i = 0; i < particles.length; i++) {
   for (let j = i + 1; j < particles.length; j++) {
     const dx = particles[i].x - particles[j].x;
     const dy = particles[i].y - particles[j].y;
     const d = Math.sqrt(dx*dx + dy*dy);
-    if (d < restRadius * 0.7) {
-      springs.push({ a: particles[i], b: particles[j], rest: d, broken: false });
+    if (d < restRadius * 0.8) {
+      springs.push({
+        a: particles[i],
+        b: particles[j],
+        rest: d,
+        broken: false
+      });
     }
   }
 }
 
-let touchX = 0, touchY = 0, touching = false;
+// Physics constants - WITH STRETCH
+const springK = 100;      // Stronger springs = more resistance
+const springDamp = 5;
+const anchorFar = 70;
+const anchorNear = 0;   
+const anchorFalloff = 0.05;
+const grabKBase = 220;
+const grabRadius = 0.10;
+const drag = 0.95;
+const snapDist = 0.6;     // MORE stretch before snap (was 0.4)
+const maxVel = 0.4;
+
+let touchX = 0, touchY = 0;
+let touching = false;
 let grabPoint = { x: 0, y: 0 };
 
 function toWorld(clientX, clientY) {
   return {
-    x: (clientX / W - 0.5) * aspect,
-    y: 0.5 - clientY / H
+    x: clientX / canvas.width,
+    y: clientY / canvas.height
   };
 }
 
-canvas.onmousedown = e => {
+canvas.addEventListener('mousedown', e => {
   const p = toWorld(e.clientX, e.clientY);
   touchX = p.x; touchY = p.y;
   grabPoint.x = p.x; grabPoint.y = p.y;
   touching = true;
-};
-canvas.onmousemove = e => {
+});
+canvas.addEventListener('mousemove', e => {
   if (!touching) return;
   const p = toWorld(e.clientX, e.clientY);
   touchX = p.x; touchY = p.y;
-};
-canvas.onmouseup = canvas.onmouseleave = () => { touching = false; };
+});
+canvas.addEventListener('mouseup', () => { touching = false; });
+canvas.addEventListener('mouseleave', () => { touching = false; });
 
-canvas.ontouchstart = e => {
+canvas.addEventListener('touchstart', e => {
   e.preventDefault();
   const t = e.touches[0];
   const p = toWorld(t.clientX, t.clientY);
   touchX = p.x; touchY = p.y;
   grabPoint.x = p.x; grabPoint.y = p.y;
   touching = true;
-};
-canvas.ontouchmove = e => {
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
   e.preventDefault();
   if (!touching) return;
   const t = e.touches[0];
   const p = toWorld(t.clientX, t.clientY);
   touchX = p.x; touchY = p.y;
-};
-canvas.ontouchend = canvas.ontouchcancel = () => { touching = false; };
+}, { passive: false });
+canvas.addEventListener('touchend', () => { touching = false; });
+canvas.addEventListener('touchcancel', () => { touching = false; });
 
-let snapFlashes = [];
+let lastTime = performance.now();
 
-function updatePhysics(dt) {
-  dt = Math.min(dt, 0.02);
+function update() {
   const now = performance.now();
+  let dt = (now - lastTime) / 1000;
+  lastTime = now;
+  dt = Math.min(dt, 0.02); // Cap dt
   
-  // Springs
+  // Spring forces
   for (const s of springs) {
     if (s.broken) continue;
-    const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
+    
+    const dx = s.b.x - s.a.x;
+    const dy = s.b.y - s.a.y;
     const d = Math.sqrt(dx*dx + dy*dy);
     
+    // Snap check
     if (d > s.rest * (1 + snapDist)) {
       s.broken = true;
-      s.a.snapped = s.b.snapped = true;
-      const nx = dx/d, ny = dy/d;
-      s.a.vx -= nx * 0.6; s.a.vy -= ny * 0.6;
-      s.b.vx += nx * 0.6; s.b.vy += ny * 0.6;
-      snapFlashes.push({ x: (s.a.x+s.b.x)/2, y: (s.a.y+s.b.y)/2, t: now });
+      s.a.snapped = true;
+      s.b.snapped = true;
+      // Impulse to push apart
+      const nx = dx / d, ny = dy / d;
+      s.a.vx -= nx * 0.8;
+      s.a.vy -= ny * 0.8;
+      s.b.vx += nx * 0.8;
+      s.b.vy += ny * 0.8;
       continue;
     }
     
     const stretch = d - s.rest;
-    const nx = dx / (d + 0.0001), ny = dy / (d + 0.0001);
+    const nx = dx / (d + 0.0001);
+    const ny = dy / (d + 0.0001);
+    
+    // Spring force
     const fx = springK * stretch * nx * dt;
     const fy = springK * stretch * ny * dt;
-    const dvx = s.b.vx - s.a.vx, dvy = s.b.vy - s.a.vy;
-    const dampX = springDamp * dvx * dt, dampY = springDamp * dvy * dt;
     
-    s.a.vx += fx + dampX; s.a.vy += fy + dampY;
-    s.b.vx -= fx + dampX; s.b.vy -= fy + dampY;
+    // Damping
+    const dvx = s.b.vx - s.a.vx;
+    const dvy = s.b.vy - s.a.vy;
+    const dampX = springDamp * dvx * dt;
+    const dampY = springDamp * dvy * dt;
+    
+    s.a.vx += fx + dampX;
+    s.a.vy += fy + dampY;
+    s.b.vx -= fx + dampX;
+    s.b.vy -= fy + dampY;
   }
   
-  // Particles
+  // Per particle
   for (const p of particles) {
-    const dgx = p.restX - grabPoint.x, dgy = p.restY - grabPoint.y;
+    // Distance from grab point (for anchor strength)
+    const dgx = p.restX - grabPoint.x;
+    const dgy = p.restY - grabPoint.y;
     const distFromGrab = Math.sqrt(dgx*dgx + dgy*dgy);
     
+    // Anchor - ZERO at grab, STRONG far from grab
+    // Snapped particles have WEAK anchor (they're their own blob now)
     let anchorStrength;
     if (p.snapped) {
-      anchorStrength = 8;
+      anchorStrength = 10; // Very weak - drifts as separate blob
     } else if (touching) {
       const t = Math.min(distFromGrab / anchorFalloff, 1);
       anchorStrength = anchorNear + (anchorFar - anchorNear) * t * t;
     } else {
-      anchorStrength = anchorFar * 0.5;
+      anchorStrength = anchorFar * 0.6; // Return home after release
     }
     
     const ax = (p.restX - p.x) * anchorStrength * dt;
     const ay = (p.restY - p.y) * anchorStrength * dt;
-    p.vx += ax; p.vy += ay;
+    p.vx += ax;
+    p.vy += ay;
     
+    // Grab - with resistance curve
     if (touching) {
-      const dtx = p.x - touchX, dty = p.y - touchY;
+      const dtx = p.x - touchX;
+      const dty = p.y - touchY;
       const distToTouch = Math.sqrt(dtx*dtx + dty*dty);
+      
       if (distToTouch < grabRadius) {
-        const stretchX = p.x - p.restX, stretchY = p.y - p.restY;
+        // How far stretched from rest?
+        const stretchX = p.x - p.restX;
+        const stretchY = p.y - p.restY;
         const stretchDist = Math.sqrt(stretchX*stretchX + stretchY*stretchY);
+        
+        // Resistance builds as you stretch - grab gets weaker
         const resistance = 1 / (1 + stretchDist * 8);
         const grabK = grabKBase * resistance;
+        
         const influence = 1 - (distToTouch / grabRadius);
-        p.vx += (touchX - p.x) * grabK * influence * dt;
-        p.vy += (touchY - p.y) * grabK * influence * dt;
+        const gx = (touchX - p.x) * grabK * influence * dt;
+        const gy = (touchY - p.y) * grabK * influence * dt;
+        p.vx += gx;
+        p.vy += gy;
       }
     }
     
-    p.vx *= drag; p.vy *= drag;
+    // Drag
+    p.vx *= drag;
+    p.vy *= drag;
+    
+    // Velocity cap
     const vel = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
-    if (vel > maxVel) { p.vx = (p.vx/vel)*maxVel; p.vy = (p.vy/vel)*maxVel; }
-    p.x += p.vx * dt; p.y += p.vy * dt;
+    if (vel > maxVel) {
+      p.vx = (p.vx / vel) * maxVel;
+      p.vy = (p.vy / vel) * maxVel;
+    }
+    
+    // Integrate
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
   }
   
-  // Repair
+  // Repair springs when close and reset snapped state
   if (!touching) {
     for (const s of springs) {
       if (!s.broken) continue;
-      const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
+      const dx = s.b.x - s.a.x;
+      const dy = s.b.y - s.a.y;
       if (Math.sqrt(dx*dx + dy*dy) < s.rest * 1.1) {
         s.broken = false;
-        s.a.snapped = s.b.snapped = false;
+        s.a.snapped = false;
+        s.b.snapped = false;
       }
     }
   }
-  
-  snapFlashes = snapFlashes.filter(f => now - f.t < 300);
 }
 
-// ============================================
-// SHADER
-// ============================================
-const vsrc = `attribute vec2 a;varying vec2 v;void main(){v=a*.5+.5;gl_Position=vec4(a,0,1);}`;
-
-const fsrc = `
-precision highp float;
-varying vec2 v;
-uniform float t;
-uniform vec2 res;
-uniform vec3 parts[${NUM_PARTICLES}];
-uniform vec3 flashes[8];
-
-float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
-float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p*=2.;a*=.5;}return v;}
-
-float meta(vec2 p,vec2 c,float r){vec2 d=p-c;float d2=dot(d,d),r2=r*r;return(r2*r2)/((d2+r2)*(d2+r2));}
-
-float field(vec2 p){float s=0.;for(int i=0;i<${NUM_PARTICLES};i++)s+=meta(p,parts[i].xy,parts[i].z);return s;}
-
-vec3 norm(vec2 p){float e=.002;return normalize(vec3(field(p-vec2(e,0))-field(p+vec2(e,0)),field(p-vec2(0,e))-field(p+vec2(0,e)),.06));}
-
-void main(){
-  float asp=res.x/res.y;
-  vec2 p=(v-.5)*vec2(asp,1.);
-  float f=field(p),th=.08;
-  vec3 bg=vec3(.006,.01,.02);
+function draw() {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Flashes
-  float fl=0.;
-  for(int i=0;i<8;i++){
-    float fi=flashes[i].z;
-    if(fi>.01)fl+=fi*.02/(pow(length(p-flashes[i].xy),2.)+.001);
+  const w = canvas.width, h = canvas.height;
+  
+  // Draw springs - show tension
+  for (const s of springs) {
+    if (s.broken) continue;
+    const dx = s.b.x - s.a.x;
+    const dy = s.b.y - s.a.y;
+    const d = Math.sqrt(dx*dx + dy*dy);
+    const stretch = (d - s.rest) / s.rest; // 0 = rest, 0.6 = about to snap
+    const tension = Math.min(stretch / snapDist, 1); // 0 to 1
+    
+    // Color shifts from teal to orange as tension increases
+    const r = Math.floor(100 + tension * 155);
+    const g = Math.floor(200 - tension * 100);
+    const b = Math.floor(180 - tension * 130);
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.3 + tension * 0.5})`;
+    ctx.lineWidth = 3 - tension * 2; // Thinner as stretched
+    
+    ctx.beginPath();
+    ctx.moveTo(s.a.x * w, s.a.y * h);
+    ctx.lineTo(s.b.x * w, s.b.y * h);
+    ctx.stroke();
   }
   
-  // Glow
-  if(f<th){
-    float g=f/th;
-    vec3 glow=vec3(.02,.1,.08)*pow(g,.3)*3.+vec3(.05,.25,.2)*pow(g,1.)*2.5+vec3(.1,.45,.35)*pow(g,2.5)*2.;
-    glow*=.9+sin(t*1.5)*.1;
-    gl_FragColor=vec4(bg+glow+vec3(.85,1.,.95)*fl,1.);
-    return;
+  // Draw particles
+  for (const p of particles) {
+    ctx.fillStyle = p.snapped ? 'rgba(255, 150, 100, 0.9)' : 'rgba(100, 220, 180, 0.8)';
+    ctx.beginPath();
+    ctx.arc(p.x * w, p.y * h, 8, 0, Math.PI * 2);
+    ctx.fill();
   }
   
-  // Inside
-  float depth=smoothstep(th,th*8.,f);
-  vec3 n=norm(p);
-  
-  vec3 col=vec3(.35,.9,.75);
-  col=mix(col,vec3(.15,.7,.6),smoothstep(.05,.15,depth));
-  col=mix(col,vec3(.06,.5,.48),smoothstep(.12,.3,depth));
-  col=mix(col,vec3(.02,.3,.35),smoothstep(.25,.55,depth));
-  col=mix(col,vec3(.01,.12,.18),smoothstep(.45,.85,depth));
-  
-  col=mix(col,col*1.5,fbm(p*10.+t*.12)*.5*(1.-depth));
-  col+=vec3(.5,.9,.8)*smoothstep(.82,.92,noise(p*45.+t*.6))*(1.-depth*.7)*.8;
-  col+=vec3(.25,.5,.45)*pow(noise(p*25.+vec2(sin(t*.4),cos(t*.5))*.8),2.5)*(1.-depth*.6)*.6;
-  
-  vec3 L=normalize(vec3(.4,.5,1.)),V=vec3(0,0,1);
-  float diff=max(dot(n,L),0.)*.5+max(dot(n,normalize(vec3(-.3,.4,.8))),0.)*.3+.35;
-  float spec=pow(max(dot(n,normalize(L+V)),0.),50.)*(1.-depth*.7);
-  float fres=pow(1.-max(dot(n,V),0.),3.5)*.8;
-  
-  vec3 c=col*diff;
-  c+=vec3(.1,.4,.35)*depth*.7;
-  c+=vec3(1.)*spec;
-  c+=vec3(.2,.5,.45)*fres;
-  c+=vec3(.15,.5,.42)*(1.-smoothstep(th*.9,th*1.5,f));
-  c+=vec3(.85,1.,.95)*fl;
-  
-  gl_FragColor=vec4(c,1.);
-}`;
-
-function createShader(t,s){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh;}
-const vs=createShader(gl.VERTEX_SHADER,vsrc);
-const fs=createShader(gl.FRAGMENT_SHADER,fsrc);
-const prog=gl.createProgram();
-gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);gl.useProgram(prog);
-
-const buf=gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER,buf);
-gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
-const aPos=gl.getAttribLocation(prog,'a');
-gl.enableVertexAttribArray(aPos);
-gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,0);
-
-const uT=gl.getUniformLocation(prog,'t');
-const uRes=gl.getUniformLocation(prog,'res');
-const uParts=gl.getUniformLocation(prog,'parts');
-const uFlash=gl.getUniformLocation(prog,'flashes');
-
-let last=performance.now(),start=last;
-
-function render(){
-  const now=performance.now();
-  updatePhysics((now-last)/1000);
-  last=now;
-  const time=(now-start)/1000;
-  
-  const pd=new Float32Array(NUM_PARTICLES*3);
-  for(let i=0;i<particles.length;i++){
-    pd[i*3]=particles[i].x;
-    pd[i*3+1]=particles[i].y;
-    pd[i*3+2]=particles[i].r;
+  // Draw touch point
+  if (touching) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(touchX * w, touchY * h, grabRadius * w, 0, Math.PI * 2);
+    ctx.stroke();
   }
-  
-  const fd=new Float32Array(24);
-  for(let i=0;i<Math.min(8,snapFlashes.length);i++){
-    fd[i*3]=snapFlashes[i].x;
-    fd[i*3+1]=snapFlashes[i].y;
-    fd[i*3+2]=1-(now-snapFlashes[i].t)/300;
-  }
-  
-  gl.uniform1f(uT,time);
-  gl.uniform2f(uRes,canvas.width,canvas.height);
-  gl.uniform3fv(uParts,pd);
-  gl.uniform3fv(uFlash,fd);
-  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
-  requestAnimationFrame(render);
 }
-render();
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
 </script>
 </body>
 </html>
