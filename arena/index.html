@@ -29,39 +29,44 @@ resize();
 addEventListener('resize', resize);
 
 // ============================================
-// PHYSICS - GLOB SEPARATION PRIORITY
+// PHYSICS - GRAB AND PULL SEPARATION
 // ============================================
 const NUM_PARTICLES = 24;
 const restRadius = 0.12;
 
-// Tuned for glob separation + breathing
-const springK = 100;           // Springs are primary structural force
-const springDamp = 4;
-const ANCHOR_BASE = 50;        // Down from 120 - safety net, not shape definer
-const anchorNear = 0;
-const anchorFalloff = 0.08;
-const GRAB_K_BASE = 180;       // Down from 400 - sink into material, don't magnetize
-const grabRadius = 0.25;       // Big for mobile fingers
-const drag = 0.94;
-const snapDist = 0.35;         // Easier to break
-const maxVel = 0.5;
-const SNAP_IMPULSE = 3.0;      // Strong snap impulse
+// Physics constants
+const springK = 120;          // Strong springs - they're the structure
+const springDamp = 5;
+const ANCHOR_BASE = 35;       // Gentle anchor - just prevents infinity drift
+const grabRadius = 0.18;      // Initial grab detection radius
+const drag = 0.92;
+const snapDist = 0.45;        // Spring break threshold
+const maxVel = 0.6;
+const SNAP_IMPULSE = 2.0;
 
-// GLOB SEPARATION: anchor decay after snap
-const SNAP_ANCHOR_DECAY_MS = 700;  // Time for anchor to rebuild after snap
-const SNAP_ANCHOR_MIN = 0.05;      // Near-zero anchor right after snap
+// Glob separation timing
+const SNAP_ANCHOR_DECAY_MS = 800;
+const SNAP_ANCHOR_MIN = 0.02;
+
+// Grab physics - softer, more resistance feel
+const GRAB_STRENGTH = 250;    // How strongly grabbed particles follow finger
+const GRAB_DAMPING = 12;      // Damping on grabbed particle movement
 
 const particles = [];
 const springs = [];
 const cx = 0, cy = 0.05;
+
+// Track which particles are grabbed
+let grabbedParticles = new Set();
 
 // Create blob
 particles.push({ 
   x: cx, y: cy, vx: 0, vy: 0, 
   restX: cx, restY: cy, 
   snapped: false, 
-  snapTime: 0,  // When this particle last snapped
-  r: 0.045 
+  snapTime: 0,
+  r: 0.045,
+  id: 0
 });
 
 for (let ring = 1; ring <= 2; ring++) {
@@ -76,25 +81,25 @@ for (let ring = 1; ring <= 2; ring++) {
       restX: px, restY: py, 
       snapped: false,
       snapTime: 0,
-      r: 0.035 + Math.random() * 0.015
+      r: 0.035 + Math.random() * 0.015,
+      id: particles.length
     });
   }
 }
 
-// Connect springs - more connections for better structure
+// Connect springs
 for (let i = 0; i < particles.length; i++) {
   for (let j = i + 1; j < particles.length; j++) {
     const dx = particles[i].x - particles[j].x;
     const dy = particles[i].y - particles[j].y;
     const d = Math.sqrt(dx*dx + dy*dy);
-    if (d < restRadius * 0.8) {  // Slightly wider spring network
+    if (d < restRadius * 0.8) {
       springs.push({ a: particles[i], b: particles[j], rest: d, broken: false });
     }
   }
 }
 
 let touchX = 0, touchY = 0, touching = false;
-let grabPoint = { x: 0, y: 0 };
 
 function toWorld(clientX, clientY) {
   return {
@@ -103,35 +108,58 @@ function toWorld(clientX, clientY) {
   };
 }
 
+function startGrab(worldX, worldY) {
+  touchX = worldX;
+  touchY = worldY;
+  touching = true;
+  grabbedParticles.clear();
+  
+  // Find particles near touch point to grab
+  for (const p of particles) {
+    const dx = p.x - worldX;
+    const dy = p.y - worldY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < grabRadius) {
+      grabbedParticles.add(p.id);
+    }
+  }
+}
+
+function moveGrab(worldX, worldY) {
+  touchX = worldX;
+  touchY = worldY;
+}
+
+function endGrab() {
+  touching = false;
+  grabbedParticles.clear();
+}
+
 canvas.onmousedown = e => {
   const p = toWorld(e.clientX, e.clientY);
-  touchX = p.x; touchY = p.y;
-  grabPoint.x = p.x; grabPoint.y = p.y;
-  touching = true;
+  startGrab(p.x, p.y);
 };
 canvas.onmousemove = e => {
   if (!touching) return;
   const p = toWorld(e.clientX, e.clientY);
-  touchX = p.x; touchY = p.y;
+  moveGrab(p.x, p.y);
 };
-canvas.onmouseup = canvas.onmouseleave = () => { touching = false; };
+canvas.onmouseup = canvas.onmouseleave = endGrab;
 
 canvas.ontouchstart = e => {
   e.preventDefault();
   const t = e.touches[0];
   const p = toWorld(t.clientX, t.clientY);
-  touchX = p.x; touchY = p.y;
-  grabPoint.x = p.x; grabPoint.y = p.y;
-  touching = true;
+  startGrab(p.x, p.y);
 };
 canvas.ontouchmove = e => {
   e.preventDefault();
   if (!touching) return;
   const t = e.touches[0];
   const p = toWorld(t.clientX, t.clientY);
-  touchX = p.x; touchY = p.y;
+  moveGrab(p.x, p.y);
 };
-canvas.ontouchend = canvas.ontouchcancel = () => { touching = false; };
+canvas.ontouchend = canvas.ontouchcancel = endGrab;
 
 let snapFlashes = [];
 
@@ -139,21 +167,23 @@ function updatePhysics(dt) {
   dt = Math.min(dt, 0.02);
   const now = performance.now();
   
-  // Springs - primary structural force
+  // Springs - THE key structural force
+  // Resistance when pulling grabbed particles away comes from here
   for (const s of springs) {
     if (s.broken) continue;
+    
     const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
     const d = Math.sqrt(dx*dx + dy*dy);
     
-    // Check for snap
+    // Check for snap - this is the break moment
     if (d > s.rest * (1 + snapDist)) {
       s.broken = true;
       s.a.snapped = true;
       s.b.snapped = true;
-      s.a.snapTime = now;  // Record snap time
+      s.a.snapTime = now;
       s.b.snapTime = now;
       
-      // Strong snap impulse to separate
+      // Snap impulse pushes them apart
       const nx = dx/d, ny = dy/d;
       s.a.vx -= nx * SNAP_IMPULSE;
       s.a.vy -= ny * SNAP_IMPULSE;
@@ -164,11 +194,15 @@ function updatePhysics(dt) {
       continue;
     }
     
-    // Spring forces
+    // Spring force - this creates the resistance when pulling
     const stretch = d - s.rest;
     const nx = dx / (d + 0.0001), ny = dy / (d + 0.0001);
-    const fx = springK * stretch * nx * dt;
-    const fy = springK * stretch * ny * dt;
+    
+    // Spring force
+    let fx = springK * stretch * nx * dt;
+    let fy = springK * stretch * ny * dt;
+    
+    // Damping
     const dvx = s.b.vx - s.a.vx, dvy = s.b.vy - s.a.vy;
     const dampX = springDamp * dvx * dt, dampY = springDamp * dvy * dt;
     
@@ -180,92 +214,70 @@ function updatePhysics(dt) {
   
   // Particles
   for (const p of particles) {
-    // Calculate anchor strength with snap decay
-    let anchorMult = 1.0;
+    const isGrabbed = grabbedParticles.has(p.id);
     
+    // Calculate anchor decay for snapped particles
+    let anchorMult = 1.0;
     if (p.snapped && p.snapTime > 0) {
-      // Time since snap
       const timeSinceSnap = now - p.snapTime;
-      
       if (timeSinceSnap < SNAP_ANCHOR_DECAY_MS) {
-        // Gradually rebuild anchor from near-zero
         const t = timeSinceSnap / SNAP_ANCHOR_DECAY_MS;
-        // Ease in - starts slow, accelerates
-        anchorMult = SNAP_ANCHOR_MIN + (1 - SNAP_ANCHOR_MIN) * (t * t);
+        anchorMult = SNAP_ANCHOR_MIN + (1 - SNAP_ANCHOR_MIN) * (t * t * t); // Cubic ease-in
       } else {
-        // Fully rebuilt
         p.snapped = false;
         p.snapTime = 0;
       }
     }
     
-    // Distance from grab point affects anchor when touching
-    const dgx = p.restX - grabPoint.x, dgy = p.restY - grabPoint.y;
-    const distFromGrab = Math.sqrt(dgx*dgx + dgy*dgy);
-    
-    let anchorStrength;
-    if (touching) {
-      const t = Math.min(distFromGrab / anchorFalloff, 1);
-      anchorStrength = anchorNear + (ANCHOR_BASE - anchorNear) * t * t;
-    } else {
-      anchorStrength = ANCHOR_BASE * 0.6;  // Gentle return when not touching
-    }
-    
-    // Apply snap decay to anchor
-    anchorStrength *= anchorMult;
-    
-    // Anchor force - safety net, not shape definer
-    const ax = (p.restX - p.x) * anchorStrength * dt;
-    const ay = (p.restY - p.y) * anchorStrength * dt;
-    p.vx += ax;
-    p.vy += ay;
-    
-    // Grab force - sink into material
-    if (touching) {
-      const dtx = p.x - touchX, dty = p.y - touchY;
-      const distToTouch = Math.sqrt(dtx*dtx + dty*dty);
+    if (isGrabbed && touching) {
+      // GRABBED PARTICLES: Follow the finger
+      // Spring connections to ungrabbed particles create resistance
+      const dx = touchX - p.x;
+      const dy = touchY - p.y;
       
-      if (distToTouch < grabRadius) {
-        const stretchX = p.x - p.restX, stretchY = p.y - p.restY;
-        const stretchDist = Math.sqrt(stretchX*stretchX + stretchY*stretchY);
-        
-        // Resistance builds with stretch - initial contact is soft
-        const resistance = 1 / (1 + stretchDist * 3);
-        const grabK = GRAB_K_BASE * resistance;
-        
-        // Falloff from touch center
-        const influence = 1 - (distToTouch / grabRadius);
-        const influenceCurve = influence * influence;  // Softer edges
-        
-        p.vx += (touchX - p.x) * grabK * influenceCurve * dt;
-        p.vy += (touchY - p.y) * grabK * influenceCurve * dt;
-      }
+      // Pull toward finger with damping
+      p.vx += dx * GRAB_STRENGTH * dt;
+      p.vy += dy * GRAB_STRENGTH * dt;
+      p.vx *= (1 - GRAB_DAMPING * dt);
+      p.vy *= (1 - GRAB_DAMPING * dt);
+      
+      // No anchor for grabbed particles - springs provide all resistance
+      
+    } else {
+      // NON-GRABBED PARTICLES: Gentle anchor to rest position
+      const anchorStrength = ANCHOR_BASE * anchorMult;
+      
+      // Anchor force
+      const ax = (p.restX - p.x) * anchorStrength * dt;
+      const ay = (p.restY - p.y) * anchorStrength * dt;
+      p.vx += ax;
+      p.vy += ay;
     }
     
-    // Drag and velocity limit
+    // Drag
     p.vx *= drag;
     p.vy *= drag;
+    
+    // Velocity limit
     const vel = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
     if (vel > maxVel) {
       p.vx = (p.vx/vel) * maxVel;
       p.vy = (p.vy/vel) * maxVel;
     }
     
-    // Integrate position
+    // Integrate
     p.x += p.vx * dt;
     p.y += p.vy * dt;
   }
   
-  // Spring repair - only when particles are close AND anchor has rebuilt
+  // Spring repair - only when close and not in snap decay
   if (!touching) {
     for (const s of springs) {
       if (!s.broken) continue;
-      
-      // Don't repair if either particle is still in snap decay
       if (s.a.snapped || s.b.snapped) continue;
       
       const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
-      if (Math.sqrt(dx*dx + dy*dy) < s.rest * 1.15) {
+      if (Math.sqrt(dx*dx + dy*dy) < s.rest * 1.2) {
         s.broken = false;
       }
     }
@@ -303,14 +315,12 @@ void main(){
   float f=field(p),th=.08;
   vec3 bg=vec3(.006,.01,.02);
   
-  // Flashes
   float fl=0.;
   for(int i=0;i<8;i++){
     float fi=flashes[i].z;
     if(fi>.01)fl+=fi*.02/(pow(length(p-flashes[i].xy),2.)+.001);
   }
   
-  // Glow
   if(f<th){
     float g=f/th;
     vec3 glow=vec3(.02,.1,.08)*pow(g,.3)*3.+vec3(.05,.25,.2)*pow(g,1.)*2.5+vec3(.1,.45,.35)*pow(g,2.5)*2.;
@@ -319,7 +329,6 @@ void main(){
     return;
   }
   
-  // Inside
   float depth=smoothstep(th,th*8.,f);
   vec3 n=norm(p);
   
