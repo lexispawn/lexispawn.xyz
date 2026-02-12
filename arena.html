@@ -62,14 +62,16 @@ for (let i = 0; i < particles.length; i++) {
   }
 }
 
-// Physics constants - GRAB WINS
-const springK = 200;    // Soft springs
-const springDamp = 8;
-const anchorK = 30;     // Weak anchor - springs are structure
-const grabK = 500;      // Strong grab - must win
-const grabRadius = 0.15;
-const drag = 0.95;
-const snapDist = 0.5;   // 50% stretch = snap
+// Physics constants - LOCALIZED STRETCH
+const springK = 150;    // Soft springs
+const springDamp = 6;
+const anchorFar = 200;  // Strong anchor for far particles - STAY PUT
+const anchorNear = 0;   // Zero anchor at grab point - FREE
+const anchorFalloff = 0.06; // How quickly anchor increases from grab
+const grabK = 400;      // Strong grab
+const grabRadius = 0.05; // SMALL - only grab part of blob
+const drag = 0.96;
+const snapDist = 0.45;  // 45% stretch = snap
 
 let touchX = 0, touchY = 0;
 let touching = false;
@@ -169,10 +171,14 @@ function update() {
     const dgy = p.restY - grabPoint.y;
     const distFromGrab = Math.sqrt(dgx*dgx + dgy*dgy);
     
-    // Anchor - stronger when far from grab
-    const anchorStrength = touching ? 
-      anchorK * Math.min(distFromGrab / 0.15, 1) : // Near grab = weak anchor
-      anchorK; // Not touching = full anchor
+    // Anchor - ZERO at grab, STRONG far from grab
+    let anchorStrength;
+    if (touching) {
+      const t = Math.min(distFromGrab / anchorFalloff, 1);
+      anchorStrength = anchorNear + (anchorFar - anchorNear) * t * t;
+    } else {
+      anchorStrength = anchorFar * 0.5; // Return home after release
+    }
     
     const ax = (p.restX - p.x) * anchorStrength * dt;
     const ay = (p.restY - p.y) * anchorStrength * dt;
