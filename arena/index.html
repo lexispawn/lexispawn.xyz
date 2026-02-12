@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ARENA</title>
+<style>
+* { margin: 0; padding: 0; }
+body { background: #020206; overflow: hidden; touch-action: none; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
+
+let W, H, dpr, aspect;
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  aspect = W / H;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+resize();
+addEventListener('resize', resize);
+
+// ============================================
+// PHYSICS - FROM WORKING MINIMAL VERSION
+// ============================================
+const NUM_PARTICLES = 24;
+const restRadius = 0.12;
+
+// Tuned constants that work
+const springK = 100;
+const springDamp = 5;
+const anchorFar = 70;
+const anchorNear = 0;
+const anchorFalloff = 0.05;
+const grabKBase = 220;
+const grabRadius = 0.10;
+const drag = 0.95;
+const snapDist = 0.6;
+const maxVel = 0.4;
+
+const particles = [];
+const springs = [];
+const cx = 0, cy = 0.05;
+
+// Create blob
+particles.push({ x: cx, y: cy, vx: 0, vy: 0, restX: cx, restY: cy, snapped: false, r: 0.045 });
+for (let ring = 1; ring <= 2; ring++) {
+  const count = 6 + ring * 4;
+  const r = restRadius * (ring / 2.2);
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2 + ring * 0.15;
+    const px = cx + Math.cos(a) * r;
+    const py = cy + Math.sin(a) * r;
+    particles.push({ 
+      x: px, y: py, vx: 0, vy: 0, 
+      restX: px, restY: py, snapped: false,
+      r: 0.035 + Math.random() * 0.015
+    });
+  }
+}
+
+// Connect springs
+for (let i = 0; i < particles.length; i++) {
+  for (let j = i + 1; j < particles.length; j++) {
+    const dx = particles[i].x - particles[j].x;
+    const dy = particles[i].y - particles[j].y;
+    const d = Math.sqrt(dx*dx + dy*dy);
+    if (d < restRadius * 0.7) {
+      springs.push({ a: particles[i], b: particles[j], rest: d, broken: false });
+    }
+  }
+}
+
+let touchX = 0, touchY = 0, touching = false;
+let grabPoint = { x: 0, y: 0 };
+
+function toWorld(clientX, clientY) {
+  return {
+    x: (clientX / W - 0.5) * aspect,
+    y: 0.5 - clientY / H
+  };
+}
+
+canvas.onmousedown = e => {
+  const p = toWorld(e.clientX, e.clientY);
+  touchX = p.x; touchY = p.y;
+  grabPoint.x = p.x; grabPoint.y = p.y;
+  touching = true;
+};
+canvas.onmousemove = e => {
+  if (!touching) return;
+  const p = toWorld(e.clientX, e.clientY);
+  touchX = p.x; touchY = p.y;
+};
+canvas.onmouseup = canvas.onmouseleave = () => { touching = false; };
+
+canvas.ontouchstart = e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const p = toWorld(t.clientX, t.clientY);
+  touchX = p.x; touchY = p.y;
+  grabPoint.x = p.x; grabPoint.y = p.y;
+  touching = true;
+};
+canvas.ontouchmove = e => {
+  e.preventDefault();
+  if (!touching) return;
+  const t = e.touches[0];
+  const p = toWorld(t.clientX, t.clientY);
+  touchX = p.x; touchY = p.y;
+};
+canvas.ontouchend = canvas.ontouchcancel = () => { touching = false; };
+
+let snapFlashes = [];
+
+function updatePhysics(dt) {
+  dt = Math.min(dt, 0.02);
+  const now = performance.now();
+  
+  // Springs
+  for (const s of springs) {
+    if (s.broken) continue;
+    const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
+    const d = Math.sqrt(dx*dx + dy*dy);
+    
+    if (d > s.rest * (1 + snapDist)) {
+      s.broken = true;
+      s.a.snapped = s.b.snapped = true;
+      const nx = dx/d, ny = dy/d;
+      s.a.vx -= nx * 0.6; s.a.vy -= ny * 0.6;
+      s.b.vx += nx * 0.6; s.b.vy += ny * 0.6;
+      snapFlashes.push({ x: (s.a.x+s.b.x)/2, y: (s.a.y+s.b.y)/2, t: now });
+      continue;
+    }
+    
+    const stretch = d - s.rest;
+    const nx = dx / (d + 0.0001), ny = dy / (d + 0.0001);
+    const fx = springK * stretch * nx * dt;
+    const fy = springK * stretch * ny * dt;
+    const dvx = s.b.vx - s.a.vx, dvy = s.b.vy - s.a.vy;
+    const dampX = springDamp * dvx * dt, dampY = springDamp * dvy * dt;
+    
+    s.a.vx += fx + dampX; s.a.vy += fy + dampY;
+    s.b.vx -= fx + dampX; s.b.vy -= fy + dampY;
+  }
+  
+  // Particles
+  for (const p of particles) {
+    const dgx = p.restX - grabPoint.x, dgy = p.restY - grabPoint.y;
+    const distFromGrab = Math.sqrt(dgx*dgx + dgy*dgy);
+    
+    let anchorStrength;
+    if (p.snapped) {
+      anchorStrength = 8;
+    } else if (touching) {
+      const t = Math.min(distFromGrab / anchorFalloff, 1);
+      anchorStrength = anchorNear + (anchorFar - anchorNear) * t * t;
+    } else {
+      anchorStrength = anchorFar * 0.5;
+    }
+    
+    const ax = (p.restX - p.x) * anchorStrength * dt;
+    const ay = (p.restY - p.y) * anchorStrength * dt;
+    p.vx += ax; p.vy += ay;
+    
+    if (touching) {
+      const dtx = p.x - touchX, dty = p.y - touchY;
+      const distToTouch = Math.sqrt(dtx*dtx + dty*dty);
+      if (distToTouch < grabRadius) {
+        const stretchX = p.x - p.restX, stretchY = p.y - p.restY;
+        const stretchDist = Math.sqrt(stretchX*stretchX + stretchY*stretchY);
+        const resistance = 1 / (1 + stretchDist * 8);
+        const grabK = grabKBase * resistance;
+        const influence = 1 - (distToTouch / grabRadius);
+        p.vx += (touchX - p.x) * grabK * influence * dt;
+        p.vy += (touchY - p.y) * grabK * influence * dt;
+      }
+    }
+    
+    p.vx *= drag; p.vy *= drag;
+    const vel = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+    if (vel > maxVel) { p.vx = (p.vx/vel)*maxVel; p.vy = (p.vy/vel)*maxVel; }
+    p.x += p.vx * dt; p.y += p.vy * dt;
+  }
+  
+  // Repair
+  if (!touching) {
+    for (const s of springs) {
+      if (!s.broken) continue;
+      const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y;
+      if (Math.sqrt(dx*dx + dy*dy) < s.rest * 1.1) {
+        s.broken = false;
+        s.a.snapped = s.b.snapped = false;
+      }
+    }
+  }
+  
+  snapFlashes = snapFlashes.filter(f => now - f.t < 300);
+}
+
+// ============================================
+// SHADER
+// ============================================
+const vsrc = `attribute vec2 a;varying vec2 v;void main(){v=a*.5+.5;gl_Position=vec4(a,0,1);}`;
+
+const fsrc = `
+precision highp float;
+varying vec2 v;
+uniform float t;
+uniform vec2 res;
+uniform vec3 parts[${NUM_PARTICLES}];
+uniform vec3 flashes[8];
+
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p*=2.;a*=.5;}return v;}
+
+float meta(vec2 p,vec2 c,float r){vec2 d=p-c;float d2=dot(d,d),r2=r*r;return(r2*r2)/((d2+r2)*(d2+r2));}
+
+float field(vec2 p){float s=0.;for(int i=0;i<${NUM_PARTICLES};i++)s+=meta(p,parts[i].xy,parts[i].z);return s;}
+
+vec3 norm(vec2 p){float e=.002;return normalize(vec3(field(p-vec2(e,0))-field(p+vec2(e,0)),field(p-vec2(0,e))-field(p+vec2(0,e)),.06));}
+
+void main(){
+  float asp=res.x/res.y;
+  vec2 p=(v-.5)*vec2(asp,1.);
+  float f=field(p),th=.08;
+  vec3 bg=vec3(.006,.01,.02);
+  
+  // Flashes
+  float fl=0.;
+  for(int i=0;i<8;i++){
+    float fi=flashes[i].z;
+    if(fi>.01)fl+=fi*.02/(pow(length(p-flashes[i].xy),2.)+.001);
+  }
+  
+  // Glow
+  if(f<th){
+    float g=f/th;
+    vec3 glow=vec3(.02,.1,.08)*pow(g,.3)*3.+vec3(.05,.25,.2)*pow(g,1.)*2.5+vec3(.1,.45,.35)*pow(g,2.5)*2.;
+    glow*=.9+sin(t*1.5)*.1;
+    gl_FragColor=vec4(bg+glow+vec3(.85,1.,.95)*fl,1.);
+    return;
+  }
+  
+  // Inside
+  float depth=smoothstep(th,th*8.,f);
+  vec3 n=norm(p);
+  
+  vec3 col=vec3(.35,.9,.75);
+  col=mix(col,vec3(.15,.7,.6),smoothstep(.05,.15,depth));
+  col=mix(col,vec3(.06,.5,.48),smoothstep(.12,.3,depth));
+  col=mix(col,vec3(.02,.3,.35),smoothstep(.25,.55,depth));
+  col=mix(col,vec3(.01,.12,.18),smoothstep(.45,.85,depth));
+  
+  col=mix(col,col*1.5,fbm(p*10.+t*.12)*.5*(1.-depth));
+  col+=vec3(.5,.9,.8)*smoothstep(.82,.92,noise(p*45.+t*.6))*(1.-depth*.7)*.8;
+  col+=vec3(.25,.5,.45)*pow(noise(p*25.+vec2(sin(t*.4),cos(t*.5))*.8),2.5)*(1.-depth*.6)*.6;
+  
+  vec3 L=normalize(vec3(.4,.5,1.)),V=vec3(0,0,1);
+  float diff=max(dot(n,L),0.)*.5+max(dot(n,normalize(vec3(-.3,.4,.8))),0.)*.3+.35;
+  float spec=pow(max(dot(n,normalize(L+V)),0.),50.)*(1.-depth*.7);
+  float fres=pow(1.-max(dot(n,V),0.),3.5)*.8;
+  
+  vec3 c=col*diff;
+  c+=vec3(.1,.4,.35)*depth*.7;
+  c+=vec3(1.)*spec;
+  c+=vec3(.2,.5,.45)*fres;
+  c+=vec3(.15,.5,.42)*(1.-smoothstep(th*.9,th*1.5,f));
+  c+=vec3(.85,1.,.95)*fl;
+  
+  gl_FragColor=vec4(c,1.);
+}`;
+
+function createShader(t,s){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh;}
+const vs=createShader(gl.VERTEX_SHADER,vsrc);
+const fs=createShader(gl.FRAGMENT_SHADER,fsrc);
+const prog=gl.createProgram();
+gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);gl.useProgram(prog);
+
+const buf=gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const aPos=gl.getAttribLocation(prog,'a');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,0);
+
+const uT=gl.getUniformLocation(prog,'t');
+const uRes=gl.getUniformLocation(prog,'res');
+const uParts=gl.getUniformLocation(prog,'parts');
+const uFlash=gl.getUniformLocation(prog,'flashes');
+
+let last=performance.now(),start=last;
+
+function render(){
+  const now=performance.now();
+  updatePhysics((now-last)/1000);
+  last=now;
+  const time=(now-start)/1000;
+  
+  const pd=new Float32Array(NUM_PARTICLES*3);
+  for(let i=0;i<particles.length;i++){
+    pd[i*3]=particles[i].x;
+    pd[i*3+1]=particles[i].y;
+    pd[i*3+2]=particles[i].r;
+  }
+  
+  const fd=new Float32Array(24);
+  for(let i=0;i<Math.min(8,snapFlashes.length);i++){
+    fd[i*3]=snapFlashes[i].x;
+    fd[i*3+1]=snapFlashes[i].y;
+    fd[i*3+2]=1-(now-snapFlashes[i].t)/300;
+  }
+  
+  gl.uniform1f(uT,time);
+  gl.uniform2f(uRes,canvas.width,canvas.height);
+  gl.uniform3fv(uParts,pd);
+  gl.uniform3fv(uFlash,fd);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>
