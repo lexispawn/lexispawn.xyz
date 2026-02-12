@@ -62,16 +62,16 @@ for (let i = 0; i < particles.length; i++) {
   }
 }
 
-// Physics constants - LOCALIZED STRETCH
-const springK = 150;    // Soft springs
-const springDamp = 6;
-const anchorFar = 200;  // Strong anchor for far particles - STAY PUT
-const anchorNear = 0;   // Zero anchor at grab point - FREE
-const anchorFalloff = 0.06; // How quickly anchor increases from grab
-const grabK = 400;      // Strong grab
-const grabRadius = 0.05; // SMALL - only grab part of blob
+// Physics constants - HYPER LOCALIZED
+const springK = 120;    // Soft springs
+const springDamp = 5;
+const anchorFar = 400;  // VERY strong - 85% barely moves
+const anchorNear = 0;   // Zero at grab
+const anchorFalloff = 0.025; // SHARP falloff - only tiny zone is free
+const grabK = 350;      
+const grabRadius = 0.03; // TINY - just the touch point
 const drag = 0.96;
-const snapDist = 0.45;  // 45% stretch = snap
+const snapDist = 0.4;   // 40% stretch = snap
 
 let touchX = 0, touchY = 0;
 let touching = false;
