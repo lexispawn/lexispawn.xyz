@@ -3,360 +3,299 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-<title>ARENA</title>
+<title>ARENA v7 — Particle Metaballs</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body {
-  width: 100%; height: 100%;
-  overflow: hidden;
-  background: #08080e;
-  touch-action: none;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  font-family: 'Helvetica Neue', sans-serif;
-}
+* { margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #050508; touch-action: none; }
 canvas { display: block; width: 100%; height: 100%; }
-
-/* Tool Selection UI */
-#tool-bar {
-  position: fixed;
-  bottom: 5%;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 12px;
-  z-index: 100;
-}
-.tool-btn {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.15);
-  background: rgba(20,20,30,0.8);
-  color: rgba(255,255,255,0.6);
-  font-size: 22px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.tool-btn.active {
-  border-color: rgba(100,220,180,0.6);
-  background: rgba(40,80,70,0.8);
-  color: rgba(180,255,230,0.9);
-}
-.tool-btn:hover { border-color: rgba(255,255,255,0.3); }
-
-/* Score Display */
-#score-display {
-  position: fixed;
-  top: 5%;
-  right: 5%;
-  color: rgba(255,255,255,0.7);
-  font-size: 14px;
-  text-align: right;
-  z-index: 100;
-}
-#score-display .score { font-size: 32px; font-weight: 200; }
-#score-display .streak { color: rgba(100,220,180,0.8); }
-
-/* Material Indicator */
-#material-indicator {
-  position: fixed;
-  top: 5%;
-  left: 5%;
-  color: rgba(255,255,255,0.5);
-  font-size: 11px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  z-index: 100;
-}
-
-/* Hint */
-#hint {
-  position: fixed;
-  bottom: 18%;
-  left: 50%;
-  transform: translateX(-50%);
-  color: rgba(255,255,255,0.18);
-  font-size: 11px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  pointer-events: none;
-  transition: opacity 1s;
-  z-index: 100;
-}
+#hint { position: fixed; bottom: 12%; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.15); font: 11px sans-serif; letter-spacing: 3px; text-transform: uppercase; pointer-events: none; transition: opacity 1s; }
 </style>
 </head>
 <body>
-
 <canvas id="c"></canvas>
-
-<div id="material-indicator">slime</div>
-
-<div id="score-display">
-  <div class="score">0</div>
-  <div class="streak"></div>
-</div>
-
-<div id="tool-bar">
-  <button class="tool-btn active" data-tool="hand" title="Bare Hand">✋</button>
-  <button class="tool-btn" data-tool="blade" title="Blade">🔪</button>
-  <button class="tool-btn" data-tool="press" title="Press Tool">👊</button>
-  <button class="tool-btn" data-tool="tip" title="Precision Tip">✏️</button>
-</div>
-
 <div id="hint">touch · pull · release</div>
-
 <script>
-// ============================================
-// ARENA CORE ARCHITECTURE
-// ============================================
-
-const Arena = {
-  // Current state
-  currentMaterial: 'slime',
-  currentTool: 'hand',
-  score: 0,
-  streak: 0,
-  
-  // Material rotation (contrast engine)
-  materialSequence: [],
-  materialIndex: 0,
-  
-  // All materials the system knows about
-  materials: {
-    slime: { ready: true, renderer: null },
-    crystal: { ready: false, renderer: null },
-    kineticSand: { ready: false, renderer: null },
-    thickFluid: { ready: false, renderer: null },
-    glassRibbon: { ready: false, renderer: null },
-    bubbleWrap: { ready: false, renderer: null }
-  },
-  
-  // Tools
-  tools: ['hand', 'blade', 'press', 'tip'],
-  
-  // Scoring framework (stubbed for all materials)
-  scoring: {
-    slime: {
-      strandLength: 0,      // longer = more tension built
-      thinningPrecision: 0, // how translucent before break
-      cleanSnap: false,     // vs premature release
-      recoilQuality: 0      // full wobble = clean break
-    },
-    crystal: {
-      pressureAccumulated: 0,
-      crackPropagation: 0,
-      shatterCoverage: 0,
-      timingPrecision: 0
-    },
-    kineticSand: {
-      cutSmoothness: 0,
-      depthConsistency: 0,
-      faceQuality: 0,
-      coverage: 0
-    },
-    thickFluid: {
-      pressureConsistency: 0,
-      breakthroughTiming: 0,
-      pathDirectness: 0,
-      heatAccumulation: 0
-    },
-    glassRibbon: {
-      peelCompleteness: 0,
-      curlQuality: 0,
-      speedConsistency: 0,
-      edgeFindingSpeed: 0
-    },
-    bubbleWrap: {
-      rhythmConsistency: 0,
-      coverageSpeed: 0,
-      completionPercent: 0,
-      streakLength: 0
-    }
-  },
-  
-  // Contrast pairings for habituation prevention
-  // Never put two similar materials back to back
-  contrastPairs: {
-    // slow sustained → instant explosive
-    thickFluid: ['crystal', 'bubbleWrap'],
-    // instant explosive → slow sustained or rhythmic
-    crystal: ['thickFluid', 'slime', 'glassRibbon'],
-    // individual precision → rhythmic multiples
-    slime: ['bubbleWrap', 'crystal', 'kineticSand'],
-    // rhythmic → precision or sustained
-    bubbleWrap: ['slime', 'glassRibbon', 'thickFluid'],
-    // earned effort → creative reveal or contrast
-    kineticSand: ['glassRibbon', 'crystal', 'bubbleWrap'],
-    // creative → effort or explosive
-    glassRibbon: ['kineticSand', 'crystal', 'thickFluid']
-  },
-  
-  // Generate material sequence that maximizes contrast
-  generateSequence(length = 10) {
-    const seq = [];
-    const materials = Object.keys(this.materials);
-    
-    // Start with slime (it's what we have)
-    seq.push('slime');
-    
-    for (let i = 1; i < length; i++) {
-      const prev = seq[i - 1];
-      const goodFollows = this.contrastPairs[prev] || materials;
-      // Pick from good follows, avoiding immediate repeat
-      const options = goodFollows.filter(m => m !== prev);
-      seq.push(options[Math.floor(Math.random() * options.length)]);
-    }
-    
-    this.materialSequence = seq;
-    this.materialIndex = 0;
-    return seq;
-  },
-  
-  // Advance to next material
-  nextMaterial() {
-    this.materialIndex++;
-    if (this.materialIndex >= this.materialSequence.length) {
-      this.generateSequence();
-    }
-    this.currentMaterial = this.materialSequence[this.materialIndex];
-    this.updateMaterialIndicator();
-    return this.currentMaterial;
-  },
-  
-  // Tool selection
-  selectTool(tool) {
-    if (this.tools.includes(tool)) {
-      this.currentTool = tool;
-      this.updateToolUI();
-    }
-  },
-  
-  // Calculate score for an interaction
-  calculateScore(material, metrics) {
-    const weights = {
-      slime: { strandLength: 30, thinningPrecision: 25, cleanSnap: 25, recoilQuality: 20 },
-      crystal: { pressureAccumulated: 20, crackPropagation: 30, shatterCoverage: 30, timingPrecision: 20 },
-      kineticSand: { cutSmoothness: 30, depthConsistency: 20, faceQuality: 30, coverage: 20 },
-      thickFluid: { pressureConsistency: 25, breakthroughTiming: 30, pathDirectness: 25, heatAccumulation: 20 },
-      glassRibbon: { peelCompleteness: 35, curlQuality: 25, speedConsistency: 20, edgeFindingSpeed: 20 },
-      bubbleWrap: { rhythmConsistency: 30, coverageSpeed: 20, completionPercent: 30, streakLength: 20 }
-    };
-    
-    const w = weights[material] || {};
-    let score = 0;
-    for (const [key, weight] of Object.entries(w)) {
-      score += (metrics[key] || 0) * weight;
-    }
-    
-    // Tool modifier (some tools better for some materials)
-    const toolBonus = this.getToolBonus(material, this.currentTool);
-    score *= toolBonus;
-    
-    return Math.round(score);
-  },
-  
-  getToolBonus(material, tool) {
-    // Tool × Material bonuses
-    const bonuses = {
-      slime: { hand: 1.0, blade: 0.8, press: 0.9, tip: 1.1 },
-      crystal: { hand: 0.9, blade: 0.8, press: 1.2, tip: 1.0 },
-      kineticSand: { hand: 1.0, blade: 1.2, press: 0.9, tip: 1.0 },
-      thickFluid: { hand: 1.0, blade: 0.9, press: 1.1, tip: 0.8 },
-      glassRibbon: { hand: 1.0, blade: 1.1, press: 0.7, tip: 1.2 },
-      bubbleWrap: { hand: 1.0, blade: 0.5, press: 1.3, tip: 0.9 }
-    };
-    return (bonuses[material] && bonuses[material][tool]) || 1.0;
-  },
-  
-  // Record score
-  addScore(points) {
-    this.score += points;
-    if (points > 50) {
-      this.streak++;
-    } else {
-      this.streak = 0;
-    }
-    this.updateScoreDisplay();
-  },
-  
-  // UI updates
-  updateScoreDisplay() {
-    document.querySelector('#score-display .score').textContent = this.score;
-    const streakEl = document.querySelector('#score-display .streak');
-    streakEl.textContent = this.streak > 1 ? `${this.streak}× streak` : '';
-  },
-  
-  updateMaterialIndicator() {
-    const names = {
-      slime: 'slime',
-      crystal: 'crystal',
-      kineticSand: 'kinetic sand',
-      thickFluid: 'thick fluid',
-      glassRibbon: 'glass ribbon',
-      bubbleWrap: 'bubble wrap'
-    };
-    document.getElementById('material-indicator').textContent = names[this.currentMaterial] || this.currentMaterial;
-  },
-  
-  updateToolUI() {
-    document.querySelectorAll('.tool-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tool === this.currentTool);
-    });
-  }
-};
-
-// Tool selection handlers
-document.querySelectorAll('.tool-btn').forEach(btn => {
-  btn.addEventListener('click', () => Arena.selectTool(btn.dataset.tool));
-});
-
-// Initialize sequence
-Arena.generateSequence();
-Arena.updateMaterialIndicator();
-
-// ============================================
-// WEBGL SETUP
-// ============================================
-
 const canvas = document.getElementById('c');
 const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
 const hint = document.getElementById('hint');
 
-if (!gl) {
-  document.body.innerHTML = '<p style="color:#fff;padding:40px">WebGL required</p>';
-  throw 'No WebGL';
-}
+if (!gl) { document.body.innerHTML = '<p style="color:#fff;padding:40px">WebGL required</p>'; throw 'No WebGL'; }
 
 let W, H, dpr, aspect;
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2);
   W = window.innerWidth;
   H = window.innerHeight;
+  aspect = W / H;
   canvas.width = W * dpr;
   canvas.height = H * dpr;
-  aspect = W / H;
   gl.viewport(0, 0, canvas.width, canvas.height);
 }
 resize();
 window.addEventListener('resize', resize);
 
 // ============================================
-// SHADER: SLIME (FULL FIDELITY)
+// PARTICLE SYSTEM (JS)
 // ============================================
-// EXPERIENTIAL SPEC:
-// - Touch it and it accepts me. Warm. Yielding. Almost affectionate.
-// - Pull and it resists by CLINGING TO ITSELF. Wants to stay whole.
-// - Strand forms, thins, becomes TRANSLUCENT. Visible countdown.
-// - Brain predicts snap. Material holds on past what seems possible.
-// - Snap FASTER than expected. Both ends recoil. Aftershocks.
-// - Satisfaction but also micro-grief. Something continuous became two.
-// - Immediate pull to make another strand.
+const NUM_PARTICLES = 25;
+const REST_RADIUS = 0.12; // How tightly packed at rest
+const PARTICLE_MASS = 1.0;
+const SPRING_STIFFNESS = 180;
+const SPRING_DAMPING = 12;
+const GRAB_RADIUS = 0.15;
+const SNAP_DISTANCE = 0.4; // When springs break
 
+class Particle {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.vx = 0;
+    this.vy = 0;
+    this.restX = x;
+    this.restY = y;
+    this.grabbed = false;
+    this.radius = 0.08 + Math.random() * 0.03; // Metaball radius
+  }
+}
+
+class Spring {
+  constructor(p1, p2) {
+    this.p1 = p1;
+    this.p2 = p2;
+    this.restLength = Math.sqrt(
+      (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2
+    );
+    this.broken = false;
+  }
+}
+
+// Initialize particles in a blob shape
+const particles = [];
+const springs = [];
+const centerX = 0;
+const centerY = 0.05;
+
+// Create particles in concentric rings
+function initParticles() {
+  // Center particle
+  particles.push(new Particle(centerX, centerY));
+  
+  // Inner ring
+  const innerCount = 6;
+  for (let i = 0; i < innerCount; i++) {
+    const angle = (i / innerCount) * Math.PI * 2;
+    const r = REST_RADIUS * 0.5;
+    particles.push(new Particle(
+      centerX + Math.cos(angle) * r,
+      centerY + Math.sin(angle) * r
+    ));
+  }
+  
+  // Outer ring
+  const outerCount = 12;
+  for (let i = 0; i < outerCount; i++) {
+    const angle = (i / outerCount) * Math.PI * 2 + 0.15;
+    const r = REST_RADIUS;
+    particles.push(new Particle(
+      centerX + Math.cos(angle) * r,
+      centerY + Math.sin(angle) * r
+    ));
+  }
+  
+  // Additional scattered particles
+  while (particles.length < NUM_PARTICLES) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = Math.random() * REST_RADIUS * 0.8;
+    particles.push(new Particle(
+      centerX + Math.cos(angle) * r,
+      centerY + Math.sin(angle) * r
+    ));
+  }
+  
+  // Store rest positions
+  particles.forEach(p => {
+    p.restX = p.x;
+    p.restY = p.y;
+  });
+  
+  // Create springs between nearby particles
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      // Connect particles that are close enough
+      if (dist < REST_RADIUS * 1.2) {
+        springs.push(new Spring(particles[i], particles[j]));
+      }
+    }
+  }
+}
+
+initParticles();
+
+// Physics state
+let grabbedParticles = [];
+let touchX = 0, touchY = 0;
+let touchActive = false;
+
+function updatePhysics(dt) {
+  dt = Math.min(dt, 0.02); // Cap for stability
+  
+  // Apply spring forces
+  for (const spring of springs) {
+    if (spring.broken) continue;
+    
+    const dx = spring.p2.x - spring.p1.x;
+    const dy = spring.p2.y - spring.p1.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // Check for snap
+    if (dist > spring.restLength * (1 + SNAP_DISTANCE)) {
+      spring.broken = true;
+      continue;
+    }
+    
+    const stretch = dist - spring.restLength;
+    const nx = dx / (dist + 0.0001);
+    const ny = dy / (dist + 0.0001);
+    
+    // Spring force (Hooke's law)
+    const fx = SPRING_STIFFNESS * stretch * nx;
+    const fy = SPRING_STIFFNESS * stretch * ny;
+    
+    // Relative velocity for damping
+    const dvx = spring.p2.vx - spring.p1.vx;
+    const dvy = spring.p2.vy - spring.p1.vy;
+    const dampX = SPRING_DAMPING * dvx;
+    const dampY = SPRING_DAMPING * dvy;
+    
+    if (!spring.p1.grabbed) {
+      spring.p1.vx += (fx + dampX) * dt / PARTICLE_MASS;
+      spring.p1.vy += (fy + dampY) * dt / PARTICLE_MASS;
+    }
+    if (!spring.p2.grabbed) {
+      spring.p2.vx -= (fx + dampX) * dt / PARTICLE_MASS;
+      spring.p2.vy -= (fy + dampY) * dt / PARTICLE_MASS;
+    }
+  }
+  
+  // Restore force toward rest position (keeps blob cohesive)
+  const restoreStrength = 15;
+  for (const p of particles) {
+    if (p.grabbed) continue;
+    
+    const dx = p.restX - p.x;
+    const dy = p.restY - p.y;
+    p.vx += dx * restoreStrength * dt;
+    p.vy += dy * restoreStrength * dt;
+  }
+  
+  // Grabbed particles follow touch with spring
+  if (touchActive && grabbedParticles.length > 0) {
+    const grabStiffness = 25;
+    const grabDamp = 8;
+    for (const p of grabbedParticles) {
+      const dx = touchX - p.x;
+      const dy = touchY - p.y;
+      p.vx += dx * grabStiffness * dt;
+      p.vy += dy * grabStiffness * dt;
+      p.vx *= (1 - grabDamp * dt);
+      p.vy *= (1 - grabDamp * dt);
+    }
+  }
+  
+  // Update positions
+  for (const p of particles) {
+    // General damping
+    p.vx *= 0.98;
+    p.vy *= 0.98;
+    
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+  }
+  
+  // Repair broken springs when particles are close again (snap back)
+  if (!touchActive) {
+    for (const spring of springs) {
+      if (!spring.broken) continue;
+      const dx = spring.p2.x - spring.p1.x;
+      const dy = spring.p2.y - spring.p1.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < spring.restLength * 1.3) {
+        spring.broken = false;
+      }
+    }
+  }
+}
+
+// ============================================
+// INPUT
+// ============================================
+function getWorldPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  const nx = (clientX - rect.left) / rect.width;
+  const ny = 1 - (clientY - rect.top) / rect.height;
+  return {
+    x: (nx - 0.5) * aspect,
+    y: ny - 0.5
+  };
+}
+
+function onStart(e) {
+  e.preventDefault();
+  const pos = getWorldPos(e);
+  touchX = pos.x;
+  touchY = pos.y;
+  
+  // Find particles near touch
+  grabbedParticles = [];
+  for (const p of particles) {
+    const dx = p.x - pos.x;
+    const dy = p.y - pos.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < GRAB_RADIUS) {
+      p.grabbed = true;
+      grabbedParticles.push(p);
+    }
+  }
+  
+  if (grabbedParticles.length > 0) {
+    touchActive = true;
+    hint.style.opacity = '0';
+  }
+}
+
+function onMove(e) {
+  if (!touchActive) return;
+  e.preventDefault();
+  const pos = getWorldPos(e);
+  touchX = pos.x;
+  touchY = pos.y;
+}
+
+function onEnd(e) {
+  touchActive = false;
+  for (const p of particles) {
+    p.grabbed = false;
+  }
+  grabbedParticles = [];
+}
+
+canvas.addEventListener('mousedown', onStart);
+canvas.addEventListener('mousemove', onMove);
+canvas.addEventListener('mouseup', onEnd);
+canvas.addEventListener('mouseleave', onEnd);
+canvas.addEventListener('touchstart', onStart, { passive: false });
+canvas.addEventListener('touchmove', onMove, { passive: false });
+canvas.addEventListener('touchend', onEnd);
+canvas.addEventListener('touchcancel', onEnd);
+
+// ============================================
+// SHADER (Metaball Rendering)
+// ============================================
 const vsSource = `
 attribute vec2 aPos;
 varying vec2 vUV;
@@ -365,516 +304,121 @@ void main() {
   gl_Position = vec4(aPos, 0.0, 1.0);
 }`;
 
-const fsSlime = `
+const fsSource = `
 precision highp float;
 varying vec2 vUV;
 
 uniform float uTime;
 uniform vec2 uResolution;
-uniform vec2 uTouch;
-uniform float uTouchActive;
-uniform float uStretch;
-uniform float uTension;
-uniform float uSnapped;
-uniform vec2 uStretchDir;
-uniform vec2 uGrabPoint;
+uniform vec3 uParticles[${NUM_PARTICLES}]; // xy = position, z = radius
 
-// Simplex 3D noise
-vec3 mod289(vec3 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
-vec4 mod289(vec4 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
-vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
-vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+#define PI 3.14159265
 
-float snoise(vec3 v) {
-  const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-  const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-  vec3 i = floor(v + dot(v, C.yyy));
-  vec3 x0 = v - i + dot(i, C.xxx);
-  vec3 g = step(x0.yzx, x0.xyz);
-  vec3 l = 1.0 - g;
-  vec3 i1 = min(g.xyz, l.zxy);
-  vec3 i2 = max(g.xyz, l.zxy);
-  vec3 x1 = x0 - i1 + C.xxx;
-  vec3 x2 = x0 - i2 + C.yyy;
-  vec3 x3 = x0 - D.yyy;
-  i = mod289(i);
-  vec4 p = permute(permute(permute(
-    i.z + vec4(0.0, i1.z, i2.z, 1.0))
-    + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-    + i.x + vec4(0.0, i1.x, i2.x, 1.0));
-  float n_ = 0.142857142857;
-  vec3 ns = n_ * D.wyz - D.xzx;
-  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-  vec4 x_ = floor(j * ns.z);
-  vec4 y_ = floor(j - 7.0 * x_);
-  vec4 x = x_ * ns.x + ns.yyyy;
-  vec4 y = y_ * ns.x + ns.yyyy;
-  vec4 h = 1.0 - abs(x) - abs(y);
-  vec4 b0 = vec4(x.xy, y.xy);
-  vec4 b1 = vec4(x.zw, y.zw);
-  vec4 s0 = floor(b0)*2.0 + 1.0;
-  vec4 s1 = floor(b1)*2.0 + 1.0;
-  vec4 sh = -step(h, vec4(0.0));
-  vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
-  vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
-  vec3 p0 = vec3(a0.xy, h.x);
-  vec3 p1 = vec3(a0.zw, h.y);
-  vec3 p2 = vec3(a1.xy, h.z);
-  vec3 p3 = vec3(a1.zw, h.w);
-  vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
-  p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-  vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-  m = m * m;
-  return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+// Metaball field function
+float metaball(vec2 p, vec2 center, float radius) {
+  float r2 = radius * radius;
+  vec2 d = p - center;
+  float d2 = dot(d, d);
+  // Smooth falloff: r²/(r² + d²) gives 1 at center, falls to 0
+  return r2 / (d2 + r2 * 0.1);
 }
 
-float sdBlob(vec2 p, float r) {
-  float d = length(p) - r;
-  float wobble = snoise(vec3(p * 2.5, uTime * 0.35)) * 0.035;
-  wobble += snoise(vec3(p * 4.0, uTime * 0.5)) * 0.015;
-  d += wobble;
-  return d;
+// Sum all metaball contributions
+float field(vec2 p) {
+  float sum = 0.0;
+  for (int i = 0; i < ${NUM_PARTICLES}; i++) {
+    sum += metaball(p, uParticles[i].xy, uParticles[i].z);
+  }
+  return sum;
+}
+
+// Numerical gradient for normals
+vec3 fieldNormal(vec2 p) {
+  float eps = 0.005;
+  float dx = field(p + vec2(eps, 0.0)) - field(p - vec2(eps, 0.0));
+  float dy = field(p + vec2(0.0, eps)) - field(p - vec2(0.0, eps));
+  return normalize(vec3(-dx, -dy, 0.15));
 }
 
 void main() {
   vec2 uv = vUV;
-  vec2 p = (uv - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
-
-  vec2 center = vec2(0.0, 0.02);
-  float baseRadius = 0.33;
-
-  vec2 deformP = p;
+  float aspect = uResolution.x / uResolution.y;
+  vec2 p = (uv - 0.5) * vec2(aspect, 1.0);
   
-  // Grab-point anchored deformation
-  if (uTouchActive > 0.1 && uStretch > 0.01) {
-    vec2 touchP = (uTouch - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
-    vec2 grabP = (uGrabPoint - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
-    
-    vec2 pullVec = touchP - grabP;
-    vec2 pullDir = normalize(pullVec + 0.001);
-    float pullMag = length(pullVec);
-    
-    vec2 fromGrab = p - grabP;
-    float distFromGrab = length(fromGrab);
-    float grabInfluence = smoothstep(baseRadius * 1.0, 0.0, distFromGrab);
-    grabInfluence = pow(grabInfluence, 1.5);
-    
-    float alignWithPull = max(0.0, dot(normalize(fromGrab + 0.001), pullDir));
-    grabInfluence *= (0.6 + alignWithPull * 0.4);
-    
-    vec2 pullOffset = pullDir * grabInfluence * uStretch * 0.4;
-    deformP = p - pullOffset;
-    
-    // Volume conservation
-    vec2 fromCenter = p - center;
-    float distFromCenter = length(fromCenter);
-    vec2 awayFromGrab = normalize(center - grabP + 0.001);
-    float oppInfluence = smoothstep(baseRadius * 1.5, 0.0, distFromCenter);
-    float oppAlign = max(0.0, dot(normalize(fromCenter + 0.001), awayFromGrab));
-    float bulge = uStretch * 0.04 * oppInfluence * oppAlign;
-    deformP -= awayFromGrab * bulge;
-  }
-
-  // Snap recoil
-  if (uSnapped > 0.01) {
-    vec2 fromCenter = p - center;
-    float alignWithSnap = dot(normalize(fromCenter + 0.001), uStretchDir);
-    float snapMask = smoothstep(-0.3, 0.8, alignWithSnap);
-    float snapDist = length(fromCenter);
-    float snapRadial = smoothstep(baseRadius * 2.0, 0.0, snapDist);
-    
-    float wave = sin(snapDist * 25.0 - (1.0 - uSnapped) * 20.0) * 0.025 * uSnapped;
-    deformP -= uStretchDir * snapMask * snapRadial * uSnapped * 0.2;
-    deformP += normalize(fromCenter + 0.001) * wave * snapRadial;
-    
-    vec2 perpSnap = vec2(-uStretchDir.y, uStretchDir.x);
-    float jiggle = sin(snapDist * 30.0 - (1.0 - uSnapped) * 25.0) * 0.012 * uSnapped;
-    deformP += perpSnap * jiggle * snapRadial;
-  }
-
-  float d = sdBlob(deformP - center, baseRadius);
-
+  // Compute metaball field
+  float f = field(p);
+  
+  // Threshold for surface
+  float threshold = 1.8;
+  
   // Background
-  vec3 bgColor = vec3(0.03, 0.03, 0.045);
-  bgColor += vec3(0.008, 0.012, 0.025) * (1.0 - length(p) * 0.6);
-  float shadow = smoothstep(0.1, -0.15, p.y + 0.35) * 0.08;
-  bgColor -= vec3(shadow);
-
-  if (d > 0.015) {
-    float glowDist = smoothstep(0.12, 0.0, d);
-    vec3 glowColor = vec3(0.06, 0.2, 0.18) * glowDist * (0.2 + uTension * 0.25);
+  vec3 bgColor = vec3(0.02, 0.025, 0.04);
+  bgColor += vec3(0.008, 0.01, 0.02) * (1.0 - length(p) * 0.5);
+  
+  // Outside blob
+  if (f < threshold * 0.7) {
+    // Glow
+    float glow = smoothstep(threshold * 0.3, threshold * 0.7, f);
+    vec3 glowColor = vec3(0.03, 0.12, 0.10) * glow * 0.5;
     gl_FragColor = vec4(bgColor + glowColor, 1.0);
     return;
   }
-
-  // Normal for lighting
-  float eps = 0.002;
-  float dx = sdBlob(deformP - center + vec2(eps, 0.0), baseRadius) - sdBlob(deformP - center - vec2(eps, 0.0), baseRadius);
-  float dy = sdBlob(deformP - center + vec2(0.0, eps), baseRadius) - sdBlob(deformP - center - vec2(0.0, eps), baseRadius);
-  vec3 normal = normalize(vec3(-dx, -dy, 0.06));
-
-  float depth = smoothstep(0.0, -baseRadius * 0.8, d);
-
-  // Internal noise patterns
-  float n1 = snoise(vec3(deformP * 2.5, uTime * 0.15)) * 0.5 + 0.5;
-  float n2 = snoise(vec3(deformP * 4.0 + 3.0, uTime * 0.2)) * 0.5 + 0.5;
-  float n3 = snoise(vec3(deformP * 1.5 + 7.0, uTime * 0.1)) * 0.5 + 0.5;
-
-  vec3 col1 = vec3(0.04, 0.42, 0.38);
-  vec3 col2 = vec3(0.08, 0.52, 0.30);
-  vec3 col3 = vec3(0.03, 0.30, 0.42);
-  vec3 col4 = vec3(0.06, 0.38, 0.25);
-
-  vec3 baseColor = mix(mix(col1, col2, n1), mix(col3, col4, n2), n3);
-  baseColor *= (0.5 + depth * 0.5);
-
-  // Subsurface scattering
-  float sss = depth;
-  float sssNoise = snoise(vec3(deformP * 3.0, uTime * 0.25)) * 0.3 + 0.7;
-  vec3 sssColor = vec3(0.08, 0.35, 0.28) * sss * sssNoise * 0.3;
-
-  // Tension warmth
-  vec3 tensionColor = vec3(0.45, 0.22, 0.08);
-  baseColor = mix(baseColor, tensionColor, uTension * 0.2);
-
+  
+  // Inside blob - compute depth and normal
+  float depth = smoothstep(threshold, threshold * 3.0, f);
+  vec3 normal = fieldNormal(p);
+  
+  // Base color with depth variation
+  vec3 surfaceColor = vec3(0.06, 0.45, 0.38);
+  vec3 midColor = vec3(0.04, 0.35, 0.30);
+  vec3 coreColor = vec3(0.02, 0.15, 0.18);
+  
+  vec3 baseColor = mix(surfaceColor, midColor, depth * 0.6);
+  baseColor = mix(baseColor, coreColor, depth * depth);
+  
+  // Add some noise variation
+  float noise = sin(p.x * 25.0 + uTime * 0.5) * sin(p.y * 25.0 + uTime * 0.3) * 0.5 + 0.5;
+  baseColor = mix(baseColor, baseColor * 1.1, noise * 0.15 * (1.0 - depth));
+  
   // Lighting
-  vec3 light1 = normalize(vec3(0.35, 0.55, 1.0));
-  vec3 light2 = normalize(vec3(-0.4, 0.25, 0.7));
-  float diff1 = max(dot(normal, light1), 0.0) * 0.5;
-  float diff2 = max(dot(normal, light2), 0.0) * 0.25;
-
+  vec3 light1 = normalize(vec3(0.4, 0.5, 1.0));
+  vec3 light2 = normalize(vec3(-0.3, 0.3, 0.8));
   vec3 view = vec3(0.0, 0.0, 1.0);
-  float spec1 = pow(max(dot(normalize(light1 + view), normal), 0.0), 80.0) * 1.0;
-  float spec2 = pow(max(dot(normalize(light2 + view), normal), 0.0), 40.0) * 0.5;
-  float sheen1 = pow(max(dot(normalize(light1 + view), normal), 0.0), 12.0) * 0.15;
-  float sheen2 = pow(max(dot(normalize(light2 + view), normal), 0.0), 8.0) * 0.08;
-  float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 4.0) * 0.45;
-
-  vec3 color = baseColor * (0.12 + diff1 + diff2);
-  color += sssColor;
-  color += vec3(0.9, 0.95, 1.0) * (spec1 + spec2);
-  color += baseColor * 1.5 * (sheen1 + sheen2);
-  color += vec3(0.12, 0.2, 0.22) * fresnel;
-  color += vec3(0.6, 0.8, 0.75) * fresnel * 0.12;
-
-  // Internal marbling
-  float marble1 = snoise(vec3(deformP * 6.0 + vec2(uTime * 0.08, uTime * -0.06), uTime * 0.12));
-  float marble2 = snoise(vec3(deformP * 9.0 + vec2(uTime * -0.05, uTime * 0.09), uTime * 0.08));
-  float marblePattern = smoothstep(0.1, 0.4, marble1) * smoothstep(0.0, 0.35, marble2);
-  color += vec3(0.04, 0.15, 0.12) * marblePattern * depth * 0.3;
-
-  // Micro bubbles
-  float bubble = snoise(vec3(deformP * 30.0, uTime * 0.8));
-  float bubbleMask = smoothstep(0.88, 0.95, bubble) * depth;
-  color += vec3(0.4, 0.7, 0.6) * bubbleMask * 0.35;
-
-  // Air pockets
-  float pocket = snoise(vec3(deformP * 12.0, uTime * 0.15));
-  float pocketMask = smoothstep(0.82, 0.92, pocket) * depth;
-  float pocketHighlight = pow(max(dot(normal, light1), 0.0), 20.0);
-  color += vec3(0.15, 0.3, 0.25) * pocketMask * 0.2;
-  color += vec3(0.5, 0.7, 0.6) * pocketMask * pocketHighlight * 0.3;
-
-  // STRETCH STRAND - thinning until translucent, the countdown
-  if (uTouchActive > 0.1 && uStretch > 0.12) {
-    vec2 touchP = (uTouch - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
-    vec2 grabP = (uGrabPoint - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
-    
-    vec2 strandStart = grabP;
-    vec2 strandEnd = touchP;
-    vec2 strandDir = strandEnd - strandStart;
-    float strandLen = length(strandDir);
-    vec2 strandNorm = normalize(strandDir + 0.001);
-    vec2 strandPerp = vec2(-strandNorm.y, strandNorm.x);
-
-    float along = dot(p - strandStart, strandNorm);
-    float perp = dot(p - strandStart, strandPerp);
-
-    if (along > 0.0 && along < strandLen) {
-      float t = along / strandLen;
-      
-      // Strand tapers - thick at base, impossibly thin at tip
-      float baseWidth = 0.05 * (1.0 - uStretch * 0.25);
-      float tipWidth = 0.008; // Even thinner
-      float strandWidth = mix(baseWidth, tipWidth, pow(t, 0.5));
-      
-      // Wobble increases toward tip - precarious
-      float wobbleAmt = t * t * 0.01;
-      float wobble = sin(t * 15.0 + uTime * 2.5) * wobbleAmt;
-      wobble += sin(t * 25.0 + uTime * 3.8) * wobbleAmt * 0.5;
-      float adjPerp = perp - wobble;
-      
-      if (abs(adjPerp) < strandWidth) {
-        float surface = 1.0 - abs(adjPerp) / strandWidth;
-        surface = pow(surface, 0.5);
-        
-        vec3 sNorm = normalize(vec3(-strandPerp * (1.0 - surface) * 0.5, 0.3));
-        float sDiff = max(dot(sNorm, light1), 0.0);
-        float sSpec = pow(max(dot(normalize(sNorm + view), light1), 0.0), 60.0);
-        
-        vec3 strandColor = baseColor * (0.25 + sDiff * 0.5);
-        strandColor += sssColor * 0.4;
-        strandColor += vec3(0.8, 0.9, 0.85) * sSpec * 0.5;
-        
-        // SSS through thin strand - TRANSLUCENT at the tip
-        float thinSSS = (1.0 - surface) * t * 0.4;
-        strandColor += vec3(0.15, 0.5, 0.4) * thinSSS;
-        
-        // More translucent toward tip (the countdown)
-        float translucency = pow(t, 1.5) * 0.3;
-        strandColor = mix(strandColor, vec3(0.1, 0.4, 0.35), translucency);
-        
-        float sFresnel = pow(1.0 - surface, 3.0) * 0.2;
-        strandColor += vec3(0.3, 0.5, 0.45) * sFresnel;
-        
-        float strandAlpha = surface * smoothstep(1.0, 0.75, t);
-        color = mix(color, strandColor, strandAlpha);
-      }
-    }
-  }
-
-  // SNAP SPLATTER - the micro-grief made visible
-  if (uSnapped > 0.01) {
-    for (float i = 0.0; i < 12.0; i++) {
-      float seed1 = fract(sin(i * 43.17) * 137.29);
-      float seed2 = fract(sin(i * 91.33) * 57.81);
-      
-      vec2 splatDir = normalize(uStretchDir + vec2(
-        cos(i * 0.52 + seed1 * 6.28) * 0.6,
-        sin(i * 0.52 + seed2 * 6.28) * 0.6
-      ));
-      float splatDist = (0.15 + seed1 * 0.35) * (1.0 - uSnapped * 0.5);
-      vec2 splatPos = center + uStretchDir * baseRadius * 0.8 + splatDir * splatDist;
-      float splatSize = (0.008 + seed2 * 0.018) * uSnapped;
-      
-      float sd = length(p - splatPos) - splatSize;
-      if (sd < 0.0) {
-        float splatSurface = smoothstep(0.0, -splatSize, sd);
-        vec3 splatNorm = normalize(vec3(normalize(p - splatPos), 0.3));
-        float splatDiff = max(dot(splatNorm, light1), 0.0);
-        float splatSpec = pow(max(dot(normalize(splatNorm + view), light1), 0.0), 40.0);
-        vec3 splatColor = baseColor * (0.3 + splatDiff * 0.4) + vec3(0.7, 0.8, 0.75) * splatSpec * 0.3;
-        color = mix(color, splatColor, splatSurface * uSnapped);
-      }
-    }
-    
-    vec2 breakPoint = center + uStretchDir * baseRadius * 0.9;
-    float flashDist = length(p - breakPoint);
-    float flash = smoothstep(0.15, 0.0, flashDist) * uSnapped * 0.4;
-    color += vec3(0.3, 0.6, 0.5) * flash;
-  }
-
-  float edgeBlend = smoothstep(-0.002, 0.012, d);
-  color = mix(color, bgColor, edgeBlend);
-  color += vec3(0.12, 0.28, 0.22) * uSnapped * 0.35;
-
+  
+  float diff1 = max(dot(normal, light1), 0.0);
+  float diff2 = max(dot(normal, light2), 0.0);
+  float diffuse = diff1 * 0.6 + diff2 * 0.3 + 0.2;
+  
+  // Specular
+  vec3 h1 = normalize(light1 + view);
+  vec3 h2 = normalize(light2 + view);
+  float spec1 = pow(max(dot(normal, h1), 0.0), 20.0);
+  float spec2 = pow(max(dot(normal, h2), 0.0), 15.0);
+  float specular = spec1 * 0.5 + spec2 * 0.25;
+  specular *= (1.0 - depth * 0.5); // Less spec in core
+  
+  // Fresnel rim
+  float NoV = max(dot(normal, view), 0.0);
+  float fresnel = pow(1.0 - NoV, 4.0) * 0.4;
+  
+  // Subsurface scattering approximation
+  vec3 sssColor = vec3(0.05, 0.25, 0.22);
+  float sss = depth * 0.4 * (1.0 + noise * 0.2);
+  
+  // Compose
+  vec3 color = baseColor * diffuse;
+  color += sssColor * sss;
+  color += vec3(0.9, 0.95, 1.0) * specular * 0.5;
+  color += vec3(0.1, 0.2, 0.18) * fresnel;
+  
+  // Edge softness
+  float edge = smoothstep(threshold * 0.7, threshold, f);
+  color = mix(bgColor, color, edge);
+  
   gl_FragColor = vec4(color, 1.0);
 }`;
 
-// ============================================
-// MATERIAL STUBS (Architecture knows about all)
-// ============================================
-
-/*
-CRYSTAL SHADER STUB
--------------------
-EXPERIENTIAL SPEC (from CREATIVE-BRIEF.md):
-
-This one doesn't welcome me. It doesn't yield. It doesn't acknowledge. It *waits*.
-
-I press. Nothing. The surface is hard. My finger pad deforms against it — 
-I'm the one changing shape, not the crystal. It gives nothing back.
-
-I press harder. Still nothing visible. But I know something is happening inside. 
-The energy I'm putting in has nowhere to go. Crystal can't stretch to absorb it. 
-Can't flow to dissipate it. It's storing everything I give.
-
-Pressure accumulates. Invisible. I can't see it but I can feel it — potential building.
-
-A crack. Not where I'm pressing — somewhere else. A flaw in the geometry. 
-The pressure found the weakest point and escaped there. A tiny line appears, catching light.
-
-Then propagation. More cracks racing outward from the first. Branching. 
-Following the crystal's internal structure. Accelerating.
-
-Shatter. Not slow. Everything at once. Fragments flying. 
-Prismatic scatter as light catches a hundred new faces.
-
-IMPLEMENTATION NOTES:
-- SDF for crystal geometry (sharp faceted edges)
-- Crack propagation via Voronoi or fracture pattern
-- Pressure accumulation as internal glow/strain texture
-- Prismatic refraction in fragment shader
-- Particle burst on shatter
-- Haptic: Nothing during pressure (eerie), sharp staccato burst on shatter
-*/
-const fsCrystal = `
-precision highp float;
-varying vec2 vUV;
-uniform float uTime;
-void main() {
-  // STUB: Crystal material
-  // See CREATIVE-BRIEF.md for experiential spec
-  gl_FragColor = vec4(0.2, 0.3, 0.5, 1.0);
-}`;
-
-/*
-KINETIC SAND SHADER STUB
-------------------------
-EXPERIENTIAL SPEC (from CREATIVE-BRIEF.md):
-
-This one has weight. Gravity lives in it. It sits there, dense and patient.
-
-I press my finger in. No stretch, no strand, no cling. It simply *parts*. 
-Grains sliding against each other, making room. The resistance isn't elastic — 
-it's frictional. Millions of tiny contacts.
-
-My finger drags through. The texture against my skin is almost massage. 
-Not smooth — granular. Individual.
-
-And then — the reveal. Where my finger passed, the face is *smooth*. 
-Not ragged. Not torn. Smooth. A perfect cross-section.
-
-The smoothness is a gift. The sand did the beautiful part; I just initiated.
-
-IMPLEMENTATION NOTES:
-- Particle-based rendering for grain texture
-- Cohesion forces between particles
-- Clean-cut face reveal via SDF boolean
-- Smooth cross-section shader effect
-- Haptic: Continuous granular texture during drag, subtle pulse on reveal
-*/
-const fsKineticSand = `
-precision highp float;
-varying vec2 vUV;
-uniform float uTime;
-void main() {
-  // STUB: Kinetic Sand material
-  // See CREATIVE-BRIEF.md for experiential spec
-  gl_FragColor = vec4(0.6, 0.5, 0.3, 1.0);
-}`;
-
-/*
-THICK FLUID SHADER STUB
------------------------
-EXPERIENTIAL SPEC (from CREATIVE-BRIEF.md):
-
-Warm. Dense. It doesn't move unless I make it.
-
-I press in. Immediate resistance — not hard like crystal, but *thick*. 
-The material pushes back with weight. Every millimeter costs effort.
-
-Heat builds at the contact point. The friction of sustained pressure feels warm.
-
-The resistance sustains longer than expected. No breaking point, only continuous yield. 
-Each millimeter is earned the same as the last.
-
-And then — breakthrough. The resistance suddenly isn't there. 
-My finger pushes forward faster than expected. The material is behind me now.
-
-The release is a flood. Warm. The pressure that was holding releases as warmth 
-spreading through my whole hand.
-
-IMPLEMENTATION NOTES:
-- Viscous fluid simulation (simplified)
-- Heat accumulation visual (warm color shift at pressure point)
-- Sustained resistance curve (no snap, gradual yield)
-- Breakthrough moment with velocity change
-- Haptic: Deep continuous vibration, building intensity, warm pulse flood on breakthrough
-*/
-const fsThickFluid = `
-precision highp float;
-varying vec2 vUV;
-uniform float uTime;
-void main() {
-  // STUB: Thick Fluid material
-  // See CREATIVE-BRIEF.md for experiential spec
-  gl_FragColor = vec4(0.4, 0.25, 0.2, 1.0);
-}`;
-
-/*
-GLASS RIBBON SHADER STUB
-------------------------
-EXPERIENTIAL SPEC (from CREATIVE-BRIEF.md):
-
-This one requires finding an edge. The material presents as continuous surface, 
-but somewhere there's a seam. A corner that can be lifted. The search is part of it.
-
-I find it. My fingernail catches underneath. I pull up and — movement. The edge lifts.
-
-Now the peel begins. This one I control. I set the pace. 
-The ribbon detaches incrementally. A whisper of adhesion releasing.
-
-The ribbon curls. Not because I'm curling it — because that's what it does when freed. 
-The material wants to coil. As I pull, it spirals on itself.
-
-Each millimeter of peel adds to the curl. I'm creating something — 
-a spiral object that didn't exist before.
-
-This satisfaction is different. It's *creative*. I'm not destroying — I'm *revealing*.
-
-IMPLEMENTATION NOTES:
-- Edge detection zone for grab initiation
-- Peel progress as bezier curve unfurling
-- Automatic curl formation (spiral SDF)
-- Transparency/glass shader for ribbon
-- Haptic: Gentle continuous purr during peel, subtle pulse as curl forms
-*/
-const fsGlassRibbon = `
-precision highp float;
-varying vec2 vUV;
-uniform float uTime;
-void main() {
-  // STUB: Glass Ribbon material
-  // See CREATIVE-BRIEF.md for experiential spec
-  gl_FragColor = vec4(0.7, 0.8, 0.9, 1.0);
-}`;
-
-/*
-BUBBLE WRAP SHADER STUB
------------------------
-EXPERIENTIAL SPEC (from CREATIVE-BRIEF.md):
-
-This one is about multiples. Not one satisfaction — a field of them.
-
-I find a bubble. Small dome of trapped air. I press. The air compresses. 
-The plastic film stretches. Resistance builds.
-
-Pop. Sharp. Quick. Decisive. The bubble is flat now. One done.
-
-But there are so many more. A grid of promises. Each bubble a tiny package of potential.
-
-Rhythm emerges. I'm not thinking about individual bubbles anymore. 
-My finger is moving on its own. Finding, pressing, popping, moving. A beat.
-
-Pop pop pop pop. The rhythm IS the satisfaction now. Not any single pop — the sequence. 
-Progress made audible.
-
-I'm clearing the field. Every bubble popped is territory claimed. 
-The goal isn't one pop — it's ALL the pops. Completion.
-
-IMPLEMENTATION NOTES:
-- Grid of bubble SDFs
-- Individual bubble state (intact/popped)
-- Pop animation (dome collapse)
-- Sequential clearing mechanic
-- Progress tracking (percentage cleared)
-- Haptic: Sharp pop pulse, rhythm-matched to finger speed
-*/
-const fsBubbleWrap = `
-precision highp float;
-varying vec2 vUV;
-uniform float uTime;
-void main() {
-  // STUB: Bubble Wrap material
-  // See CREATIVE-BRIEF.md for experiential spec
-  gl_FragColor = vec4(0.8, 0.8, 0.85, 1.0);
-}`;
-
-// ============================================
-// SHADER COMPILATION
-// ============================================
-
+// Compile shaders
 function createShader(type, source) {
   const s = gl.createShader(type);
   gl.shaderSource(s, source);
@@ -886,237 +430,71 @@ function createShader(type, source) {
   return s;
 }
 
-function createProgram(vsSource, fsSource) {
-  const vs = createShader(gl.VERTEX_SHADER, vsSource);
-  const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
-  const program = gl.createProgram();
-  gl.attachShader(program, vs);
-  gl.attachShader(program, fs);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    console.error('Link error:', gl.getProgramInfoLog(program));
-    return null;
-  }
-  return program;
+const vs = createShader(gl.VERTEX_SHADER, vsSource);
+const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
+
+if (!vs || !fs) {
+  document.body.innerHTML = '<p style="color:#fff;padding:40px">Shader compile failed</p>';
+  throw 'Shader error';
 }
 
-// Create all programs
-const programs = {
-  slime: createProgram(vsSource, fsSlime),
-  crystal: createProgram(vsSource, fsCrystal),
-  kineticSand: createProgram(vsSource, fsKineticSand),
-  thickFluid: createProgram(vsSource, fsThickFluid),
-  glassRibbon: createProgram(vsSource, fsGlassRibbon),
-  bubbleWrap: createProgram(vsSource, fsBubbleWrap)
-};
+const prog = gl.createProgram();
+gl.attachShader(prog, vs);
+gl.attachShader(prog, fs);
+gl.linkProgram(prog);
 
-// Use slime initially
-let currentProgram = programs.slime;
-gl.useProgram(currentProgram);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+  console.error('Link error:', gl.getProgramInfoLog(prog));
+  throw 'Link error';
+}
 
-// Geometry buffer
+gl.useProgram(prog);
+
+// Fullscreen quad
 const buf = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, buf);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(prog, 'aPos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-function setupAttributes(program) {
-  const aPos = gl.getAttribLocation(program, 'aPos');
-  gl.enableVertexAttribArray(aPos);
-  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-}
-setupAttributes(currentProgram);
-
-// Uniform locations (slime-specific, will need per-material)
-const loc = (n) => gl.getUniformLocation(currentProgram, n);
-let uniforms = {
-  uTime: loc('uTime'),
-  uResolution: loc('uResolution'),
-  uTouch: loc('uTouch'),
-  uTouchActive: loc('uTouchActive'),
-  uStretch: loc('uStretch'),
-  uTension: loc('uTension'),
-  uSnapped: loc('uSnapped'),
-  uStretchDir: loc('uStretchDir'),
-  uGrabPoint: loc('uGrabPoint')
-};
-
-// ============================================
-// INTERACTION STATE
-// ============================================
-
-let state = {
-  touchActive: 0,
-  touchX: 0.5, touchY: 0.5,
-  grabX: 0.5, grabY: 0.5,
-  stretch: 0,
-  targetStretch: 0,
-  tension: 0,
-  snapped: 0,
-  stretchDirX: 0, stretchDirY: 1,
-  grabbed: false,
-  hintHidden: false,
-  
-  // Scoring state
-  interactionStart: 0,
-  maxStretch: 0,
-  stretchHistory: []
-};
-
-const blobCX = 0.5;
-const blobCY = 0.48;
-
-function getPos(e) {
-  if (e.touches) return { x: e.touches[0].clientX / W, y: 1.0 - e.touches[0].clientY / H };
-  return { x: e.clientX / W, y: 1.0 - e.clientY / H };
-}
-
-canvas.addEventListener('touchstart', e => { e.preventDefault(); onDown(getPos(e)); }, { passive: false });
-canvas.addEventListener('touchmove', e => { e.preventDefault(); onMove(getPos(e)); }, { passive: false });
-canvas.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
-canvas.addEventListener('mousedown', e => onDown(getPos(e)));
-canvas.addEventListener('mousemove', e => { if (state.grabbed) onMove(getPos(e)); });
-canvas.addEventListener('mouseup', () => onUp());
-canvas.addEventListener('mouseleave', () => onUp());
-
-function onDown(pos) {
-  const dx = (pos.x - blobCX) * aspect;
-  const dy = pos.y - blobCY;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  
-  if (dist < 0.4) {
-    state.touchActive = 1;
-    state.touchX = pos.x;
-    state.touchY = pos.y;
-    state.grabX = pos.x;
-    state.grabY = pos.y;
-    state.grabbed = true;
-    state.interactionStart = performance.now();
-    state.maxStretch = 0;
-    state.stretchHistory = [];
-    
-    if (!state.hintHidden) {
-      hint.style.opacity = '0';
-      state.hintHidden = true;
-    }
-  }
-}
-
-function onMove(pos) {
-  if (!state.grabbed) return;
-  
-  state.touchX = pos.x;
-  state.touchY = pos.y;
-
-  const dx = (pos.x - blobCX) * aspect;
-  const dy = pos.y - blobCY;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  
-  const deadZone = 0.03;
-  const effectiveDist = Math.max(0, dist - deadZone);
-  
-  state.targetStretch = Math.min(1, Math.pow(effectiveDist / 0.5, 0.55));
-  state.maxStretch = Math.max(state.maxStretch, state.targetStretch);
-  state.stretchHistory.push(state.targetStretch);
-  
-  if (dist > 0.01) {
-    state.stretchDirX = dx / dist;
-    state.stretchDirY = dy / dist;
-  }
-
-  // Haptics - building pulses during stretch
-  if (state.tension > 0.25 && Math.random() < 0.12) {
-    if (navigator.vibrate) navigator.vibrate(Math.floor(4 + state.tension * 18));
-  }
-  if (state.tension > 0.75 && Math.random() < 0.08) {
-    if (navigator.vibrate) navigator.vibrate(Math.floor(15 + state.tension * 25));
-  }
-}
-
-function onUp() {
-  if (state.stretch > 0.65) {
-    // SNAP - calculate score
-    const metrics = {
-      strandLength: state.maxStretch,
-      thinningPrecision: state.maxStretch > 0.8 ? 1.0 : state.maxStretch / 0.8,
-      cleanSnap: state.stretch > 0.7 ? 1.0 : 0.5,
-      recoilQuality: 1.0
-    };
-    
-    const score = Arena.calculateScore('slime', metrics);
-    Arena.addScore(score);
-    
-    // Snap haptic - sharp burst, then diminishing ripples
-    state.snapped = 1;
-    if (navigator.vibrate) navigator.vibrate([30, 10, 40, 8, 25, 5, 15]);
-    
-    setTimeout(() => {
-      state.stretch = 0;
-      state.tension = 0;
-      state.snapped = 0;
-    }, 1200);
-  } else if (state.grabbed && state.stretch > 0.1) {
-    // Premature release - lower score
-    const metrics = {
-      strandLength: state.maxStretch * 0.5,
-      thinningPrecision: 0.3,
-      cleanSnap: 0,
-      recoilQuality: 0.5
-    };
-    const score = Arena.calculateScore('slime', metrics);
-    Arena.addScore(Math.floor(score * 0.3));
-  }
-  
-  state.touchActive = 0;
-  state.grabbed = false;
-}
+// Uniforms
+const uTime = gl.getUniformLocation(prog, 'uTime');
+const uResolution = gl.getUniformLocation(prog, 'uResolution');
+const uParticles = gl.getUniformLocation(prog, 'uParticles');
 
 // ============================================
 // RENDER LOOP
 // ============================================
+let lastTime = performance.now();
+let startTime = lastTime;
 
-const startTime = performance.now();
-
-function frame() {
-  requestAnimationFrame(frame);
-  const t = (performance.now() - startTime) * 0.001;
-
-  if (state.grabbed && state.snapped < 0.5) {
-    state.stretch += (state.targetStretch - state.stretch) * 0.12;
-  } else if (!state.grabbed && state.snapped < 0.5) {
-    state.stretch *= 0.92;
-    state.targetStretch *= 0.92;
-    if (state.stretch < 0.001) { state.stretch = 0; state.targetStretch = 0; }
+function render() {
+  const now = performance.now();
+  const dt = (now - lastTime) / 1000;
+  lastTime = now;
+  
+  // Update physics
+  updatePhysics(dt);
+  
+  // Pack particle data for shader
+  const particleData = new Float32Array(NUM_PARTICLES * 3);
+  for (let i = 0; i < particles.length; i++) {
+    particleData[i * 3 + 0] = particles[i].x;
+    particleData[i * 3 + 1] = particles[i].y;
+    particleData[i * 3 + 2] = particles[i].radius;
   }
-
-  state.tension = Math.pow(state.stretch, 1.8);
-
-  if (state.snapped > 0.005) {
-    state.snapped *= 0.975;
-    if (state.snapped < 0.005) state.snapped = 0;
-  }
-
-  // Set uniforms
-  gl.uniform1f(uniforms.uTime, t);
-  gl.uniform2f(uniforms.uResolution, W, H);
-  gl.uniform2f(uniforms.uTouch, state.touchX, state.touchY);
-  gl.uniform1f(uniforms.uTouchActive, state.touchActive);
-  gl.uniform1f(uniforms.uStretch, state.stretch);
-  gl.uniform1f(uniforms.uTension, state.tension);
-  gl.uniform1f(uniforms.uSnapped, state.snapped);
-  gl.uniform2f(uniforms.uStretchDir, state.stretchDirX, state.stretchDirY);
-  gl.uniform2f(uniforms.uGrabPoint, state.grabX, state.grabY);
-
+  
+  const t = (now - startTime) / 1000;
+  
+  gl.uniform1f(uTime, t);
+  gl.uniform2f(uResolution, canvas.width, canvas.height);
+  gl.uniform3fv(uParticles, particleData);
+  
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  requestAnimationFrame(render);
 }
-
-frame();
-
-// ============================================
-// ARENA API (for external control)
-// ============================================
-
-window.Arena = Arena;
-
+render();
 </script>
 </body>
 </html>
