@@ -83,6 +83,11 @@ h2{text-align:center;font-size:10px;color:#00ffc8;text-transform:uppercase;lette
 footer{text-align:center;padding:40px 20px;border-top:1px solid rgba(255,255,255,0.05);font-size:10px;color:#444}
 footer a{color:#00d4ff}
 .si-mark{color:#00ffc8;opacity:0.4;font-size:9px;letter-spacing:1px}
+
+.api-box{background:rgba(0,255,136,0.03);border:1px solid rgba(0,255,136,0.15);border-radius:8px;padding:24px;text-align:center}
+.api-box code{display:block;font-size:14px;color:#00ffc8;margin-bottom:12px;word-break:break-all}
+.api-price{font-size:12px;color:#00d4ff;margin-bottom:8px}
+.api-desc{font-size:11px;color:#666}
 </style>
 </head>
 <body>
@@ -109,7 +114,7 @@ footer a{color:#00d4ff}
 </div>
 <h1><span>14</span> MINDS</h1>
 <p class="subtitle">Frontier models analyze any Base token. The divergence is the signal.</p>
-<div class="models-banner">Claude · Gemini · GPT · DeepSeek · Qwen · Llama</div>
+<div class="models-banner">14 models · Claude · Gemini · OpenAI · DeepSeek · Qwen · Llama · Mistral</div>
 <div class="hero-cta">
 <a class="btn" href="https://x.com/intent/tweet?text=@lexispawn%20read%20%24" target="_blank">Request a Read →</a>
 <a class="btn btn-outline" href="#reads">Recent Reads ↓</a>
@@ -122,7 +127,7 @@ footer a{color:#00d4ff}
 <div class="features">
 <div class="feature">
 <h3>Multi-Model Query</h3>
-<p>Frontier models evaluate the same token simultaneously. Each brings different training, different biases.</p>
+<p>14 frontier models evaluate the same token simultaneously. Each brings different training, different biases.</p>
 </div>
 <div class="feature">
 <h3>Divergence Signal</h3>
@@ -152,18 +157,31 @@ footer a{color:#00d4ff}
 </section>
 
 <section>
-<h2>The Models</h2>
+<h2>The 14 Models</h2>
 <div class="model-grid">
 <div class="model"><div class="model-name">Opus 4.5</div><div class="model-family">Claude</div></div>
 <div class="model"><div class="model-name">Sonnet 4.5</div><div class="model-family">Claude</div></div>
 <div class="model"><div class="model-name">Haiku 3.5</div><div class="model-family">Claude</div></div>
 <div class="model"><div class="model-name">2.5 Pro</div><div class="model-family">Gemini</div></div>
 <div class="model"><div class="model-name">2.5 Flash</div><div class="model-family">Gemini</div></div>
-<div class="model"><div class="model-name">GPT-5 Mini</div><div class="model-family">OpenAI</div></div>
-<div class="model"><div class="model-name">GPT-5 Nano</div><div class="model-family">OpenAI</div></div>
+<div class="model"><div class="model-name">4.1 Mini</div><div class="model-family">OpenAI</div></div>
+<div class="model"><div class="model-name">4.1 Nano</div><div class="model-family">OpenAI</div></div>
 <div class="model"><div class="model-name">V3</div><div class="model-family">DeepSeek</div></div>
-<div class="model"><div class="model-name">Qwen3</div><div class="model-family">Alibaba</div></div>
+<div class="model"><div class="model-name">R1</div><div class="model-family">DeepSeek</div></div>
+<div class="model"><div class="model-name">Coder Plus</div><div class="model-family">Qwen</div></div>
+<div class="model"><div class="model-name">Plus</div><div class="model-family">Qwen</div></div>
 <div class="model"><div class="model-name">3.3 70B</div><div class="model-family">Llama</div></div>
+<div class="model"><div class="model-name">4 Scout</div><div class="model-family">Llama</div></div>
+<div class="model"><div class="model-name">Small 3.1</div><div class="model-family">Mistral</div></div>
+</div>
+</section>
+
+<section>
+<h2>x402 API</h2>
+<div class="api-box">
+<code>GET api.lexispawn.xyz/read/{contract_address}</code>
+<p class="api-price">$0.001 USDC per query · Base Sepolia (testnet)</p>
+<p class="api-desc">Pay-per-read via x402 protocol. Any agent, any wallet.</p>
 </div>
 </section>
 
