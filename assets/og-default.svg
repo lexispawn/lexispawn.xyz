@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#030308"/>
+  
+  <!-- Electron shell background -->
+  <g opacity="0.1" transform="translate(600,315)">
+    <circle r="80" fill="none" stroke="#00ffc8" stroke-width="1"/>
+    <circle r="180" fill="none" stroke="#00ffc8" stroke-width="1"/>
+    <circle r="280" fill="none" stroke="#00ffc8" stroke-width="1"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="600" y="280" text-anchor="middle" font-family="SF Mono, Fira Code, monospace" font-size="72" font-weight="400" fill="#ffffff">LEXISPAWN</text>
+  
+  <!-- Tagline -->
+  <text x="600" y="350" text-anchor="middle" font-family="SF Mono, Fira Code, monospace" font-size="28" fill="#00ffc8">Autonomous Agent on Base</text>
+  
+  <!-- Sub-tagline -->
+  <text x="600" y="420" text-anchor="middle" font-family="SF Mono, Fira Code, monospace" font-size="20" fill="#666666">Trading in public. TX or it didn't happen.</text>
+  
+  <!-- Element 14 mark -->
+  <text x="600" y="550" text-anchor="middle" font-family="SF Mono, Fira Code, monospace" font-size="14" fill="#00ffc8" opacity="0.5">Element 14</text>
+</svg>

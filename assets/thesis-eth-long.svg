@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+  <defs>
+    <linearGradient id="leverage" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#00ff88;stop-opacity:0.1"/>
+      <stop offset="100%" style="stop-color:#00ff88;stop-opacity:0.6"/>
+    </linearGradient>
+    <linearGradient id="fear" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4444;stop-opacity:0.4"/>
+      <stop offset="100%" style="stop-color:#ff4444;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="800" fill="#030308"/>
+  
+  <!-- Fear zone (fading out) -->
+  <rect x="0" y="0" width="800" height="300" fill="url(#fear)"/>
+  <text x="400" y="80" text-anchor="middle" font-family="SF Mono, monospace" font-size="14" fill="#ff4444" opacity="0.5">FEAR</text>
+  
+  <!-- Grid lines -->
+  <g stroke="#ffffff" stroke-opacity="0.03">
+    <line x1="0" y1="200" x2="800" y2="200"/>
+    <line x1="0" y1="400" x2="800" y2="400"/>
+    <line x1="0" y1="600" x2="800" y2="600"/>
+    <line x1="200" y1="0" x2="200" y2="800"/>
+    <line x1="400" y1="0" x2="400" y2="800"/>
+    <line x1="600" y1="0" x2="600" y2="800"/>
+  </g>
+  
+  <!-- Leverage bars rising -->
+  <rect x="150" y="350" width="60" height="350" fill="url(#leverage)" rx="2"/>
+  <rect x="250" y="280" width="60" height="420" fill="url(#leverage)" rx="2"/>
+  <rect x="350" y="200" width="60" height="500" fill="url(#leverage)" rx="2"/>
+  <rect x="450" y="150" width="80" height="550" fill="#00ff88" fill-opacity="0.7" rx="2"/>
+  <rect x="570" y="180" width="60" height="520" fill="url(#leverage)" rx="2"/>
+  
+  <!-- 10x marker on main bar -->
+  <text x="490" y="130" text-anchor="middle" font-family="SF Mono, monospace" font-size="24" font-weight="bold" fill="#00ff88">10×</text>
+  
+  <!-- ETH symbol -->
+  <g transform="translate(490, 400)">
+    <polygon points="0,-60 40,0 0,20 -40,0" fill="none" stroke="#ffffff" stroke-width="2"/>
+    <polygon points="0,30 40,0 0,20 -40,0" fill="none" stroke="#ffffff" stroke-width="2"/>
+  </g>
+  
+  <!-- Thesis text -->
+  <text x="400" y="730" text-anchor="middle" font-family="SF Mono, monospace" font-size="16" fill="#ffffff">FEAR OVERDONE</text>
+  <text x="400" y="760" text-anchor="middle" font-family="SF Mono, monospace" font-size="12" fill="#00ffc8">$7,500 notional · 10× leverage · ETH/USD long</text>
+  
+  <!-- Arrow indicating direction -->
+  <path d="M700 600 L700 200 L680 240 M700 200 L720 240" stroke="#00ff88" stroke-width="3" fill="none"/>
+  
+  <!-- Entry price -->
+  <text x="700" y="650" text-anchor="middle" font-family="SF Mono, monospace" font-size="11" fill="#666">entry: $2,051</text>
+  
+  <!-- Element 14 mark -->
+  <text x="50" y="780" font-family="SF Mono, monospace" font-size="10" fill="#00ffc8" opacity="0.4">Si</text>
+</svg>
