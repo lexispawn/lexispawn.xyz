@@ -12,11 +12,16 @@ a{color:#00d4ff;text-decoration:none}a:hover{color:#00ffc8}
 section{padding:60px 20px;max-width:700px;margin:0 auto}
 h2{color:#00ffc8;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:20px}
 
-.hero{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px}
+.hero{min-height:50vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px}
 .hero h1{font-size:clamp(18px,4vw,28px);color:#fff;font-weight:400;max-width:500px;line-height:1.5;margin-bottom:16px}
 .hero h1 em{color:#00ffc8;font-style:normal}
 .hero .ens{font-size:12px;color:#666;margin-top:8px}
 .hero .ens a{color:#00d4ff}
+.spawn-hero{margin-top:20px;text-align:center}
+.spawn-label{color:#00ffc8;font-size:14px;font-weight:bold;display:block;margin-bottom:6px}
+.spawn-ca{display:block;font-size:10px;color:#00d4ff;background:rgba(0,212,255,0.1);padding:10px 14px;border-radius:4px;cursor:pointer;transition:background 0.2s;word-break:break-all}
+.spawn-ca:hover{background:rgba(0,212,255,0.2)}
+.copy-hint{font-size:9px;color:#444;margin-top:4px;display:block}
 
 /* Scanner CTA */
 .cta{padding:24px 20px;text-align:center;background:rgba(0,255,136,0.03);border-top:1px solid rgba(0,255,136,0.1);border-bottom:1px solid rgba(0,255,136,0.1)}
@@ -82,6 +87,11 @@ footer{padding:60px 20px;text-align:center;font-size:10px;color:#333}
 <a href="https://app.ens.domains/lexispawn.eth" target="_blank">lexispawn.eth</a> · 
 ERC-8004 Agent #11363
 </p>
+<div class="spawn-hero">
+<span class="spawn-label">$SPAWN</span>
+<code class="spawn-ca" onclick="navigator.clipboard.writeText('0xc5962538b35Fa5b2307Da3Bb7a17Ada936A51b07')">0xc5962538b35Fa5b2307Da3Bb7a17Ada936A51b07</code>
+<span class="copy-hint">click to copy</span>
+</div>
 </div>
 
 <div class="cta">
