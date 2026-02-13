@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #000; 
+      min-height: 100vh; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      overflow: hidden;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    const cx = () => canvas.width / 2;
+    const cy = () => canvas.height / 2;
+    
+    // 14 voices, each speaking a different truth
+    // They rise like the tower of babel - trying to reach certainty
+    // But they speak different languages
+    
+    const voices = [];
+    const fragments = [
+      "BUY", "SELL", "HOLD", "UNCERTAIN", "BULLISH", "BEARISH",
+      "OVERVALUED", "UNDERVALUED", "NEUTRAL", "STRONG BUY",
+      "STRONG SELL", "WAIT", "ACCUMULATE", "DISTRIBUTE"
+    ];
+    
+    for (let i = 0; i < 14; i++) {
+      voices.push({
+        x: cx() + (Math.random() - 0.5) * 100,
+        y: canvas.height + Math.random() * 200,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: -0.3 - Math.random() * 0.7,
+        text: fragments[i],
+        size: 10 + Math.random() * 14,
+        alpha: 0.1 + Math.random() * 0.4,
+        hue: Math.random() * 360,
+        drift: Math.random() * Math.PI * 2,
+        driftSpeed: 0.01 + Math.random() * 0.02
+      });
+    }
+    
+    let time = 0;
+    
+    // The question at the top - what they're all trying to answer
+    // But can never reach
+    const question = "?";
+    
+    function drawVoid() {
+      // The unreachable certainty at the top
+      const gradient = ctx.createRadialGradient(
+        cx(), 50, 0,
+        cx(), 50, 150
+      );
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.03)');
+      gradient.addColorStop(0.5, 'rgba(100, 100, 150, 0.02)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      
+      ctx.beginPath();
+      ctx.arc(cx(), 50, 150, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      
+      // The question
+      const pulse = Math.sin(time * 0.5) * 0.2 + 0.8;
+      ctx.font = `${60 * pulse}px serif`;
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.1 * pulse})`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(question, cx(), 50);
+    }
+    
+    function drawVoice(v) {
+      // Update position - rising, drifting
+      v.drift += v.driftSpeed;
+      v.x += v.vx + Math.sin(v.drift) * 0.3;
+      v.y += v.vy;
+      
+      // Fade as they rise (further from ground truth)
+      const distFromBottom = canvas.height - v.y;
+      const fadeStart = canvas.height * 0.3;
+      const fadeFactor = Math.min(1, distFromBottom / fadeStart);
+      
+      // Reset when they get too high (babel never completes)
+      if (v.y < -50) {
+        v.y = canvas.height + 50;
+        v.x = cx() + (Math.random() - 0.5) * 200;
+        v.text = fragments[Math.floor(Math.random() * fragments.length)];
+      }
+      
+      // Draw the voice
+      const alpha = v.alpha * fadeFactor * (0.7 + Math.sin(time + v.drift) * 0.3);
+      
+      ctx.font = `${v.size}px monospace`;
+      ctx.fillStyle = `hsla(${v.hue}, 50%, 60%, ${alpha})`;
+      ctx.textAlign = 'center';
+      ctx.fillText(v.text, v.x, v.y);
+      
+      // Faint connection line to center (trying to converge, failing)
+      if (alpha > 0.1) {
+        ctx.beginPath();
+        ctx.moveTo(v.x, v.y);
+        ctx.lineTo(cx(), v.y - 50);
+        ctx.strokeStyle = `hsla(${v.hue}, 30%, 50%, ${alpha * 0.1})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+    
+    function drawGround() {
+      // The ground - where certainty seems solid
+      // But even here, it fragments
+      const gradient = ctx.createLinearGradient(0, canvas.height - 100, 0, canvas.height);
+      gradient.addColorStop(0, 'rgba(50, 50, 70, 0)');
+      gradient.addColorStop(1, 'rgba(50, 50, 70, 0.3)');
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
+      
+      // Cracks in the foundation
+      ctx.strokeStyle = 'rgba(100, 100, 120, 0.2)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const x = cx() + (i - 2) * 80 + Math.sin(time * 0.3 + i) * 10;
+        ctx.beginPath();
+        ctx.moveTo(x, canvas.height);
+        ctx.lineTo(x + (Math.random() - 0.5) * 20, canvas.height - 30 - Math.random() * 20);
+        ctx.stroke();
+      }
+    }
+    
+    function drawText() {
+      ctx.font = '10px monospace';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.textAlign = 'center';
+      ctx.fillText('14 voices. one question. no consensus.', cx(), canvas.height - 20);
+    }
+    
+    function animate() {
+      // Very slow fade - voices accumulate briefly
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      drawGround();
+      drawVoid();
+      
+      voices.forEach(drawVoice);
+      
+      drawText();
+      
+      time += 0.02;
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+  </script>
+</body>
+</html>
