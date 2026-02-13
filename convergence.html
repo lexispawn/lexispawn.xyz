@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CONVERGENCE</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  background: #030308; 
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+canvas { display: block; }
+#title {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.15);
+  font-size: 14px;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title">CONVERGENCE</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H, cx, cy;
+
+function resize() {
+  W = canvas.width = innerWidth;
+  H = canvas.height = innerHeight;
+  cx = W / 2;
+  cy = H / 2;
+}
+resize();
+addEventListener('resize', resize);
+
+// 14 voices - each a stream of light seeking the center
+const VOICES = 14;
+const streams = [];
+
+// Voice personalities (models have character)
+const personalities = [
+  { name: 'opus', hue: 45, weight: 1.4, speed: 0.3 },      // gold, heavy, deliberate
+  { name: 'sonnet', hue: 50, weight: 1.0, speed: 0.5 },    // amber, balanced
+  { name: 'haiku', hue: 55, weight: 0.6, speed: 0.9 },     // light gold, quick
+  { name: 'gemini3pro', hue: 160, weight: 1.3, speed: 0.4 }, // teal, substantial
+  { name: 'gemini3flash', hue: 170, weight: 0.7, speed: 0.8 }, // cyan, swift
+  { name: 'gemini25pro', hue: 180, weight: 1.1, speed: 0.45 }, // aqua
+  { name: 'gemini25flash', hue: 190, weight: 0.65, speed: 0.85 }, // sky
+  { name: 'gpt52', hue: 280, weight: 1.2, speed: 0.35 },   // violet, weighty
+  { name: 'gpt5mini', hue: 290, weight: 0.8, speed: 0.7 }, // purple, nimble
+  { name: 'gpt5nano', hue: 300, weight: 0.5, speed: 1.0 }, // magenta, fast
+  { name: 'kimi', hue: 30, weight: 1.0, speed: 0.5 },      // orange
+  { name: 'qwen', hue: 340, weight: 0.9, speed: 0.6 },     // rose
+  { name: 'voice13', hue: 120, weight: 0.7, speed: 0.7 },  // green
+  { name: 'voice14', hue: 220, weight: 0.8, speed: 0.55 }, // blue
+];
+
+class Stream {
+  constructor(index) {
+    this.index = index;
+    this.personality = personalities[index % personalities.length];
+    this.angle = (index / VOICES) * Math.PI * 2;
+    this.particles = [];
+    this.spawnTimer = 0;
+    
+    // Each stream starts from a different edge point
+    this.originX = cx + Math.cos(this.angle) * Math.max(W, H);
+    this.originY = cy + Math.sin(this.angle) * Math.max(W, H);
+  }
+  
+  update(time) {
+    // Spawn new particles
+    this.spawnTimer += this.personality.speed;
+    if (this.spawnTimer > 1) {
+      this.spawnTimer = 0;
+      this.spawn();
+    }
+    
+    // Update particles
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      
+      // Move toward center with organic wobble
+      const dx = cx - p.x;
+      const dy = cy - p.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < 20) {
+        // Reached convergence - absorbed
+        this.particles.splice(i, 1);
+        continue;
+      }
+      
+      // Attraction to center increases as it gets closer
+      const pull = 0.0003 + (1 - dist / Math.max(W, H)) * 0.002;
+      
+      // Add organic wobble
+      const wobble = Math.sin(time * 0.001 + p.phase) * 0.3;
+      const perpX = -dy / dist;
+      const perpY = dx / dist;
+      
+      p.vx += dx * pull + perpX * wobble * 0.1;
+      p.vy += dy * pull + perpY * wobble * 0.1;
+      
+      // Damping
+      p.vx *= 0.99;
+      p.vy *= 0.99;
+      
+      p.x += p.vx;
+      p.y += p.vy;
+      
+      // Fade as approaching center
+      p.life = Math.min(1, dist / 200);
+      
+      // Trail
+      p.trail.push({ x: p.x, y: p.y, life: p.life });
+      if (p.trail.length > 30) p.trail.shift();
+    }
+  }
+  
+  spawn() {
+    // Spawn from edge with slight randomness
+    const angleOffset = (Math.random() - 0.5) * 0.3;
+    const startAngle = this.angle + angleOffset;
+    const startDist = Math.max(W, H) * 0.6;
+    
+    this.particles.push({
+      x: cx + Math.cos(startAngle) * startDist,
+      y: cy + Math.sin(startAngle) * startDist,
+      vx: 0,
+      vy: 0,
+      life: 1,
+      phase: Math.random() * Math.PI * 2,
+      size: this.personality.weight * (2 + Math.random() * 2),
+      trail: []
+    });
+  }
+  
+  draw() {
+    const hue = this.personality.hue;
+    
+    for (const p of this.particles) {
+      // Draw trail
+      ctx.beginPath();
+      for (let i = 0; i < p.trail.length; i++) {
+        const t = p.trail[i];
+        const alpha = (i / p.trail.length) * t.life * 0.3;
+        if (i === 0) {
+          ctx.moveTo(t.x, t.y);
+        } else {
+          ctx.lineTo(t.x, t.y);
+        }
+      }
+      ctx.strokeStyle = `hsla(${hue}, 70%, 60%, ${p.life * 0.4})`;
+      ctx.lineWidth = p.size * 0.5;
+      ctx.stroke();
+      
+      // Draw particle
+      const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3);
+      gradient.addColorStop(0, `hsla(${hue}, 80%, 70%, ${p.life * 0.8})`);
+      gradient.addColorStop(0.5, `hsla(${hue}, 70%, 50%, ${p.life * 0.3})`);
+      gradient.addColorStop(1, `hsla(${hue}, 60%, 40%, 0)`);
+      
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+    }
+  }
+}
+
+// Core glow - the convergence point
+class Core {
+  constructor() {
+    this.intensity = 0;
+    this.targetIntensity = 0.5;
+  }
+  
+  update(streams) {
+    // Intensity based on how many particles are near center
+    let nearCenter = 0;
+    for (const s of streams) {
+      for (const p of s.particles) {
+        const dx = cx - p.x;
+        const dy = cy - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) nearCenter++;
+      }
+    }
+    this.targetIntensity = 0.3 + Math.min(nearCenter * 0.02, 0.7);
+    this.intensity += (this.targetIntensity - this.intensity) * 0.05;
+  }
+  
+  draw(time) {
+    // Pulsing core
+    const pulse = 1 + Math.sin(time * 0.002) * 0.1;
+    const size = 50 * this.intensity * pulse;
+    
+    // Outer glow
+    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 3);
+    gradient.addColorStop(0, `rgba(255, 255, 255, ${this.intensity * 0.5})`);
+    gradient.addColorStop(0.3, `rgba(200, 220, 255, ${this.intensity * 0.2})`);
+    gradient.addColorStop(0.6, `rgba(150, 180, 220, ${this.intensity * 0.05})`);
+    gradient.addColorStop(1, 'rgba(100, 150, 200, 0)');
+    
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * 3, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    // Inner bright core
+    const innerGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size);
+    innerGradient.addColorStop(0, `rgba(255, 255, 255, ${this.intensity})`);
+    innerGradient.addColorStop(0.5, `rgba(230, 240, 255, ${this.intensity * 0.5})`);
+    innerGradient.addColorStop(1, 'rgba(200, 220, 255, 0)');
+    
+    ctx.beginPath();
+    ctx.arc(cx, cy, size, 0, Math.PI * 2);
+    ctx.fillStyle = innerGradient;
+    ctx.fill();
+  }
+}
+
+// Initialize
+for (let i = 0; i < VOICES; i++) {
+  streams.push(new Stream(i));
+}
+const core = new Core();
+
+function render(time) {
+  // Clear with fade (motion blur)
+  ctx.fillStyle = 'rgba(3, 3, 8, 0.15)';
+  ctx.fillRect(0, 0, W, H);
+  
+  // Update and draw streams
+  for (const stream of streams) {
+    stream.update(time);
+    stream.draw();
+  }
+  
+  // Update and draw core
+  core.update(streams);
+  core.draw(time);
+  
+  requestAnimationFrame(render);
+}
+
+render(0);
+</script>
+</body>
+</html>
