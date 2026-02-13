@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #000; 
+      min-height: 100vh; 
+      display: flex; 
+      flex-direction: column;
+      justify-content: center; 
+      align-items: center;
+      font-family: monospace;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    const cx = () => canvas.width / 2;
+    const cy = () => canvas.height / 2;
+    
+    let time = 0;
+    let phase = 0; // 0: approaching, 1: hovering, 2: clicking (never reached)
+    let hoverTime = 0;
+    
+    // The cursor - it's yours
+    let cursorX = canvas.width * 0.3;
+    let cursorY = canvas.height * 0.7;
+    let targetX = cx();
+    let targetY = cy() + 30;
+    
+    // The button - the thing you came to press
+    const buttonWidth = 180;
+    const buttonHeight = 44;
+    
+    // The input - where you typed what you already knew
+    let inputText = "$______";
+    let inputCursor = 0;
+    const tokens = ["BNKR", "SPAWN", "VIRTUAL", "DEGEN", "BRETT", "TOSHI"];
+    
+    // Whispers - the answers you won't actually read
+    const whispers = [];
+    
+    function addWhisper() {
+      const responses = [
+        "BUY", "SELL", "HOLD", "UNCERTAIN", "NEUTRAL",
+        "insufficient data", "high risk", "accumulate",
+        "wait", "consider", "volatile", "promising",
+        "bearish", "bullish", "unclear", "speculative"
+      ];
+      whispers.push({
+        text: responses[Math.floor(Math.random() * responses.length)],
+        x: cx() + (Math.random() - 0.5) * 300,
+        y: cy() - 60 - Math.random() * 40,
+        alpha: 0.4,
+        life: 1
+      });
+    }
+    
+    function drawInterface() {
+      // The input field - already filled, you knew before you asked
+      const inputY = cy() - 50;
+      
+      ctx.fillStyle = 'rgba(30, 30, 40, 0.8)';
+      ctx.fillRect(cx() - 140, inputY - 18, 280, 36);
+      ctx.strokeStyle = 'rgba(100, 100, 120, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx() - 140, inputY - 18, 280, 36);
+      
+      // The token you already decided on
+      const displayText = inputText.replace("______", tokens[Math.floor(time / 3) % tokens.length]);
+      ctx.font = '16px monospace';
+      ctx.fillStyle = 'rgba(200, 200, 220, 0.9)';
+      ctx.textAlign = 'center';
+      ctx.fillText(displayText, cx(), inputY + 5);
+      
+      // THE BUTTON
+      const buttonY = cy() + 20;
+      const hover = cursorX > cx() - buttonWidth/2 && cursorX < cx() + buttonWidth/2 &&
+                   cursorY > buttonY - buttonHeight/2 && cursorY < buttonY + buttonHeight/2;
+      
+      // Button glow when hovering
+      if (hover) {
+        hoverTime += 0.05;
+        const glowIntensity = 0.1 + Math.sin(hoverTime * 3) * 0.05;
+        const glow = ctx.createRadialGradient(cx(), buttonY, 0, cx(), buttonY, 120);
+        glow.addColorStop(0, `rgba(0, 255, 136, ${glowIntensity})`);
+        glow.addColorStop(1, 'rgba(0, 255, 136, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      
+      // Button itself
+      ctx.fillStyle = hover ? 'rgba(0, 255, 136, 0.9)' : 'rgba(0, 255, 136, 0.7)';
+      ctx.fillRect(cx() - buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight);
+      
+      ctx.font = 'bold 14px monospace';
+      ctx.fillStyle = '#000';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('ASK 14 MINDS', cx(), buttonY);
+      
+      // Subtext - the lie
+      ctx.font = '9px monospace';
+      ctx.fillStyle = 'rgba(100, 100, 100, 0.6)';
+      ctx.fillText('you already know what you\'re going to do', cx(), buttonY + 40);
+    }
+    
+    function drawCursor() {
+      // Move cursor toward button, but never quite click
+      const dx = targetX - cursorX;
+      const dy = targetY - cursorY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      
+      if (dist > 2) {
+        // Approach slowly, with hesitation
+        const speed = 0.3 + Math.sin(time) * 0.1;
+        cursorX += dx * 0.008 * speed;
+        cursorY += dy * 0.008 * speed;
+        
+        // Slight tremor - anticipation
+        cursorX += Math.sin(time * 7) * 0.3;
+        cursorY += Math.cos(time * 5) * 0.2;
+      } else {
+        // Hovering - generate whispers
+        if (Math.random() < 0.03) addWhisper();
+        
+        // Micro-movements of indecision
+        cursorX += Math.sin(time * 3) * 0.5;
+        cursorY += Math.cos(time * 2) * 0.3;
+      }
+      
+      // The cursor itself
+      ctx.beginPath();
+      ctx.moveTo(cursorX, cursorY);
+      ctx.lineTo(cursorX, cursorY + 18);
+      ctx.lineTo(cursorX + 4, cursorY + 14);
+      ctx.lineTo(cursorX + 7, cursorY + 21);
+      ctx.lineTo(cursorX + 10, cursorY + 20);
+      ctx.lineTo(cursorX + 7, cursorY + 13);
+      ctx.lineTo(cursorX + 12, cursorY + 13);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    
+    function drawWhispers() {
+      whispers.forEach((w, i) => {
+        w.y -= 0.3;
+        w.alpha *= 0.995;
+        w.life -= 0.005;
+        
+        if (w.life > 0) {
+          ctx.font = '11px monospace';
+          ctx.fillStyle = `rgba(150, 150, 170, ${w.alpha * w.life})`;
+          ctx.textAlign = 'center';
+          ctx.fillText(w.text, w.x, w.y);
+        }
+      });
+      
+      // Clean up dead whispers
+      while (whispers.length > 0 && whispers[0].life <= 0) {
+        whispers.shift();
+      }
+    }
+    
+    function drawBreath() {
+      // The breath - the pause that feels like diligence
+      const breathPhase = Math.sin(time * 0.5) * 0.5 + 0.5;
+      
+      ctx.font = '10px monospace';
+      ctx.fillStyle = `rgba(80, 80, 100, ${0.2 + breathPhase * 0.1})`;
+      ctx.textAlign = 'center';
+      ctx.fillText('·', cx() - 30, canvas.height - 30);
+      ctx.fillText('·', cx(), canvas.height - 30);
+      ctx.fillText('·', cx() + 30, canvas.height - 30);
+    }
+    
+    function animate() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      drawWhispers();
+      drawInterface();
+      drawCursor();
+      drawBreath();
+      
+      time += 0.02;
+      
+      requestAnimationFrame(animate);
+    }
+    
+    // Start cursor off screen
+    cursorX = canvas.width * 0.2;
+    cursorY = canvas.height * 0.8;
+    
+    animate();
+  </script>
+</body>
+</html>
