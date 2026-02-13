@@ -4,25 +4,56 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>14 MINDS — AI Token Analysis</title>
-<meta property="og:title" content="14 MINDS — Query Frontier Models">
-<meta property="og:description" content="10 frontier AI models analyze any Base token. Animated thesis visualization.">
+<meta property="og:title" content="14 MINDS — The Element That Thinks">
+<meta property="og:description" content="Frontier AI models analyze any Base token. The divergence is the signal.">
+<meta property="og:image" content="https://lexispawn.xyz/assets/element-14.png">
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:image" content="https://lexispawn.xyz/assets/element-14.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23030308' width='100' height='100' rx='8'/><text x='50' y='68' text-anchor='middle' font-family='monospace' font-size='48' fill='%2300ffc8'>Si</text></svg>">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#030308;color:#a0a8b8;font-family:'SF Mono','Fira Code',monospace;min-height:100vh}
 a{color:#00d4ff;text-decoration:none}
 a:hover{color:#00ffc8}
 
-.hero{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;background:radial-gradient(ellipse at center,rgba(0,255,136,0.03) 0%,transparent 70%)}
-.hero h1{font-size:clamp(48px,12vw,72px);color:#fff;font-weight:200;margin-bottom:8px}
+.hero{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;background:radial-gradient(ellipse at center,rgba(0,255,136,0.03) 0%,transparent 70%);position:relative}
+
+/* Silicon electron shell - 2-8-4 configuration */
+.electron-shell{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:320px;height:320px;opacity:0.12;pointer-events:none;animation:shell-rotate 120s linear infinite}
+@keyframes shell-rotate{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+.shell{position:absolute;border:1px solid #00ffc8;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%)}
+.shell-1{width:60px;height:60px}
+.shell-2{width:160px;height:160px}
+.shell-3{width:280px;height:280px}
+.electron{position:absolute;width:4px;height:4px;background:#00ffc8;border-radius:50%;top:50%;left:50%}
+/* Shell 1: 2 electrons */
+.e1-1{transform:translate(-50%,-50%) rotate(0deg) translateY(-30px)}
+.e1-2{transform:translate(-50%,-50%) rotate(180deg) translateY(-30px)}
+/* Shell 2: 8 electrons */
+.e2-1{transform:translate(-50%,-50%) rotate(0deg) translateY(-80px)}
+.e2-2{transform:translate(-50%,-50%) rotate(45deg) translateY(-80px)}
+.e2-3{transform:translate(-50%,-50%) rotate(90deg) translateY(-80px)}
+.e2-4{transform:translate(-50%,-50%) rotate(135deg) translateY(-80px)}
+.e2-5{transform:translate(-50%,-50%) rotate(180deg) translateY(-80px)}
+.e2-6{transform:translate(-50%,-50%) rotate(225deg) translateY(-80px)}
+.e2-7{transform:translate(-50%,-50%) rotate(270deg) translateY(-80px)}
+.e2-8{transform:translate(-50%,-50%) rotate(315deg) translateY(-80px)}
+/* Shell 3: 4 electrons (valence) */
+.e3-1{transform:translate(-50%,-50%) rotate(45deg) translateY(-140px)}
+.e3-2{transform:translate(-50%,-50%) rotate(135deg) translateY(-140px)}
+.e3-3{transform:translate(-50%,-50%) rotate(225deg) translateY(-140px)}
+.e3-4{transform:translate(-50%,-50%) rotate(315deg) translateY(-140px)}
+
+.hero h1{font-size:clamp(48px,12vw,72px);color:#fff;font-weight:200;margin-bottom:8px;position:relative;z-index:1}
 .hero h1 span{color:#00ffc8}
-.hero .subtitle{font-size:clamp(14px,2.5vw,18px);color:#888;margin-bottom:24px}
-.models-banner{font-size:10px;color:#00d4ff;margin-bottom:32px;padding:10px 16px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:20px;display:inline-block}
-.hero-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:16px}
+.hero .subtitle{font-size:clamp(14px,2.5vw,18px);color:#888;margin-bottom:24px;position:relative;z-index:1}
+.models-banner{font-size:10px;color:#00d4ff;margin-bottom:32px;padding:10px 16px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:20px;display:inline-block;position:relative;z-index:1}
+.hero-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:16px;position:relative;z-index:1}
 .btn{display:inline-block;padding:14px 32px;background:#00ff88;color:#000;font-weight:bold;text-decoration:none;border-radius:6px;font-size:14px;transition:all 0.2s}
 .btn:hover{background:#00cc6a;color:#000;transform:translateY(-2px)}
 .btn-outline{background:transparent;border:2px solid rgba(255,255,255,0.2);color:#fff}
 .btn-outline:hover{background:rgba(255,255,255,0.05);color:#fff;border-color:#00ff88}
-.powered{font-size:10px;color:#555}
+.powered{font-size:10px;color:#555;position:relative;z-index:1}
 .powered a{color:#00d4ff}
 
 section{padding:50px 20px;max-width:900px;margin:0 auto}
@@ -51,16 +82,36 @@ h2{text-align:center;font-size:10px;color:#00ffc8;text-transform:uppercase;lette
 
 footer{text-align:center;padding:40px 20px;border-top:1px solid rgba(255,255,255,0.05);font-size:10px;color:#444}
 footer a{color:#00d4ff}
+.si-mark{color:#00ffc8;opacity:0.4;font-size:9px;letter-spacing:1px}
 </style>
 </head>
 <body>
 
 <div class="hero">
+<div class="electron-shell">
+<div class="shell shell-1"></div>
+<div class="shell shell-2"></div>
+<div class="shell shell-3"></div>
+<div class="electron e1-1"></div>
+<div class="electron e1-2"></div>
+<div class="electron e2-1"></div>
+<div class="electron e2-2"></div>
+<div class="electron e2-3"></div>
+<div class="electron e2-4"></div>
+<div class="electron e2-5"></div>
+<div class="electron e2-6"></div>
+<div class="electron e2-7"></div>
+<div class="electron e2-8"></div>
+<div class="electron e3-1"></div>
+<div class="electron e3-2"></div>
+<div class="electron e3-3"></div>
+<div class="electron e3-4"></div>
+</div>
 <h1><span>14</span> MINDS</h1>
-<p class="subtitle">Frontier AI models analyze any Base token. Animated thesis visualization.</p>
-<div class="models-banner">Claude Opus · Sonnet · Gemini Pro · Flash · GPT · DeepSeek · Qwen · Llama</div>
+<p class="subtitle">Frontier models analyze any Base token. The divergence is the signal.</p>
+<div class="models-banner">Claude · Gemini · GPT · DeepSeek · Qwen · Llama</div>
 <div class="hero-cta">
-<a class="btn" href="https://x.com/intent/tweet?text=@lexispawn%20mind%20read%20" target="_blank">Request on X →</a>
+<a class="btn" href="https://x.com/intent/tweet?text=@lexispawn%20read%20%24" target="_blank">Request a Read →</a>
 <a class="btn btn-outline" href="#reads">Recent Reads ↓</a>
 </div>
 <p class="powered">Powered by <a href="https://bankr.bot" target="_blank">Bankr LLM Gateway</a></p>
@@ -71,7 +122,7 @@ footer a{color:#00d4ff}
 <div class="features">
 <div class="feature">
 <h3>Multi-Model Query</h3>
-<p>10 frontier models evaluate the same token data simultaneously. Each brings different training, different biases.</p>
+<p>Frontier models evaluate the same token simultaneously. Each brings different training, different biases.</p>
 </div>
 <div class="feature">
 <h3>Divergence Signal</h3>
@@ -83,7 +134,7 @@ footer a{color:#00d4ff}
 </div>
 <div class="feature">
 <h3>Public Archive</h3>
-<p>Every read hosted at lexispawn.xyz/reads/. Shareable, permanent, timestamped.</p>
+<p>Every read hosted permanently. Shareable, timestamped, on the record.</p>
 </div>
 </div>
 </section>
@@ -94,31 +145,32 @@ footer a{color:#00d4ff}
 <div class="read-card">
 <h3>$BNKR</h3>
 <div class="verdict divided">DIVIDED — 3↑ 1↓ 3→</div>
-<div class="meta">7/10 models · Feb 13, 2026</div>
-<a href="/reads/bnkr.html">View Thesis →</a>
+<div class="meta">7 models · Feb 13, 2026</div>
+<a href="/reads/bnkr.html">View Read →</a>
 </div>
 </div>
 </section>
 
 <section>
-<h2>The 10 Models</h2>
+<h2>The Models</h2>
 <div class="model-grid">
 <div class="model"><div class="model-name">Opus 4.5</div><div class="model-family">Claude</div></div>
 <div class="model"><div class="model-name">Sonnet 4.5</div><div class="model-family">Claude</div></div>
 <div class="model"><div class="model-name">Haiku 3.5</div><div class="model-family">Claude</div></div>
-<div class="model"><div class="model-name">Gemini 2.5 Pro</div><div class="model-family">Google</div></div>
-<div class="model"><div class="model-name">Gemini 2.5 Flash</div><div class="model-family">Google</div></div>
+<div class="model"><div class="model-name">2.5 Pro</div><div class="model-family">Gemini</div></div>
+<div class="model"><div class="model-name">2.5 Flash</div><div class="model-family">Gemini</div></div>
 <div class="model"><div class="model-name">GPT-5 Mini</div><div class="model-family">OpenAI</div></div>
 <div class="model"><div class="model-name">GPT-5 Nano</div><div class="model-family">OpenAI</div></div>
-<div class="model"><div class="model-name">DeepSeek V3</div><div class="model-family">DeepSeek</div></div>
-<div class="model"><div class="model-name">Qwen3 Coder</div><div class="model-family">Alibaba</div></div>
-<div class="model"><div class="model-name">Llama 3.3 70B</div><div class="model-family">Meta</div></div>
+<div class="model"><div class="model-name">V3</div><div class="model-family">DeepSeek</div></div>
+<div class="model"><div class="model-name">Qwen3</div><div class="model-family">Alibaba</div></div>
+<div class="model"><div class="model-name">3.3 70B</div><div class="model-family">Llama</div></div>
 </div>
 </section>
 
 <footer>
-<p><a href="/">← lexispawn.xyz</a></p>
-<p style="margin-top:12px">Built by <a href="https://x.com/lexispawn">@lexispawn</a> · <a href="https://bankr.bot">Bankr LLM Gateway</a></p>
+<p class="si-mark">Element 14</p>
+<p style="margin-top:8px"><a href="/">← lexispawn.xyz</a></p>
+<p style="margin-top:12px"><a href="https://x.com/lexispawn">@lexispawn</a></p>
 </footer>
 
 </body>

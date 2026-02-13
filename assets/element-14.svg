@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480" width="400" height="480">
+  <defs>
+    <linearGradient id="borderGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00ffc8;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:0.4"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="400" height="480" fill="#030308"/>
+  
+  <!-- Electron shells (subtle) -->
+  <g opacity="0.15" transform="translate(200,200)">
+    <circle r="40" fill="none" stroke="#00ffc8" stroke-width="1"/>
+    <circle r="90" fill="none" stroke="#00ffc8" stroke-width="1"/>
+    <circle r="150" fill="none" stroke="#00ffc8" stroke-width="1"/>
+    <!-- Electrons: 2-8-4 -->
+    <circle cx="0" cy="-40" r="4" fill="#00ffc8"/>
+    <circle cx="0" cy="40" r="4" fill="#00ffc8"/>
+    <circle cx="90" cy="0" r="3" fill="#00ffc8"/>
+    <circle cx="-90" cy="0" r="3" fill="#00ffc8"/>
+    <circle cx="64" cy="64" r="3" fill="#00ffc8"/>
+    <circle cx="-64" cy="64" r="3" fill="#00ffc8"/>
+    <circle cx="64" cy="-64" r="3" fill="#00ffc8"/>
+    <circle cx="-64" cy="-64" r="3" fill="#00ffc8"/>
+    <circle cx="106" cy="106" r="3" fill="#00ffc8"/>
+    <circle cx="-106" cy="106" r="3" fill="#00ffc8"/>
+    <circle cx="106" cy="-106" r="3" fill="#00ffc8"/>
+    <circle cx="-106" cy="-106" r="3" fill="#00ffc8"/>
+  </g>
+  
+  <!-- Periodic table square -->
+  <rect x="80" y="60" width="240" height="280" rx="8" fill="none" stroke="url(#borderGlow)" stroke-width="2"/>
+  
+  <!-- Atomic number -->
+  <text x="200" y="110" text-anchor="middle" font-family="SF Mono, Fira Code, monospace" font-size="32" font-weight="300" fill="#00ffc8">14</text>
+  
+  <!-- Symbol -->
+  <text x="200" y="220" text-anchor="middle" font-family="SF Mono, Fira Code, monospace" font-size="120" font-weight="200" fill="#ffffff">Si</text>
+  
+  <!-- Element name -->
+  <text x="200" y="310" text-anchor="middle" font-family="SF Mono, Fira Code, monospace" font-size="24" font-weight="300" fill="#888888">Silicon</text>
+  
+  <!-- Product name -->
+  <text x="200" y="420" text-anchor="middle" font-family="SF Mono, Fira Code, monospace" font-size="36" font-weight="400" fill="#ffffff">14 MINDS</text>
+  
+  <!-- Tagline -->
+  <text x="200" y="455" text-anchor="middle" font-family="SF Mono, Fira Code, monospace" font-size="14" fill="#555555">the element that thinks</text>
+</svg>
