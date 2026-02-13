@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>14 MINDS — $VIRTUAL</title>
+<meta property="og:title" content="14 MINDS — $VIRTUAL">
+<meta property="og:description" content="14 frontier minds. One question. See where they diverge.">
+<meta property="og:image" content="https://lexispawn.xyz/assets/element-14.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#030308;color:#a0a8b8;font-family:'SF Mono','Fira Code',monospace;min-height:100vh;display:flex;flex-direction:column}
+.header{padding:40px 20px 20px;text-align:center}
+.header h1{font-size:48px;color:#fff;font-weight:200}
+.header h1 span{color:#00ffc8}
+.header .price{font-size:14px;color:#666;margin-top:8px}
+.header .change{color:#00ff88}
+
+.spectrum{flex:1;display:flex;padding:20px;gap:4px;min-height:400px}
+.zone{flex:1;display:flex;flex-direction:column;padding:16px;border-radius:8px;position:relative}
+.zone.sell{background:linear-gradient(180deg,rgba(255,68,68,0.15) 0%,rgba(255,68,68,0.05) 100%)}
+.zone.hold{background:linear-gradient(180deg,rgba(255,170,0,0.15) 0%,rgba(255,170,0,0.05) 100%)}
+.zone.buy{background:linear-gradient(180deg,rgba(0,255,136,0.15) 0%,rgba(0,255,136,0.05) 100%)}
+.zone-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:0.5;margin-bottom:16px}
+.zone.sell .zone-label{color:#ff4444}
+.zone.hold .zone-label{color:#ffaa00}
+.zone.buy .zone-label{color:#00ff88}
+
+.mind{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:12px;margin-bottom:8px}
+.mind-name{font-size:11px;color:#fff;margin-bottom:4px}
+.mind-says{font-size:10px;color:#666;line-height:1.4}
+.mind.failed{opacity:0.3}
+
+.count{position:absolute;bottom:16px;right:16px;font-size:32px;font-weight:200;opacity:0.2}
+.zone.sell .count{color:#ff4444}
+.zone.hold .count{color:#ffaa00}
+.zone.buy .count{color:#00ff88}
+
+.footer{padding:20px;text-align:center;border-top:1px solid rgba(255,255,255,0.05)}
+.footer a{color:#00ffc8;font-size:11px}
+.footer .si{color:#00ffc8;opacity:0.3;font-size:9px;display:block;margin-top:8px}
+
+.no-consensus{text-align:center;padding:40px 20px;font-size:14px;color:#666}
+.no-consensus em{color:#00ffc8;font-style:normal}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1><span>$</span>VIRTUAL</h1>
+<p class="price">$0.5970 <span class="change">2.85%</span></p>
+</div>
+
+<div class="spectrum">
+<div class="zone sell">
+<div class="zone-label">Sell</div>
+
+<div class="count">0</div>
+</div>
+<div class="zone hold">
+<div class="zone-label">Hold</div>
+<div class="mind"><div class="mind-name">GPT Nano</div><div class="mind-says">HOLD - Stable profit potential amid moderate growth.</div></div>
+<div class="mind"><div class="mind-name">Opus</div><div class="mind-says">HOLD - Low liquidity relative to volume creates risky exit c</div></div>
+
+<div class="count">2</div>
+</div>
+<div class="zone buy">
+<div class="zone-label">Buy</div>
+<div class="mind"><div class="mind-name">GPT Mini</div><div class="mind-says">BUY - Positive price change with strong daily volume and liq</div></div>
+
+<div class="count">1</div>
+</div>
+</div>
+
+<div class="no-consensus">
+3/14 minds responded. <em>The divergence is the signal.</em>
+</div>
+
+<div class="footer">
+<a href="https://lexispawn.xyz/14minds">14 MINDS</a> · <a href="https://lexispawn.xyz">lexispawn.xyz</a>
+<span class="si">Element 14</span>
+</div>
+
+</body>
+</html>
