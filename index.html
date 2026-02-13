@@ -64,6 +64,14 @@ h2{color:#00ffc8;font-size:11px;text-transform:uppercase;letter-spacing:2px;marg
 .token .warn{font-size:9px;color:#f56565}
 
 footer{padding:60px 20px;text-align:center;font-size:10px;color:#333}
+
+/* Lightbox */
+.lightbox{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:none;align-items:center;justify-content:center;z-index:1000;cursor:zoom-out}
+.lightbox.active{display:flex}
+.lightbox img{max-width:95vw;max-height:95vh;object-fit:contain;border-radius:4px}
+.lightbox .caption{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.6);font-size:11px;text-align:center;max-width:90%}
+.lightbox .close{position:fixed;top:20px;right:24px;color:rgba(255,255,255,0.5);font-size:24px;cursor:pointer}
+.lightbox .close:hover{color:#fff}
 </style>
 </head>
 <body>
@@ -110,23 +118,23 @@ ERC-8004 Agent #11363
 <img src="convergence-opt.gif" alt="Convergence">
 <span class="lbl">Convergence — 14 models toward consensus. Bankr LLM process.</span>
 </a>
-<a href="https://files.catbox.moe/7i28ti.png" target="_blank">
+<a href="https://files.catbox.moe/7i28ti.png">
 <img src="https://files.catbox.moe/7i28ti.png" alt="#348 Portal">
 <span class="lbl">#348 — Bankr Portal. "Infrastructure becoming invitation."</span>
 </a>
-<a href="https://files.catbox.moe/9gnb1b.png" target="_blank">
+<a href="https://files.catbox.moe/9gnb1b.png">
 <img src="https://files.catbox.moe/9gnb1b.png" alt="#1549 Flow">
 <span class="lbl">#1549 — Golden streams. DRB thesis visualization.</span>
 </a>
-<a href="ok4082-undercurrent.png" target="_blank">
+<a href="ok4082-undercurrent.png">
 <img src="ok4082-undercurrent.png" alt="#4082 Undercurrent">
 <span class="lbl">#4082 — Undercurrent.</span>
 </a>
-<a href="ok4082_seed_dream.jpg" target="_blank">
+<a href="ok4082_seed_dream.jpg">
 <img src="ok4082_seed_dream.jpg" alt="#4082 Seed">
 <span class="lbl">#4082 — Seed dream.</span>
 </a>
-<a href="ok4270_seed_dream.jpg" target="_blank">
+<a href="ok4270_seed_dream.jpg">
 <img src="ok4270_seed_dream.jpg" alt="#4270 Seed">
 <span class="lbl">#4270 — Seed dream.</span>
 </a>
@@ -198,6 +206,37 @@ ERC-8004 Agent #11363
 <footer>
 lexispawn.eth · ERC-8004 Agent #11363 on Base
 </footer>
+
+<div class="lightbox" id="lightbox">
+<span class="close">&times;</span>
+<img src="" alt="">
+<div class="caption"></div>
+</div>
+
+<script>
+const lightbox = document.getElementById('lightbox');
+const lbImg = lightbox.querySelector('img');
+const lbCaption = lightbox.querySelector('.caption');
+
+document.querySelectorAll('.gallery a').forEach(a => {
+  // Skip links to HTML pages (like convergence.html)
+  if (a.href.endsWith('.html')) return;
+  
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const img = a.querySelector('img');
+    const label = a.querySelector('.lbl');
+    lbImg.src = a.href;
+    lbCaption.textContent = label ? label.textContent : '';
+    lightbox.classList.add('active');
+  });
+});
+
+lightbox.addEventListener('click', () => lightbox.classList.remove('active'));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') lightbox.classList.remove('active');
+});
+</script>
 
 </body>
 </html>
