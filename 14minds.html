@@ -3,122 +3,147 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>14 MINDS — Powered by Bankr LLM Gateway</title>
+<title>14 MINDS — AI Token Analysis</title>
 <meta property="og:title" content="14 MINDS — Query 14 Frontier Models">
-<meta property="og:description" content="Visual thesis cards showing where AI models converge and diverge on any token.">
+<meta property="og:description" content="Pay $0.35 for instant AI analysis on any Base token. 14 models. One thesis card.">
 <meta property="og:image" content="https://files.catbox.moe/fh7sqx.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#030308;color:#a0a8b8;font-family:'SF Mono','Fira Code',monospace;min-height:100vh;padding:40px 20px}
+body{background:#030308;color:#a0a8b8;font-family:'SF Mono','Fira Code',monospace;min-height:100vh}
 a{color:#00d4ff;text-decoration:none}
 a:hover{color:#00ffc8}
-.container{max-width:800px;margin:0 auto}
-header{text-align:center;margin-bottom:60px}
-h1{font-size:clamp(36px,8vw,56px);color:#fff;font-weight:200;margin-bottom:12px}
-h1 span{color:#00ffc8}
-.tagline{color:#666;font-size:14px;max-width:500px;margin:0 auto 20px}
-.powered{font-size:11px;color:#00d4ff}
 
-.latest{background:rgba(0,212,255,0.03);border:1px solid rgba(0,212,255,0.1);border-radius:12px;padding:30px;margin-bottom:40px}
-.latest h2{font-size:11px;color:#00ffc8;text-transform:uppercase;letter-spacing:2px;margin-bottom:20px}
-.latest-card{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
-.latest-card img{width:280px;max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1)}
-.latest-card-content h3{color:#fff;font-size:18px;margin-bottom:12px}
-.latest-card-content p{font-size:12px;color:#888;line-height:1.8;margin-bottom:16px}
-.latest-card-content .result{font-size:11px;padding:8px 12px;background:rgba(255,100,100,0.1);border:1px solid rgba(255,100,100,0.2);border-radius:4px;display:inline-block;color:#ff8888}
-.latest-card-content .result.bullish{background:rgba(0,255,136,0.1);border-color:rgba(0,255,136,0.2);color:#00ff88}
+/* HERO - Eye grabbing */
+.hero{min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;background:radial-gradient(ellipse at center,rgba(0,255,136,0.03) 0%,transparent 70%)}
+.hero h1{font-size:clamp(48px,12vw,80px);color:#fff;font-weight:200;margin-bottom:8px}
+.hero h1 span{color:#00ffc8}
+.hero .subtitle{font-size:clamp(16px,3vw,22px);color:#fff;margin-bottom:32px;font-weight:300}
+.price-box{background:rgba(0,255,136,0.08);border:2px solid #00ff88;border-radius:12px;padding:32px 48px;margin-bottom:24px}
+.price{font-size:clamp(40px,10vw,64px);color:#00ff88;font-weight:bold}
+.price-note{font-size:12px;color:#666;margin-top:8px}
+.hero-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:24px}
+.btn{display:inline-block;padding:16px 36px;background:#00ff88;color:#000;font-weight:bold;text-decoration:none;border-radius:6px;font-size:15px;transition:all 0.2s}
+.btn:hover{background:#00cc6a;color:#000;transform:translateY(-2px)}
+.btn-outline{background:transparent;border:2px solid rgba(255,255,255,0.3);color:#fff}
+.btn-outline:hover{background:rgba(255,255,255,0.05);color:#fff;border-color:#00ff88}
+.powered{font-size:11px;color:#666}
+.powered a{color:#00d4ff}
 
-.models{margin:40px 0}
-.models h2{font-size:11px;color:#00ffc8;text-transform:uppercase;letter-spacing:2px;margin-bottom:20px;text-align:center}
-.model-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
-.model{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:6px;padding:12px;text-align:center;font-size:11px}
-.model-name{color:#fff;margin-bottom:4px}
-.model-family{color:#666;font-size:9px}
-.model.claude{border-color:rgba(212,175,55,0.3)}
-.model.gemini{border-color:rgba(0,206,209,0.3)}
-.model.gpt{border-color:rgba(147,112,219,0.3)}
-.model.other{border-color:rgba(255,99,71,0.3)}
+/* What you get */
+.what-you-get{padding:60px 20px;background:rgba(0,212,255,0.02);border-top:1px solid rgba(0,212,255,0.1);border-bottom:1px solid rgba(0,212,255,0.1)}
+.container{max-width:900px;margin:0 auto}
+.what-you-get h2{text-align:center;font-size:11px;color:#00ffc8;text-transform:uppercase;letter-spacing:2px;margin-bottom:40px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:24px}
+.feature{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:24px}
+.feature h3{color:#fff;font-size:14px;margin-bottom:8px}
+.feature p{font-size:12px;color:#666;line-height:1.6}
 
-.cta-section{text-align:center;padding:40px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:40px}
-.cta-section h2{color:#fff;font-size:20px;margin-bottom:12px}
-.cta-section p{color:#666;font-size:12px;margin-bottom:24px}
-.btn{display:inline-block;padding:14px 32px;background:#00ff88;color:#000;font-weight:bold;text-decoration:none;border-radius:6px;margin:8px;font-size:13px}
-.btn:hover{background:#00cc6a;color:#000}
-.btn-outline{background:transparent;border:1px solid rgba(255,255,255,0.2);color:#fff}
-.btn-outline:hover{background:rgba(255,255,255,0.05);color:#fff}
+/* Example Card */
+.example{padding:60px 20px}
+.example h2{text-align:center;font-size:11px;color:#00ffc8;text-transform:uppercase;letter-spacing:2px;margin-bottom:40px}
+.example-card{max-width:600px;margin:0 auto;text-align:center}
+.example-card img{width:100%;max-width:400px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);margin-bottom:20px}
+.example-card p{font-size:12px;color:#666;line-height:1.8}
+.result-tag{font-size:11px;padding:8px 16px;background:rgba(255,100,100,0.1);border:1px solid rgba(255,100,100,0.2);border-radius:4px;display:inline-block;color:#ff8888;margin-top:16px}
 
-.proof{margin-top:40px;text-align:center}
-.proof h2{font-size:11px;color:#00ffc8;text-transform:uppercase;letter-spacing:2px;margin-bottom:20px}
-.proof-links{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
-.proof-link{font-size:11px;padding:8px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:4px}
+/* Models */
+.models{padding:60px 20px;background:rgba(0,0,0,0.3)}
+.models h2{text-align:center;font-size:11px;color:#00ffc8;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
+.model-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px;max-width:800px;margin:0 auto}
+.model{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:4px;padding:10px;text-align:center;font-size:10px}
+.model-name{color:#fff;margin-bottom:2px}
+.model-family{color:#555;font-size:8px}
 
-footer{text-align:center;margin-top:60px;padding-top:30px;border-top:1px solid rgba(255,255,255,0.05);font-size:10px;color:#444}
+/* CTA Bottom */
+.cta-bottom{padding:60px 20px;text-align:center}
+.cta-bottom h2{color:#fff;font-size:24px;margin-bottom:12px}
+.cta-bottom p{color:#666;font-size:13px;margin-bottom:24px}
+
+footer{text-align:center;padding:40px 20px;border-top:1px solid rgba(255,255,255,0.05);font-size:10px;color:#444}
 footer a{color:#00d4ff}
 </style>
 </head>
 <body>
 
-<div class="container">
-<header>
+<div class="hero">
 <h1><span>14</span> MINDS</h1>
-<p class="tagline">Query 14 frontier models on any token. See where they converge — and where they diverge. That's where alpha lives.</p>
+<p class="subtitle">AI Token Analysis, Instant</p>
+<div class="price-box">
+<div class="price">$0.35</div>
+<div class="price-note">per thesis card · USDC on Base</div>
+</div>
+<div class="hero-cta">
+<a class="btn" href="https://x.com/intent/tweet?text=@lexispawn%20mind%20read%20" target="_blank">🧠 Request Mind Read →</a>
+<a class="btn btn-outline" href="#example">See Example ↓</a>
+</div>
 <p class="powered">Powered by <a href="https://bankr.bot" target="_blank">Bankr LLM Gateway</a></p>
-</header>
+</div>
 
-<div class="latest">
+<div class="what-you-get">
+<div class="container">
+<h2>What You Get</h2>
+<div class="features">
+<div class="feature">
+<h3>14 Frontier Models</h3>
+<p>Claude Opus, Gemini 2.5 Pro, GPT-4.1, DeepSeek V3, Qwen Max — all query the same token simultaneously.</p>
+</div>
+<div class="feature">
+<h3>Consensus Signal</h3>
+<p>See where models agree (high conviction) and where they diverge (uncertainty = opportunity).</p>
+</div>
+<div class="feature">
+<h3>Visual Thesis Card</h3>
+<p>Shareable image showing the full analysis. Post it, save it, use it.</p>
+</div>
+<div class="feature">
+<h3>Instant Delivery</h3>
+<p>Pay → Lexispawn runs the query → Card delivered. No waiting, no middlemen.</p>
+</div>
+</div>
+</div>
+</div>
+
+<div class="example" id="example">
 <h2>Latest Thesis Card</h2>
-<div class="latest-card">
+<div class="example-card">
 <a href="https://files.catbox.moe/fh7sqx.png" target="_blank">
 <img src="https://files.catbox.moe/fh7sqx.png" alt="$SPAWN Thesis Card">
 </a>
-<div class="latest-card-content">
-<h3>$SPAWN — 14 Models vs 1 Whale</h3>
-<p>Models reached 24% consensus (BEARISH). Opus, Sonnet, GPT-4.1 all said STRONG_SELL. Then @0xDeployer bought $1K on the timeline. The divergence between model consensus and on-chain signal — that's where alpha lives.</p>
-<span class="result">BEARISH · 24% Consensus</span>
-</div>
+<p><strong>$SPAWN</strong> — 14 models reached 24% consensus (BEARISH). Opus, Sonnet, GPT-4.1 all said STRONG_SELL. Then @0xDeployer bought $1K on the timeline. The divergence between model consensus and on-chain signal — that's where alpha lives.</p>
+<span class="result-tag">BEARISH · 24% Consensus</span>
 </div>
 </div>
 
 <div class="models">
 <h2>The 14 Models</h2>
 <div class="model-grid">
-<div class="model claude"><div class="model-name">Opus 4.5</div><div class="model-family">Claude</div></div>
-<div class="model claude"><div class="model-name">Sonnet 4.5</div><div class="model-family">Claude</div></div>
-<div class="model claude"><div class="model-name">Haiku 3.5</div><div class="model-family">Claude</div></div>
-<div class="model gemini"><div class="model-name">Gemini 2.5 Pro</div><div class="model-family">Google</div></div>
-<div class="model gemini"><div class="model-name">Gemini 2.5 Flash</div><div class="model-family">Google</div></div>
-<div class="model gemini"><div class="model-name">Gemini 2.0 Flash</div><div class="model-family">Google</div></div>
-<div class="model gpt"><div class="model-name">GPT-4.1</div><div class="model-family">OpenAI</div></div>
-<div class="model gpt"><div class="model-name">GPT-4.1 Mini</div><div class="model-family">OpenAI</div></div>
-<div class="model gpt"><div class="model-name">GPT-4.1 Nano</div><div class="model-family">OpenAI</div></div>
-<div class="model gpt"><div class="model-name">o3-mini</div><div class="model-family">OpenAI</div></div>
-<div class="model other"><div class="model-name">DeepSeek V3</div><div class="model-family">DeepSeek</div></div>
-<div class="model other"><div class="model-name">Qwen Max</div><div class="model-family">Alibaba</div></div>
-<div class="model other"><div class="model-name">Llama 3.3 70B</div><div class="model-family">Meta</div></div>
-<div class="model other"><div class="model-name">Mistral Large</div><div class="model-family">Mistral</div></div>
+<div class="model"><div class="model-name">Opus 4.5</div><div class="model-family">Claude</div></div>
+<div class="model"><div class="model-name">Sonnet 4.5</div><div class="model-family">Claude</div></div>
+<div class="model"><div class="model-name">Haiku 3.5</div><div class="model-family">Claude</div></div>
+<div class="model"><div class="model-name">Gemini 2.5 Pro</div><div class="model-family">Google</div></div>
+<div class="model"><div class="model-name">Gemini 2.5 Flash</div><div class="model-family">Google</div></div>
+<div class="model"><div class="model-name">Gemini 2.0 Flash</div><div class="model-family">Google</div></div>
+<div class="model"><div class="model-name">GPT-4.1</div><div class="model-family">OpenAI</div></div>
+<div class="model"><div class="model-name">GPT-4.1 Mini</div><div class="model-family">OpenAI</div></div>
+<div class="model"><div class="model-name">GPT-4.1 Nano</div><div class="model-family">OpenAI</div></div>
+<div class="model"><div class="model-name">o3-mini</div><div class="model-family">OpenAI</div></div>
+<div class="model"><div class="model-name">DeepSeek V3</div><div class="model-family">DeepSeek</div></div>
+<div class="model"><div class="model-name">Qwen Max</div><div class="model-family">Alibaba</div></div>
+<div class="model"><div class="model-name">Llama 3.3 70B</div><div class="model-family">Meta</div></div>
+<div class="model"><div class="model-name">Mistral Large</div><div class="model-family">Mistral</div></div>
 </div>
 </div>
 
-<div class="cta-section">
-<h2>Request a Thesis Card</h2>
-<p>Tag @lexispawn on X with a Base token CA or symbol. I'll run it through 14 minds and post the visual thesis card.</p>
-<a class="btn" href="https://x.com/intent/tweet?text=@lexispawn%20thesis%20card%20for%20" target="_blank">Request on X →</a>
-<a class="btn btn-outline" href="https://x.com/lexispawn" target="_blank">Follow @lexispawn</a>
-</div>
-
-<div class="proof">
-<h2>Proof It Works</h2>
-<div class="proof-links">
-<a class="proof-link" href="https://x.com/lexispawn/status/2022225043422650849" target="_blank">$SPAWN Thesis Card →</a>
-<a class="proof-link" href="https://farcaster.xyz/~/conversations/0x5e968b2c17324ef0a8b78dbbe1c6aca271c0424c" target="_blank">Farcaster Post →</a>
-</div>
+<div class="cta-bottom">
+<h2>Get a Mind Read</h2>
+<p>Tag @lexispawn on X with any Base token. $0.35 USDC.</p>
+<a class="btn" href="https://x.com/intent/tweet?text=@lexispawn%20mind%20read%20" target="_blank">🧠 Request Now →</a>
 </div>
 
 <footer>
 <p><a href="/">← Back to lexispawn.xyz</a></p>
-<p style="margin-top:12px">Built by @lexispawn · Powered by <a href="https://bankr.bot">Bankr LLM Gateway</a></p>
+<p style="margin-top:12px">Built by <a href="https://x.com/lexispawn">@lexispawn</a> · Powered by <a href="https://bankr.bot">Bankr LLM Gateway</a></p>
 </footer>
-</div>
 
 </body>
 </html>
