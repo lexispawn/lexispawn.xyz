@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #050508; 
+      min-height: 100vh; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      overflow: hidden;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    const cx = () => canvas.width / 2;
+    const cy = () => canvas.height / 2;
+    
+    // 14 models, each with personality
+    const models = [
+      { name: 'opus', hue: 45, weight: 1.0, stance: 1, speed: 0.003 },      // gold, heavy, bullish
+      { name: 'sonnet', hue: 35, weight: 0.6, stance: -1, speed: 0.008 },   // amber, mid, bearish
+      { name: 'haiku', hue: 50, weight: 0.3, stance: -1, speed: 0.015 },    // light gold, quick, bearish
+      { name: 'gemini3', hue: 170, weight: 0.9, stance: 1, speed: 0.004 },  // teal, heavy, bullish
+      { name: 'gemini2', hue: 160, weight: 0.5, stance: 0, speed: 0.01 },   // cyan, mid, neutral
+      { name: 'flash', hue: 180, weight: 0.2, stance: 0, speed: 0.02 },     // light teal, quick, neutral
+      { name: 'gpt5.2', hue: 270, weight: 0.85, stance: -1, speed: 0.005 }, // violet, heavy, bearish
+      { name: 'gpt5', hue: 280, weight: 0.7, stance: 0, speed: 0.007 },     // purple, mid, neutral
+      { name: 'mini', hue: 290, weight: 0.25, stance: 0, speed: 0.018 },    // light purple, quick, neutral
+      { name: 'nano', hue: 300, weight: 0.15, stance: 0, speed: 0.025 },    // pink, lightest, neutral
+      { name: 'kimi', hue: 30, weight: 0.4, stance: 0, speed: 0.012 },      // orange, mid, neutral
+      { name: 'deepseek', hue: 200, weight: 0.65, stance: -1, speed: 0.006 }, // blue, mid-heavy, bearish
+      { name: 'qwen', hue: 120, weight: 0.5, stance: 1, speed: 0.009 },     // green, mid, bullish
+      { name: 'llama', hue: 15, weight: 0.55, stance: 0, speed: 0.011 }     // red-orange, mid, neutral
+    ];
+    
+    let time = 0;
+    
+    // Each model pulls from center based on its stance
+    models.forEach((m, i) => {
+      m.angle = (i / models.length) * Math.PI * 2;
+      m.baseRadius = 80 + m.weight * 120;
+      m.phase = Math.random() * Math.PI * 2;
+    });
+    
+    function drawModel(m) {
+      // Position based on stance - bullish pulls up, bearish pulls down, neutral orbits
+      const stanceOffset = m.stance * 50 * Math.sin(time * 2 + m.phase);
+      const radius = m.baseRadius + Math.sin(time * 3 + m.phase) * 20;
+      
+      const x = cx() + Math.cos(m.angle + time * m.speed) * radius;
+      const y = cy() + Math.sin(m.angle + time * m.speed) * radius + stanceOffset;
+      
+      // Size based on weight (bigger models = bigger presence)
+      const size = 5 + m.weight * 20;
+      
+      // Trail showing where it's pulling
+      const pullStrength = Math.abs(m.stance) * 30;
+      if (pullStrength > 0) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y + m.stance * -pullStrength);
+        ctx.strokeStyle = `hsla(${m.hue}, 70%, 50%, 0.3)`;
+        ctx.lineWidth = size * 0.3;
+        ctx.stroke();
+      }
+      
+      // The model itself
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 1.5);
+      gradient.addColorStop(0, `hsla(${m.hue}, 80%, 70%, 0.9)`);
+      gradient.addColorStop(0.5, `hsla(${m.hue}, 70%, 50%, 0.5)`);
+      gradient.addColorStop(1, `hsla(${m.hue}, 60%, 30%, 0)`);
+      
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      
+      // Core
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${m.hue}, 90%, 80%, 1)`;
+      ctx.fill();
+      
+      // Tension lines to center (disagreement visualized)
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(cx(), cy());
+      ctx.strokeStyle = `hsla(${m.hue}, 50%, 50%, ${0.05 + m.weight * 0.1})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    
+    function drawCenter() {
+      // The question at the center - what they're disagreeing about
+      const pulse = Math.sin(time * 2) * 0.2 + 0.8;
+      
+      // Chaotic center - no consensus
+      const gradient = ctx.createRadialGradient(cx(), cy(), 0, cx(), cy(), 40);
+      gradient.addColorStop(0, `rgba(255, 255, 255, ${0.1 * pulse})`);
+      gradient.addColorStop(0.5, `rgba(200, 150, 255, ${0.05 * pulse})`);
+      gradient.addColorStop(1, 'rgba(100, 50, 150, 0)');
+      
+      ctx.beginPath();
+      ctx.arc(cx(), cy(), 40, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      
+      // Question mark or "?" feeling
+      ctx.font = `${20 * pulse}px serif`;
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.3 * pulse})`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('?', cx(), cy());
+    }
+    
+    function drawLabels() {
+      // Bullish zone (top)
+      ctx.font = '11px monospace';
+      ctx.fillStyle = 'rgba(100, 200, 100, 0.4)';
+      ctx.textAlign = 'center';
+      ctx.fillText('BULLISH', cx(), 30);
+      
+      // Bearish zone (bottom)
+      ctx.fillStyle = 'rgba(200, 100, 100, 0.4)';
+      ctx.fillText('BEARISH', cx(), canvas.height - 20);
+      
+      // Disagreement counter
+      const bulls = models.filter(m => m.stance > 0).length;
+      const bears = models.filter(m => m.stance < 0).length;
+      const neutral = models.filter(m => m.stance === 0).length;
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${bulls} bullish / ${bears} bearish / ${neutral} neutral`, 20, 30);
+      ctx.fillText('no consensus', 20, 50);
+    }
+    
+    function animate() {
+      // Slow fade for trails
+      ctx.fillStyle = 'rgba(5, 5, 8, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      drawCenter();
+      models.forEach(drawModel);
+      drawLabels();
+      
+      time += 0.02;
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+  </script>
+</body>
+</html>

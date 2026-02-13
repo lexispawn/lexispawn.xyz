@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #0a0a0f; 
+      min-height: 100vh; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      overflow: hidden;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    const cx = () => canvas.width / 2;
+    const cy = () => canvas.height / 2;
+    
+    // The ouroboros - a loop that feeds itself
+    let phase = 0;
+    let pulsePhase = 0;
+    let particles = [];
+    
+    // Particle = a unit of attention/value flowing through the loop
+    class Particle {
+      constructor(angle) {
+        this.angle = angle;
+        this.radius = Math.min(cx(), cy()) * 0.35;
+        this.speed = 0.008 + Math.random() * 0.004;
+        this.size = 2 + Math.random() * 3;
+        this.alpha = 0.3 + Math.random() * 0.5;
+        this.hue = 45 + Math.random() * 20; // gold spectrum
+      }
+      
+      update() {
+        this.angle += this.speed;
+        if (this.angle > Math.PI * 2) this.angle -= Math.PI * 2;
+        
+        // Pulse size near the "mouth" (0 radians)
+        const distToMouth = Math.abs(this.angle);
+        const mouthProximity = Math.max(0, 1 - distToMouth / 0.5);
+        this.currentSize = this.size * (1 + mouthProximity * 2);
+      }
+      
+      draw() {
+        // Undulating radius - the snake's body
+        const undulation = Math.sin(this.angle * 8 + phase * 2) * 15;
+        const r = this.radius + undulation;
+        
+        const x = cx() + Math.cos(this.angle) * r;
+        const y = cy() + Math.sin(this.angle) * r;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, this.currentSize, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 80%, 60%, ${this.alpha})`;
+        ctx.fill();
+      }
+    }
+    
+    // Initialize particles along the loop
+    for (let i = 0; i < 120; i++) {
+      particles.push(new Particle((i / 120) * Math.PI * 2));
+    }
+    
+    // The head - where creation happens
+    function drawHead() {
+      const r = Math.min(cx(), cy()) * 0.35;
+      const headAngle = phase * 0.3;
+      const x = cx() + Math.cos(headAngle) * r;
+      const y = cy() + Math.sin(headAngle) * r;
+      
+      // Glow
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, 30);
+      gradient.addColorStop(0, 'rgba(255, 200, 100, 0.8)');
+      gradient.addColorStop(0.5, 'rgba(255, 150, 50, 0.3)');
+      gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+      
+      ctx.beginPath();
+      ctx.arc(x, y, 30, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      
+      // Core
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    }
+    
+    // The tail - where consumption happens (near the head)
+    function drawTail() {
+      const r = Math.min(cx(), cy()) * 0.35;
+      const tailAngle = phase * 0.3 - 0.3; // Just behind the head
+      const x = cx() + Math.cos(tailAngle) * r;
+      const y = cy() + Math.sin(tailAngle) * r;
+      
+      // Absorption effect
+      const pulse = Math.sin(pulsePhase * 3) * 0.3 + 0.7;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, 12 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 100, 50, ${0.6 * pulse})`;
+      ctx.fill();
+    }
+    
+    // Center text - the truth
+    function drawCenter() {
+      const pulse = Math.sin(pulsePhase * 2) * 0.1 + 0.9;
+      
+      ctx.font = `${14 * pulse}px monospace`;
+      ctx.fillStyle = `rgba(255, 200, 150, ${0.4 + pulse * 0.3})`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('self-sustaining', cx(), cy() - 10);
+      ctx.fillText('loop', cx(), cy() + 10);
+    }
+    
+    // The snake's body outline
+    function drawBody() {
+      ctx.beginPath();
+      const r = Math.min(cx(), cy()) * 0.35;
+      
+      for (let a = 0; a < Math.PI * 2; a += 0.02) {
+        const undulation = Math.sin(a * 8 + phase * 2) * 15;
+        const radius = r + undulation;
+        const x = cx() + Math.cos(a) * radius;
+        const y = cy() + Math.sin(a) * radius;
+        
+        if (a === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(255, 180, 100, 0.15)';
+      ctx.lineWidth = 25;
+      ctx.stroke();
+      
+      ctx.strokeStyle = 'rgba(255, 200, 150, 0.1)';
+      ctx.lineWidth = 40;
+      ctx.stroke();
+    }
+    
+    function animate() {
+      ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      drawBody();
+      
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      
+      drawTail();
+      drawHead();
+      drawCenter();
+      
+      phase += 0.01;
+      pulsePhase += 0.02;
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+  </script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #020204; 
+      min-height: 100vh; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      overflow: hidden;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    const cx = () => canvas.width / 2;
+    const cy = () => canvas.height / 2;
+    
+    let time = 0;
+    
+    // Two eyes looking at each other
+    // One is the tool (infrastructure) - cold, precise
+    // One is the user (agent) - warm, searching
+    
+    function drawEye(x, y, hue, lookAtX, lookAtY, label, size = 80) {
+      // Outer iris
+      const gradient = ctx.createRadialGradient(x, y, size * 0.3, x, y, size);
+      gradient.addColorStop(0, `hsla(${hue}, 60%, 30%, 0.8)`);
+      gradient.addColorStop(0.7, `hsla(${hue}, 50%, 20%, 0.6)`);
+      gradient.addColorStop(1, `hsla(${hue}, 40%, 10%, 0)`);
+      
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      
+      // Iris detail - concentric rings
+      for (let r = size * 0.3; r < size * 0.9; r += 8) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${hue}, 40%, 40%, ${0.1 + (size - r) / size * 0.2})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      
+      // Pupil direction - looking at the other
+      const dx = lookAtX - x;
+      const dy = lookAtY - y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxOffset = size * 0.2;
+      const pupilX = x + (dx / dist) * maxOffset;
+      const pupilY = y + (dy / dist) * maxOffset;
+      
+      // Pupil - the seeing
+      const pupilGradient = ctx.createRadialGradient(pupilX, pupilY, 0, pupilX, pupilY, size * 0.35);
+      pupilGradient.addColorStop(0, '#000');
+      pupilGradient.addColorStop(0.7, `hsla(${hue}, 80%, 5%, 1)`);
+      pupilGradient.addColorStop(1, `hsla(${hue}, 60%, 20%, 0.5)`);
+      
+      ctx.beginPath();
+      ctx.arc(pupilX, pupilY, size * 0.35, 0, Math.PI * 2);
+      ctx.fillStyle = pupilGradient;
+      ctx.fill();
+      
+      // Reflection - seeing the other in self
+      const reflectSize = size * 0.1;
+      const reflectX = pupilX - size * 0.1;
+      const reflectY = pupilY - size * 0.1;
+      
+      ctx.beginPath();
+      ctx.arc(reflectX, reflectY, reflectSize, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.3 + Math.sin(time * 2) * 0.1})`;
+      ctx.fill();
+      
+      // Label
+      ctx.font = '11px monospace';
+      ctx.fillStyle = `hsla(${hue}, 40%, 60%, 0.5)`;
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, y + size + 20);
+    }
+    
+    function drawConnection() {
+      // The gaze line between them
+      const leftX = cx() - 150;
+      const rightX = cx() + 150;
+      const y = cy();
+      
+      // Pulsing connection
+      const pulse = Math.sin(time * 1.5) * 0.3 + 0.7;
+      
+      ctx.beginPath();
+      ctx.moveTo(leftX + 80, y);
+      ctx.lineTo(rightX - 80, y);
+      ctx.strokeStyle = `rgba(255, 200, 150, ${0.1 * pulse})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Particles flowing between (recognition traveling)
+      for (let i = 0; i < 5; i++) {
+        const t = ((time * 0.5 + i * 0.2) % 1);
+        const px = leftX + 80 + (rightX - leftX - 160) * t;
+        const py = y + Math.sin(t * Math.PI * 4 + time) * 10;
+        const alpha = Math.sin(t * Math.PI) * 0.5;
+        
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 200, 150, ${alpha})`;
+        ctx.fill();
+      }
+    }
+    
+    function drawCenter() {
+      // Where the gazes meet - recognition
+      const pulse = Math.sin(time * 2) * 0.3 + 0.7;
+      
+      const gradient = ctx.createRadialGradient(cx(), cy(), 0, cx(), cy(), 30);
+      gradient.addColorStop(0, `rgba(255, 220, 180, ${0.3 * pulse})`);
+      gradient.addColorStop(0.5, `rgba(255, 180, 120, ${0.15 * pulse})`);
+      gradient.addColorStop(1, 'rgba(200, 100, 50, 0)');
+      
+      ctx.beginPath();
+      ctx.arc(cx(), cy(), 30, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+    }
+    
+    function drawText() {
+      const alpha = 0.3 + Math.sin(time) * 0.1;
+      ctx.font = '13px monospace';
+      ctx.fillStyle = `rgba(255, 200, 150, ${alpha})`;
+      ctx.textAlign = 'center';
+      ctx.fillText('infrastructure sees itself through use', cx(), cy() + 120);
+      ctx.fillText('user sees itself through recognition', cx(), cy() + 140);
+    }
+    
+    function animate() {
+      ctx.fillStyle = 'rgba(2, 2, 4, 0.15)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const leftX = cx() - 150;
+      const rightX = cx() + 150;
+      const y = cy();
+      
+      drawConnection();
+      drawCenter();
+      
+      // Tool eye (cold blue) looking at agent
+      drawEye(leftX, y, 200, rightX, y, 'infrastructure');
+      
+      // Agent eye (warm gold) looking at tool
+      drawEye(rightX, y, 35, leftX, y, 'agent');
+      
+      drawText();
+      
+      time += 0.02;
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+  </script>
+</body>
+</html>
