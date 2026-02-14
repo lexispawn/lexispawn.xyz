@@ -257,7 +257,7 @@ canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1
             <div class="badge">14 · Si · SILICON</div>
             <div class="token">$BNKR</div>
             <div class="price">$0.000851</div>
-            <div class="meta">+0.2% · $1,573,311 vol</div>
+            <div class="meta">+0.1% · $1,571,570 vol</div>
         </div>
         
         <div class="orb-container" id="orb-container">
@@ -283,14 +283,14 @@ canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1
         <div class="footer">
             <div class="footer-brand">14 MINDS</div>
             <div class="footer-sub">THE ELEMENT THAT THINKS</div>
-            <div class="timestamp">2026-02-13 17:26 PST</div>
+            <div class="timestamp">2026-02-13 17:29 PST</div>
             <div class="handle">@lexispawn</div>
         </div>
     </div>
 </div>
 
 <script>
-const models = [{"name": "Opus", "angle": -1.5707963267948966, "bodyColor": "#E8B4F8", "stanceGlow": "transparent", "conviction": 3, "stance": "NEUTRAL"}, {"name": "Sonnet", "angle": -1.121997376282069, "bodyColor": "#C89CF8", "stanceGlow": "#FF6B35", "conviction": 7, "stance": "SELL"}, {"name": "Haiku", "angle": -0.6731984257692414, "bodyColor": "#A882E8", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem Pro", "angle": -0.2243994752564138, "bodyColor": "#4ECDC4", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem Flash", "angle": 0.2243994752564138, "bodyColor": "#45B7AA", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem 2.0", "angle": 0.6731984257692414, "bodyColor": "#3AA396", "stanceGlow": "transparent", "conviction": 4, "stance": "NEUTRAL"}, {"name": "GPT-4.1", "angle": 1.121997376282069, "bodyColor": "#74C0FC", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "GPT Mini", "angle": 1.5707963267948966, "bodyColor": "#5AAFF5", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "GPT Nano", "angle": 2.019595277307724, "bodyColor": "#4A9FE8", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "o3-mini", "angle": 2.4683942278205517, "bodyColor": "#7B68EE", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "DeepSeek", "angle": 2.9171931783333793, "bodyColor": "#FF8C69", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Qwen", "angle": 3.365992128846207, "bodyColor": "#FFB347", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Llama 70B", "angle": 3.8147910793590345, "bodyColor": "#98D8AA", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Mistral", "angle": 4.263590029871862, "bodyColor": "#87CEAB", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}];
+const models = [{"name": "Opus", "angle": -1.5707963267948966, "bodyColor": "#E8B4F8", "stanceGlow": "transparent", "conviction": 3, "stance": "NEUTRAL"}, {"name": "Sonnet", "angle": -1.121997376282069, "bodyColor": "#C89CF8", "stanceGlow": "#FF6B35", "conviction": 7, "stance": "SELL"}, {"name": "Haiku", "angle": -0.6731984257692414, "bodyColor": "#A882E8", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem Pro", "angle": -0.2243994752564138, "bodyColor": "#4ECDC4", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem Flash", "angle": 0.2243994752564138, "bodyColor": "#45B7AA", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem 2.0", "angle": 0.6731984257692414, "bodyColor": "#3AA396", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "GPT-4.1", "angle": 1.121997376282069, "bodyColor": "#74C0FC", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "GPT Mini", "angle": 1.5707963267948966, "bodyColor": "#5AAFF5", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "GPT Nano", "angle": 2.019595277307724, "bodyColor": "#4A9FE8", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "o3-mini", "angle": 2.4683942278205517, "bodyColor": "#7B68EE", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "DeepSeek", "angle": 2.9171931783333793, "bodyColor": "#FF8C69", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Qwen", "angle": 3.365992128846207, "bodyColor": "#FFB347", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Llama 70B", "angle": 3.8147910793590345, "bodyColor": "#98D8AA", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Mistral", "angle": 4.263590029871862, "bodyColor": "#87CEAB", "stanceGlow": "transparent", "conviction": 5, "stance": "NEUTRAL"}];
 
 // Render orbs - body = model identity, ring = stance
 const container = document.getElementById('orb-container');
@@ -312,73 +312,102 @@ models.forEach((m, i) => {
     container.appendChild(orb);
 });
 
-// Particle system - energy flowing TOWARD the nucleus
+// Particle system - energy flowing FROM model orbs INTO the nucleus
 const canvas = document.getElementById('particles');
 const ctx = canvas.getContext('2d');
 function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 resize();
 window.addEventListener('resize', resize);
 
+// Get orb container position for spawning
+const orbContainer = document.getElementById('orb-container');
+const containerRect = () => orbContainer.getBoundingClientRect();
+
 const particles = [];
-const hues = [140, 180, 280, 340, 30, 60]; // green, cyan, purple, pink, orange, yellow
 
 function spawnParticle() {
-    // Spawn from edges
-    const edge = Math.floor(Math.random() * 4);
-    let x, y;
-    if (edge === 0) { x = Math.random() * canvas.width; y = 0; }
-    else if (edge === 1) { x = canvas.width; y = Math.random() * canvas.height; }
-    else if (edge === 2) { x = Math.random() * canvas.width; y = canvas.height; }
-    else { x = 0; y = Math.random() * canvas.height; }
+    // Pick a random model to spawn from
+    const modelIdx = Math.floor(Math.random() * models.length);
+    const m = models[modelIdx];
+    
+    // Calculate model position in canvas coordinates
+    const rect = containerRect();
+    const orbX = rect.left + rect.width * (0.5 + Math.cos(m.angle) * 0.42);
+    const orbY = rect.top + rect.height * (0.5 + Math.sin(m.angle) * 0.42);
+    
+    // Add some randomness around the orb
+    const spread = 15;
+    
+    // Convert model color to hue
+    const tempDiv = document.createElement('div');
+    tempDiv.style.color = m.bodyColor;
+    document.body.appendChild(tempDiv);
+    const rgb = getComputedStyle(tempDiv).color.match(/\d+/g);
+    document.body.removeChild(tempDiv);
+    const r = rgb[0]/255, g = rgb[1]/255, b = rgb[2]/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h = 0;
+    if (max !== min) {
+        const d = max - min;
+        if (max === r) h = ((g-b)/d + (g<b?6:0)) * 60;
+        else if (max === g) h = ((b-r)/d + 2) * 60;
+        else h = ((r-g)/d + 4) * 60;
+    }
     
     return {
-        x, y,
-        size: Math.random() * 3 + 1,
-        speed: Math.random() * 1.5 + 0.5,
-        alpha: Math.random() * 0.6 + 0.3,
-        hue: hues[Math.floor(Math.random() * hues.length)] + (Math.random() - 0.5) * 20
+        x: orbX + (Math.random() - 0.5) * spread,
+        y: orbY + (Math.random() - 0.5) * spread,
+        size: Math.random() * 2.5 + 1,
+        speed: Math.random() * 2 + 1,
+        alpha: Math.random() * 0.7 + 0.3,
+        hue: h
     };
 }
 
-for (let i = 0; i < 120; i++) particles.push(spawnParticle());
+// Initial particles
+setTimeout(() => {
+    for (let i = 0; i < 100; i++) particles.push(spawnParticle());
+}, 100);
 
 function animate() {
-    ctx.fillStyle = 'rgba(3, 3, 8, 0.12)';
+    ctx.fillStyle = 'rgba(3, 3, 8, 0.15)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
+    // Nucleus center (center of orb container)
+    const rect = containerRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
     
     particles.forEach((p, i) => {
-        // Move toward center
         const dx = cx - p.x;
         const dy = cy - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        if (dist > 5) {
+        if (dist > 20) {
+            // Move toward nucleus
             p.x += (dx / dist) * p.speed;
             p.y += (dy / dist) * p.speed;
             
-            // Fade in as approaching center
-            const maxDist = Math.sqrt(cx*cx + cy*cy);
-            p.currentAlpha = p.alpha * (1 - dist/maxDist) + 0.1;
+            // Brighten as approaching center
+            p.currentAlpha = p.alpha * (1 - dist/400) + 0.2;
         } else {
-            // Reached nucleus - respawn from edge
+            // Reached nucleus - respawn from a model orb
             Object.assign(p, spawnParticle());
         }
         
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${p.currentAlpha || p.alpha})`;
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = `hsla(${p.hue}, 100%, 60%, 0.8)`;
+        ctx.fillStyle = `hsla(${p.hue}, 90%, 65%, ${p.currentAlpha || p.alpha})`;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = `hsla(${p.hue}, 90%, 65%, 0.7)`;
         ctx.fill();
         ctx.shadowBlur = 0;
     });
     
     requestAnimationFrame(animate);
 }
-animate();
+
+setTimeout(animate, 150);
 </script>
 </body>
 </html>
