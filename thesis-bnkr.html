@@ -6,115 +6,117 @@
 <meta property="og:image" content="thesis-bnkr.png">
 <title>14 MINDS · $BNKR</title>
 <style>
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+@keyframes glow-pulse { 0%, 100% { filter: blur(0px); } 50% { filter: blur(2px); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { 
-    background: #050508;
-    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    background: #030308;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     color: #fff;
     min-height: 100vh;
     overflow-x: hidden;
 }
+.bg {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 30% 0%, rgba(191,64,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 100%, rgba(0,200,255,0.1) 0%, transparent 50%), linear-gradient(180deg, #030308 0%, #0a0515 50%, #030308 100%);
+    z-index: 0;
+}
+canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 .container {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 30px 20px;
     position: relative;
+    z-index: 2;
 }
-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-}
-.card {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 600px;
-    padding: 40px 30px;
-}
+.card { width: 100%; max-width: 650px; }
 .badge {
     display: inline-block;
-    padding: 8px 20px;
-    background: rgba(0, 255, 255, 0.15);
-    border: 1px solid rgba(0, 255, 255, 0.5);
-    border-radius: 6px;
-    font-size: 12px;
-    color: #00FFFF;
-    letter-spacing: 3px;
-    text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
-    margin-bottom: 25px;
+    padding: 10px 24px;
+    background: rgba(191, 64, 255, 0.2);
+    border: 2px solid #BF40FF;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #BF40FF;
+    letter-spacing: 4px;
+    text-shadow: 0 0 30px rgba(191, 64, 255, 1);
+    box-shadow: 0 0 40px rgba(191, 64, 255, 0.5), inset 0 0 20px rgba(191, 64, 255, 0.1);
+    margin-bottom: 30px;
+    animation: pulse 2s ease-in-out infinite;
 }
 .token {
-    font-size: clamp(48px, 12vw, 72px);
-    font-weight: 800;
-    color: #fff;
-    text-shadow: 0 0 60px rgba(255, 255, 255, 0.4);
-    letter-spacing: 4px;
+    font-size: clamp(56px, 15vw, 90px);
+    font-weight: 900;
+    background: linear-gradient(135deg, #fff 0%, #BF40FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 40px rgba(191, 64, 255, 0.5));
+    letter-spacing: 6px;
     margin-bottom: 15px;
 }
 .price {
-    font-size: clamp(22px, 5vw, 32px);
-    color: #00FFFF;
-    text-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
-    margin-bottom: 8px;
+    font-size: clamp(26px, 6vw, 38px);
+    color: #BF40FF;
+    text-shadow: 0 0 30px rgba(191, 64, 255, 0.8);
+    font-weight: 700;
+    margin-bottom: 10px;
 }
 .meta {
-    font-size: 14px;
-    color: #FFD700;
-    opacity: 0.9;
-    margin-bottom: 40px;
+    font-size: 16px;
+    color: #00FF88;
+    text-shadow: 0 0 20px currentColor;
+    margin-bottom: 50px;
+    font-weight: 600;
 }
 .orb-container {
     position: relative;
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
     aspect-ratio: 1;
-    margin: 0 auto 40px;
+    margin: 0 auto 50px;
 }
 .orb-ring {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 90%;
-    height: 90%;
-    border: 1px solid rgba(0, 255, 255, 0.2);
+    width: 88%; height: 88%;
+    border: 2px solid rgba(191, 64, 255, 0.3);
     border-radius: 50%;
-    box-shadow: 0 0 40px rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 60px rgba(191, 64, 255, 0.2), inset 0 0 60px rgba(191, 64, 255, 0.05);
 }
 .orb-core {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 35%;
-    height: 35%;
-    background: radial-gradient(circle, rgba(0, 255, 255, 0.4) 0%, rgba(0, 255, 255, 0.1) 50%, transparent 70%);
+    width: 38%; height: 38%;
+    background: radial-gradient(circle, rgba(191, 64, 255, 0.5) 0%, rgba(191, 64, 255, 0.2) 40%, transparent 70%);
     border-radius: 50%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 80px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 100px rgba(191, 64, 255, 0.6);
+    animation: glow-pulse 3s ease-in-out infinite;
 }
 .core-text {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 900;
     color: #fff;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    text-shadow: 0 0 30px rgba(255,255,255,0.8);
 }
 .core-sub {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.6);
-    letter-spacing: 2px;
-    margin-top: 4px;
+    font-size: 11px;
+    color: #BF40FF;
+    letter-spacing: 3px;
+    margin-top: 6px;
+    text-shadow: 0 0 20px rgba(191, 64, 255, 0.8);
 }
 .model-orb {
     position: absolute;
@@ -122,128 +124,140 @@ canvas {
     display: flex;
     flex-direction: column;
     align-items: center;
+    animation: float 4s ease-in-out infinite;
 }
 .orb-dot {
     border-radius: 50%;
-    box-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+    position: relative;
+}
+.orb-dot::before {
+    content: '';
+    position: absolute;
+    top: -5px; left: -5px; right: -5px; bottom: -5px;
+    border-radius: 50%;
+    background: inherit;
+    filter: blur(10px);
+    opacity: 0.6;
 }
 .orb-label {
-    font-size: 9px;
-    color: rgba(255, 255, 255, 0.6);
-    margin-top: 8px;
-    white-space: nowrap;
+    font-size: 10px;
+    color: rgba(255,255,255,0.8);
+    margin-top: 10px;
+    font-weight: 600;
+    text-shadow: 0 0 10px rgba(255,255,255,0.5);
 }
 .signal {
     text-align: center;
-    padding: 30px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(0, 255, 255, 0.2);
-    border-radius: 16px;
+    padding: 35px;
+    background: rgba(255,255,255,0.03);
+    border: 2px solid rgba(191, 64, 255, 0.3);
+    border-radius: 20px;
     margin-bottom: 30px;
-    box-shadow: 0 0 60px rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 80px rgba(191, 64, 255, 0.15), inset 0 0 40px rgba(191, 64, 255, 0.05);
 }
 .signal-label {
-    font-size: clamp(28px, 7vw, 42px);
-    font-weight: 800;
-    color: #00FFFF;
-    letter-spacing: 6px;
-    text-shadow: 0 0 40px rgba(0, 255, 255, 0.8);
-    margin-bottom: 20px;
+    font-size: clamp(36px, 9vw, 56px);
+    font-weight: 900;
+    color: #BF40FF;
+    letter-spacing: 8px;
+    text-shadow: 0 0 60px rgba(191, 64, 255, 1), 0 0 120px rgba(191, 64, 255, 0.5);
+    margin-bottom: 25px;
 }
 .signal-bar {
-    height: 8px;
-    background: linear-gradient(to right, #FF3333 0%, #8B8B8B 50%, #FFD700 100%);
-    border-radius: 4px;
+    height: 12px;
+    background: linear-gradient(to right, #FF0055 0%, #BF40FF 50%, #00FF88 100%);
+    border-radius: 6px;
     position: relative;
-    margin: 20px 0;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    margin: 25px 0;
+    box-shadow: 0 0 30px rgba(255,255,255,0.3);
 }
 .signal-marker {
     position: absolute;
-    top: -6px;
-    left: 47.093023255813954%;
-    width: 6px;
-    height: 20px;
+    top: -8px;
+    left: 47.01550387596899%;
+    width: 8px;
+    height: 28px;
     background: #fff;
-    border-radius: 3px;
+    border-radius: 4px;
     transform: translateX(-50%);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 1);
+    box-shadow: 0 0 30px #fff, 0 0 60px #fff;
 }
-.stats {
-    display: flex;
-    justify-content: space-around;
-    margin-top: 25px;
-}
+.stats { display: flex; justify-content: space-around; margin-top: 30px; }
 .stat { text-align: center; }
 .stat-value {
-    font-size: clamp(24px, 6vw, 36px);
-    font-weight: 800;
+    font-size: clamp(32px, 8vw, 48px);
+    font-weight: 900;
 }
 .stat-label {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 2px;
-    margin-top: 6px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 3px;
+    margin-top: 8px;
+    font-weight: 600;
 }
-.bullish { color: #FFD700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
-.neutral { color: #8B8B8B; }
-.bearish { color: #FF6B4A; text-shadow: 0 0 20px rgba(255, 107, 74, 0.6); }
+.bullish { color: #00FF88; text-shadow: 0 0 30px rgba(0,255,136,0.8); }
+.neutral { color: #BF40FF; text-shadow: 0 0 30px rgba(191,64,255,0.8); }
+.bearish { color: #FF6B35; text-shadow: 0 0 30px rgba(255,107,53,0.8); }
 .verdict {
     text-align: center;
-    padding: 20px;
-    background: rgba(0, 255, 255, 0.1);
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    border-radius: 12px;
-    margin-bottom: 30px;
+    padding: 25px;
+    background: rgba(191, 64, 255, 0.1);
+    border: 2px solid rgba(191, 64, 255, 0.4);
+    border-radius: 16px;
+    margin-bottom: 35px;
+    box-shadow: 0 0 50px rgba(191, 64, 255, 0.2);
 }
 .verdict-label {
-    font-size: 10px;
-    color: #00FFFF;
-    letter-spacing: 3px;
-    margin-bottom: 12px;
+    font-size: 11px;
+    color: #BF40FF;
+    letter-spacing: 4px;
+    margin-bottom: 15px;
+    font-weight: 700;
 }
 .verdict-text {
-    font-size: 16px;
+    font-size: 18px;
     color: #fff;
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+    text-shadow: 0 0 20px rgba(255,255,255,0.5);
+    font-weight: 600;
 }
-.footer {
-    text-align: center;
-    opacity: 0.6;
-}
+.footer { text-align: center; }
 .footer-brand {
-    font-size: 12px;
-    color: #00FFFF;
-    letter-spacing: 4px;
-    margin-bottom: 6px;
+    font-size: 14px;
+    color: #BF40FF;
+    letter-spacing: 5px;
+    font-weight: 700;
+    text-shadow: 0 0 20px rgba(191, 64, 255, 0.6);
 }
 .footer-sub {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 2px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 3px;
+    margin-top: 8px;
 }
 .timestamp {
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.3);
-    margin-top: 10px;
+    color: rgba(255,255,255,0.3);
+    margin-top: 12px;
 }
 .handle {
-    font-size: 12px;
-    color: #00FFFF;
-    margin-top: 12px;
-    text-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    font-size: 14px;
+    color: #BF40FF;
+    margin-top: 15px;
+    font-weight: 700;
+    text-shadow: 0 0 20px rgba(191, 64, 255, 0.6);
 }
 </style>
 </head>
 <body>
+<div class="bg"></div>
 <canvas id="particles"></canvas>
 <div class="container">
     <div class="card">
         <div style="text-align: center;">
             <div class="badge">14 · Si · SILICON</div>
             <div class="token">$BNKR</div>
-            <div class="price">$0.000876</div>
-            <div class="meta">+8.1% · $1,591,111 vol</div>
+            <div class="price">$0.000856</div>
+            <div class="meta">+5.1% · $1,614,825 vol</div>
         </div>
         
         <div class="orb-container" id="orb-container">
@@ -256,22 +270,11 @@ canvas {
         
         <div class="signal">
             <div class="signal-label">TENSION</div>
-            <div class="signal-bar">
-                <div class="signal-marker"></div>
-            </div>
+            <div class="signal-bar"><div class="signal-marker"></div></div>
             <div class="stats">
-                <div class="stat">
-                    <div class="stat-value bullish">2</div>
-                    <div class="stat-label">BULLISH</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value neutral">10</div>
-                    <div class="stat-label">NEUTRAL</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value bearish">2</div>
-                    <div class="stat-label">BEARISH</div>
-                </div>
+                <div class="stat"><div class="stat-value bullish">0</div><div class="stat-label">BULLISH</div></div>
+                <div class="stat"><div class="stat-value neutral">13</div><div class="stat-label">NEUTRAL</div></div>
+                <div class="stat"><div class="stat-value bearish">1</div><div class="stat-label">BEARISH</div></div>
             </div>
         </div>
         
@@ -280,73 +283,57 @@ canvas {
         <div class="footer">
             <div class="footer-brand">14 MINDS</div>
             <div class="footer-sub">THE ELEMENT THAT THINKS</div>
-            <div class="timestamp">2026-02-13 17:11 PST</div>
+            <div class="timestamp">2026-02-13 17:18 PST</div>
             <div class="handle">@lexispawn</div>
         </div>
     </div>
 </div>
 
 <script>
-const modelData = [{"name": "Opus", "angle": -1.5707963267948966, "color": "#8B8B8B", "conviction": 3, "stance": "NEUTRAL"}, {"name": "Sonnet", "angle": -1.121997376282069, "color": "#FF6B4A", "conviction": 7, "stance": "SELL"}, {"name": "Haiku", "angle": -0.6731984257692414, "color": "#8B8B8B", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem Pro", "angle": -0.2243994752564138, "color": "#8B8B8B", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem Flash", "angle": 0.2243994752564138, "color": "#8B8B8B", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem 2.0", "angle": 0.6731984257692414, "color": "#8B8B8B", "conviction": 5, "stance": "NEUTRAL"}, {"name": "GPT-4.1", "angle": 1.121997376282069, "color": "#FF6B4A", "conviction": 8, "stance": "SELL"}, {"name": "GPT Mini", "angle": 1.5707963267948966, "color": "#FFC125", "conviction": 6, "stance": "BUY"}, {"name": "GPT Nano", "angle": 2.019595277307724, "color": "#FFC125", "conviction": 7, "stance": "BUY"}, {"name": "o3-mini", "angle": 2.4683942278205517, "color": "#8B8B8B", "conviction": 5, "stance": "NEUTRAL"}, {"name": "DeepSeek", "angle": 2.9171931783333793, "color": "#8B8B8B", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Qwen", "angle": 3.365992128846207, "color": "#8B8B8B", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Llama 70B", "angle": 3.8147910793590345, "color": "#8B8B8B", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Mistral", "angle": 4.263590029871862, "color": "#8B8B8B", "conviction": 5, "stance": "NEUTRAL"}];
-const primaryHue = 180;
+const models = [{"name": "Opus", "angle": -1.5707963267948966, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 3, "stance": "NEUTRAL"}, {"name": "Sonnet", "angle": -1.121997376282069, "color": "#FF6B35", "glow": "255, 107, 53", "conviction": 7, "stance": "SELL"}, {"name": "Haiku", "angle": -0.6731984257692414, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem Pro", "angle": -0.2243994752564138, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem Flash", "angle": 0.2243994752564138, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Gem 2.0", "angle": 0.6731984257692414, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "GPT-4.1", "angle": 1.121997376282069, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "GPT Mini", "angle": 1.5707963267948966, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "GPT Nano", "angle": 2.019595277307724, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "o3-mini", "angle": 2.4683942278205517, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "DeepSeek", "angle": 2.9171931783333793, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Qwen", "angle": 3.365992128846207, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Llama 70B", "angle": 3.8147910793590345, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}, {"name": "Mistral", "angle": 4.263590029871862, "color": "#BF40FF", "glow": "191, 64, 255", "conviction": 5, "stance": "NEUTRAL"}];
 
-// Render model orbs
+// Render orbs
 const container = document.getElementById('orb-container');
-const rect = container.getBoundingClientRect();
-const centerX = 50;
-const centerY = 50;
-const radius = 42;
-
-modelData.forEach((model, i) => {
-    const x = centerX + Math.cos(model.angle) * radius;
-    const y = centerY + Math.sin(model.angle) * radius;
-    const size = 12 + model.conviction * 1.5;
+models.forEach((m, i) => {
+    const x = 50 + Math.cos(m.angle) * 42;
+    const y = 50 + Math.sin(m.angle) * 42;
+    const size = 14 + m.conviction * 2;
     
     const orb = document.createElement('div');
     orb.className = 'model-orb';
-    orb.style.left = x + '%';
-    orb.style.top = y + '%';
-    orb.innerHTML = `
-        <div class="orb-dot" style="width: ${size}px; height: ${size}px; background: ${model.color}; color: ${model.color};"></div>
-        <div class="orb-label">${model.name}</div>
-    `;
+    orb.style.cssText = `left:${x}%;top:${y}%;animation-delay:${i*0.2}s`;
+    orb.innerHTML = `<div class="orb-dot" style="width:${size}px;height:${size}px;background:${m.color};box-shadow:0 0 ${size}px ${m.color},0 0 ${size*2}px ${m.color},0 0 ${size*3}px rgba(${m.glow},0.5)"></div><div class="orb-label">${m.name}</div>`;
     container.appendChild(orb);
 });
 
-// Particle system
+// Particle system - MORE particles, FASTER, BRIGHTER
 const canvas = document.getElementById('particles');
 const ctx = canvas.getContext('2d');
-
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 resize();
 window.addEventListener('resize', resize);
 
 const particles = [];
-const particleCount = 80;
-
-for (let i = 0; i < particleCount; i++) {
+for (let i = 0; i < 150; i++) {
+    const hues = [140, 280, 340, 30]; // green, purple, pink, orange
     particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        size: Math.random() * 2 + 0.5,
-        speedX: (Math.random() - 0.5) * 0.3,
-        speedY: (Math.random() - 0.5) * 0.3,
-        alpha: Math.random() * 0.4 + 0.1,
-        hue: primaryHue + (Math.random() - 0.5) * 30
+        size: Math.random() * 3 + 1,
+        speedX: (Math.random() - 0.5) * 0.8,
+        speedY: (Math.random() - 0.5) * 0.8,
+        alpha: Math.random() * 0.6 + 0.2,
+        hue: hues[Math.floor(Math.random() * hues.length)] + (Math.random() - 0.5) * 20
     });
 }
 
 function animate() {
-    ctx.fillStyle = 'rgba(5, 5, 8, 0.1)';
+    ctx.fillStyle = 'rgba(3, 3, 8, 0.15)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     particles.forEach(p => {
         p.x += p.speedX;
         p.y += p.speedY;
-        
         if (p.x < 0) p.x = canvas.width;
         if (p.x > canvas.width) p.x = 0;
         if (p.y < 0) p.y = canvas.height;
@@ -354,8 +341,11 @@ function animate() {
         
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, ${p.alpha})`;
+        ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${p.alpha})`;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = `hsla(${p.hue}, 100%, 60%, 0.8)`;
         ctx.fill();
+        ctx.shadowBlur = 0;
     });
     
     requestAnimationFrame(animate);
