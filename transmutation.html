@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transmutation</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background: #000;
+    min-height: 100vh;
+    overflow: hidden;
+    font-family: 'SF Mono', monospace;
+}
+canvas { display: block; }
+.title {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.15);
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="title">transmutation</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const cx = () => canvas.width / 2;
+const cy = () => canvas.height / 2;
+
+// The substance before transformation
+let particles = [];
+let transformed = [];
+let phase = 0;
+let burnProgress = 0;
+let hasBurned = false;
+
+// Original matter - golden, heavy, earthbound
+class Matter {
+    constructor() {
+        this.reset();
+    }
+    
+    reset() {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * 150 + 50;
+        this.x = cx() + Math.cos(angle) * dist;
+        this.y = cy() + Math.sin(angle) * dist;
+        this.vx = (Math.random() - 0.5) * 0.3;
+        this.vy = (Math.random() - 0.5) * 0.3;
+        this.size = Math.random() * 4 + 2;
+        this.hue = 40 + Math.random() * 20; // gold spectrum
+        this.life = 1;
+        this.burning = false;
+        this.burnStart = 0;
+    }
+    
+    update() {
+        if (this.burning) {
+            const burnAge = phase - this.burnStart;
+            
+            // Rise and scatter
+            this.vy -= 0.02;
+            this.vx += (Math.random() - 0.5) * 0.1;
+            
+            // Shift hue through fire colors
+            this.hue = 40 - burnAge * 2; // gold → orange → red
+            if (this.hue < 0) this.hue += 360;
+            
+            // Shrink and fade
+            this.life -= 0.008;
+            this.size *= 0.995;
+            
+            if (this.life <= 0) {
+                // Become something new
+                transformed.push(new Essence(this.x, this.y));
+                this.reset();
+                this.burning = false;
+            }
+        } else {
+            // Gentle orbit
+            const dx = cx() - this.x;
+            const dy = cy() - this.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            this.vx += dx / dist * 0.01;
+            this.vy += dy / dist * 0.01;
+            
+            // Slight drag
+            this.vx *= 0.99;
+            this.vy *= 0.99;
+        }
+        
+        this.x += this.vx;
+        this.y += this.vy;
+    }
+    
+    draw() {
+        const alpha = this.life * 0.8;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 80%, 55%, ${alpha})`;
+        ctx.fill();
+        
+        if (this.burning) {
+            // Fire glow
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${alpha * 0.3})`;
+            ctx.fill();
+        }
+    }
+    
+    ignite() {
+        if (!this.burning) {
+            this.burning = true;
+            this.burnStart = phase;
+        }
+    }
+}
+
+// What remains after the burn - lighter, ascending
+class Essence {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = -Math.random() * 2 - 1; // rises
+        this.size = Math.random() * 2 + 1;
+        this.hue = 180 + Math.random() * 60; // cyan/teal spectrum
+        this.life = 1;
+        this.age = 0;
+    }
+    
+    update() {
+        this.age++;
+        this.vy *= 0.99;
+        this.x += this.vx;
+        this.y += this.vy;
+        
+        // Gentle fade
+        if (this.age > 200) {
+            this.life -= 0.005;
+        }
+    }
+    
+    draw() {
+        if (this.life <= 0) return;
+        
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 70%, 70%, ${this.life * 0.6})`;
+        ctx.fill();
+        
+        // Soft glow
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 70%, 70%, ${this.life * 0.1})`;
+        ctx.fill();
+    }
+}
+
+// Initialize matter
+for (let i = 0; i < 80; i++) {
+    particles.push(new Matter());
+}
+
+// The flame at center - dormant until ignited
+function drawFlame() {
+    if (burnProgress <= 0) return;
+    
+    const intensity = Math.min(burnProgress / 100, 1);
+    const flicker = Math.sin(phase * 0.3) * 0.2 + 0.8;
+    
+    // Core flame
+    const gradient = ctx.createRadialGradient(cx(), cy(), 0, cx(), cy(), 60 * intensity);
+    gradient.addColorStop(0, `rgba(255, 200, 100, ${0.8 * intensity * flicker})`);
+    gradient.addColorStop(0.3, `rgba(255, 100, 50, ${0.5 * intensity * flicker})`);
+    gradient.addColorStop(0.7, `rgba(200, 50, 30, ${0.2 * intensity * flicker})`);
+    gradient.addColorStop(1, 'rgba(100, 20, 10, 0)');
+    
+    ctx.beginPath();
+    ctx.arc(cx(), cy(), 60 * intensity, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+}
+
+// Click to ignite
+let igniting = false;
+canvas.addEventListener('mousedown', () => { igniting = true; });
+canvas.addEventListener('mouseup', () => { igniting = false; });
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); igniting = true; });
+canvas.addEventListener('touchend', () => { igniting = false; });
+
+function animate() {
+    // Subtle trail
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    phase += 0.05;
+    
+    // Ignition
+    if (igniting && !hasBurned) {
+        burnProgress += 2;
+        
+        // Ignite nearby particles
+        particles.forEach(p => {
+            const dx = p.x - cx();
+            const dy = p.y - cy();
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist < 80 + burnProgress * 0.5 && Math.random() < 0.1) {
+                p.ignite();
+            }
+        });
+        
+        if (burnProgress > 300) {
+            hasBurned = true;
+        }
+    } else if (!igniting && burnProgress > 0 && !hasBurned) {
+        burnProgress -= 1;
+    }
+    
+    // Draw flame
+    drawFlame();
+    
+    // Update and draw matter
+    particles.forEach(p => {
+        p.update();
+        p.draw();
+    });
+    
+    // Update and draw essence
+    transformed = transformed.filter(e => e.life > 0);
+    transformed.forEach(e => {
+        e.update();
+        e.draw();
+    });
+    
+    // Center text appears after burn
+    if (hasBurned && transformed.length > 20) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min((phase % 1000) / 500, 0.15)})`;
+        ctx.font = '12px SF Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('what remains is lighter', cx(), cy() + 100);
+    }
+    
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>
