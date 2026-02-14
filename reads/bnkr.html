@@ -7,90 +7,23 @@
 <meta property="og:description" content="14 frontier minds. One question. See where they diverge.">
 <meta property="og:image" content="https://lexispawn.xyz/assets/thesis-bnkr.png">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;color:#888;font-family:monospace;overflow:hidden}
-canvas{display:block}
-.token{position:fixed;bottom:20px;left:20px;z-index:10}
-.token h1{font-size:24px;color:#fff;font-weight:normal}
-.token h1 span{color:#666}
-.token p{font-size:11px;color:#444;margin-top:4px}
-.question{position:fixed;top:30px;left:0;right:0;text-align:center;z-index:10}
-.question span{font-size:48px;color:rgba(255,255,255,0.08)}
-.footer{position:fixed;bottom:20px;right:20px;font-size:9px;color:#333;z-index:10}
+body{background:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.card{max-width:540px;width:100%}
+.card img{width:100%;height:auto;border-radius:12px}
+.footer{margin-top:20px;text-align:center;font-family:'SF Mono',monospace;font-size:11px}
+.footer a{color:#00ffc8;text-decoration:none}
+.footer a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
-<div class="question"><span>?</span></div>
-<div class="token">
-<h1><span>$</span>BNKR</h1>
-<p>$0.0009000 · 21.99%</p>
+<div class="card">
+<img src="/assets/thesis-bnkr.png" alt="$BNKR - 14 MINDS Analysis">
 </div>
-<div class="footer">14minds · lexispawn.xyz</div>
-<canvas id="c"></canvas>
-<script>
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
-resize();
-addEventListener('resize', resize);
-
-const voices = [{"name": "Opus", "says": "**HOLD** SPECULATIVE AI NARRATIVE,", "hue": 240}, {"name": "Sonnet", "says": "**HOLD** EXTREME VOLATILITY, INSUFFICIENT", "hue": 327}, {"name": "Haiku", "says": "...", "hue": 0}, {"name": "Gemini", "says": "HOLD. HIGH VOLATILITY", "hue": 105}, {"name": "Flash", "says": "HOLD. EXTREMELY", "hue": 61}, {"name": "GPT", "says": "...", "hue": 0}, {"name": "Nano", "says": "...", "hue": 0}, {"name": "DeepSeek", "says": "...", "hue": 0}, {"name": "Qwen", "says": "BUY STRONG MOMENTUM, LOW", "hue": 26}, {"name": "Llama", "says": "...", "hue": 0}];
-const particles = [];
-
-// Each voice becomes particles rising
-voices.forEach((v, i) => {
-  for (let j = 0; j < 3; j++) {
-    particles.push({
-      text: v.says,
-      x: innerWidth * 0.2 + Math.random() * innerWidth * 0.6,
-      y: innerHeight + Math.random() * 200,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: -0.2 - Math.random() * 0.5,
-      size: 8 + Math.random() * 8,
-      alpha: 0.1 + Math.random() * 0.3,
-      hue: v.hue,
-      drift: Math.random() * Math.PI * 2,
-      name: v.name
-    });
-  }
-});
-
-let t = 0;
-
-function draw() {
-  ctx.fillStyle = 'rgba(0,0,0,0.03)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  particles.forEach(p => {
-    p.drift += 0.01;
-    p.x += p.vx + Math.sin(p.drift) * 0.2;
-    p.y += p.vy;
-    
-    if (p.y < -50) {
-      p.y = canvas.height + 50;
-      p.x = innerWidth * 0.2 + Math.random() * innerWidth * 0.6;
-    }
-    
-    const fade = Math.min(1, (canvas.height - p.y) / (canvas.height * 0.4));
-    const a = p.alpha * fade * (0.6 + Math.sin(t + p.drift) * 0.4);
-    
-    ctx.font = p.size + 'px monospace';
-    ctx.fillStyle = 'hsla(' + p.hue + ',40%,55%,' + a + ')';
-    ctx.textAlign = 'center';
-    ctx.fillText(p.text, p.x, p.y);
-    
-    // Name tag below, faint
-    ctx.font = '8px monospace';
-    ctx.fillStyle = 'hsla(' + p.hue + ',20%,40%,' + a * 0.5 + ')';
-    ctx.fillText(p.name, p.x, p.y + 12);
-  });
-  
-  t += 0.02;
-  requestAnimationFrame(draw);
-}
-
-draw();
-</script>
+<div class="footer">
+<a href="/14minds.html">14 MINDS</a> · <a href="/">lexispawn.xyz</a>
+</div>
 </body>
 </html>
