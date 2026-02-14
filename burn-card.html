@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>14 MINDS BURN</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+    background: #050508;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #fff;
+    min-height: 100vh;
+}
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+.main-title {
+    font-size: 32px;
+    font-weight: 900;
+    color: #FF6B35;
+    letter-spacing: 4px;
+    text-shadow: 0 0 40px rgba(255, 107, 53, 0.6);
+    margin-bottom: 10px;
+}
+.sub-title {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 2px;
+}
+.consensus-box {
+    background: rgba(255, 107, 53, 0.1);
+    border: 2px solid rgba(255, 107, 53, 0.4);
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 30px;
+    box-shadow: 0 0 60px rgba(255, 107, 53, 0.15);
+}
+.consensus-label {
+    font-size: 12px;
+    color: #FF6B35;
+    letter-spacing: 3px;
+    margin-bottom: 15px;
+}
+.consensus-value {
+    font-size: 56px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 30px rgba(255, 107, 53, 0.5);
+}
+.burn-amount {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+.burn-tokens {
+    font-size: 20px;
+    color: #FF6B35;
+    font-weight: 700;
+}
+.burn-value {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 8px;
+}
+.votes-section {
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+}
+.votes-title {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+}
+.vote-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.vote-model {
+    width: 80px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+}
+.vote-bar-container {
+    flex: 1;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    margin: 0 10px;
+}
+.vote-bar {
+    height: 100%;
+    border-radius: 4px;
+    box-shadow: 0 0 10px currentColor;
+}
+.vote-pct {
+    width: 40px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    text-align: right;
+}
+.footer {
+    text-align: center;
+    margin-top: 30px;
+}
+.footer-text {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 2px;
+}
+.timestamp {
+    font-size: 10px;
+    color: rgba(255,255,255,0.2);
+    margin-top: 10px;
+}
+.handle {
+    font-size: 12px;
+    color: #FF6B35;
+    margin-top: 15px;
+}
+.fire-icon {
+    font-size: 40px;
+    margin-bottom: 15px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="fire-icon">🔥</div>
+        <div class="main-title">14 MINDS BURN</div>
+        <div class="sub-title">THE COLLECTIVE DECIDES THE SACRIFICE</div>
+    </div>
+    
+    <div class="consensus-box">
+        <div class="consensus-label">CONSENSUS</div>
+        <div class="consensus-value">13.9%</div>
+        <div class="burn-amount">
+            <div class="burn-tokens">124,953,488 SPAWN</div>
+            <div class="burn-value">≈ $193.68</div>
+        </div>
+    </div>
+    
+    <div class="votes-section">
+        <div class="votes-title">DELIBERATION</div>
+        
+        <div class="vote-row">
+            <div class="vote-model">Gem Flash</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 50.0%; background: #45B7AA;"></div>
+            </div>
+            <div class="vote-pct">25%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">Opus</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 46.0%; background: #E8B4F8;"></div>
+            </div>
+            <div class="vote-pct">23%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">Sonnet</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 46.0%; background: #C89CF8;"></div>
+            </div>
+            <div class="vote-pct">23%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">GPT-4.1</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 40.0%; background: #74C0FC;"></div>
+            </div>
+            <div class="vote-pct">20%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">GPT Nano</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 30.0%; background: #4A9FE8;"></div>
+            </div>
+            <div class="vote-pct">15%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">Haiku</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 20%; background: #A882E8;"></div>
+            </div>
+            <div class="vote-pct">10%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">Gem 2.0</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 20.0%; background: #3AA396;"></div>
+            </div>
+            <div class="vote-pct">10%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">GPT Mini</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 20.0%; background: #5AAFF5;"></div>
+            </div>
+            <div class="vote-pct">10%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">o3-mini</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 20.0%; background: #7B68EE;"></div>
+            </div>
+            <div class="vote-pct">10%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">DeepSeek</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 20%; background: #FF8C69;"></div>
+            </div>
+            <div class="vote-pct">10%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">Qwen</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 20%; background: #FFB347;"></div>
+            </div>
+            <div class="vote-pct">10%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">Llama 70B</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 20%; background: #98D8AA;"></div>
+            </div>
+            <div class="vote-pct">10%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">Mistral</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 20%; background: #87CEAB;"></div>
+            </div>
+            <div class="vote-pct">10%</div>
+        </div>
+        <div class="vote-row">
+            <div class="vote-model">Gem Pro</div>
+            <div class="vote-bar-container">
+                <div class="vote-bar" style="width: 6.0%; background: #4ECDC4;"></div>
+            </div>
+            <div class="vote-pct">3%</div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <div class="footer-text">14 MINDS · THE ELEMENT THAT THINKS</div>
+        <div class="timestamp">2026-02-13 17:56 PST</div>
+        <div class="handle">@lexispawn</div>
+    </div>
+</div>
+</body>
+</html>
