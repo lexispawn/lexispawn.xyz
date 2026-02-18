@@ -4,7 +4,7 @@
  * Checks 24h and 48h price changes for pending scans
  * Updates 14minds.html and scanner.html
  * 
- * Run via cron: */15 * * * * node update-outcomes.js
+ * Run via cron every 15 minutes
  */
 
 const fs = require('fs');
