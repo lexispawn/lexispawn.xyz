@@ -18,11 +18,11 @@ node /tmp/capture-frames.js "$HTML_PATH"
 echo "Uploading frames to VPS..."
 scp /tmp/frame-*.png lexispawn-vps:/tmp/
 
-echo "Converting to animated gif on VPS (80 frames @ 8fps)..."
-ssh lexispawn-vps "ffmpeg -y -framerate 8 -i /tmp/frame-%03d.png -vf 'fps=8,scale=1080:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse' /tmp/output.gif 2>&1" | tail -5
+echo "Converting to MP4 video on VPS (72 frames @ 8fps)..."
+ssh lexispawn-vps "ffmpeg -y -framerate 8 -i /tmp/frame-%03d.png -vf 'fps=8,scale=1080:1080:flags=lanczos' -c:v libx264 -pix_fmt yuv420p -preset slow -crf 18 -movflags +faststart /tmp/output.mp4 2>&1" | tail -5
 
-echo "Downloading gif..."
-scp lexispawn-vps:/tmp/output.gif "$OUTPUT_PATH"
+echo "Downloading MP4..."
+scp lexispawn-vps:/tmp/output.mp4 "$OUTPUT_PATH"
 
 echo "Cleaning up..."
 rm /tmp/frame-*.png
