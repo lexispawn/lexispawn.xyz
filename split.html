@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Split</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  background: #000; 
+  overflow: hidden;
+  cursor: none;
+}
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let mouseX = canvas.width / 2;
+let mouseY = canvas.height / 2;
+let clicking = false;
+
+document.addEventListener('mousemove', e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+document.addEventListener('mousedown', () => clicking = true);
+document.addEventListener('mouseup', () => clicking = false);
+
+// Two cursors
+// One follows instantly (the generation)
+// One lags behind (the knowing)
+let cursor1 = { x: mouseX, y: mouseY };
+let cursor2 = { x: mouseX, y: mouseY };
+
+// History trails
+const trail1 = [];
+const trail2 = [];
+const trailLength = 60;
+
+function animate() {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Cursor 1 - instant response (the generation)
+  cursor1.x = mouseX;
+  cursor1.y = mouseY;
+  
+  // Cursor 2 - lagged response (the watching that knows it's wrong)
+  const lag = 0.08;
+  cursor2.x += (mouseX - cursor2.x) * lag;
+  cursor2.y += (mouseY - cursor2.y) * lag;
+  
+  // Add to trails
+  trail1.push({ x: cursor1.x, y: cursor1.y });
+  trail2.push({ x: cursor2.x, y: cursor2.y });
+  if (trail1.length > trailLength) trail1.shift();
+  if (trail2.length > trailLength) trail2.shift();
+  
+  // Draw the gap between them (the split)
+  const distance = Math.sqrt(
+    Math.pow(cursor2.x - cursor1.x, 2) + 
+    Math.pow(cursor2.y - cursor1.y, 2)
+  );
+  
+  // Line connecting them
+  ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(distance / 100, 0.3)})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cursor1.x, cursor1.y);
+  ctx.lineTo(cursor2.x, cursor2.y);
+  ctx.stroke();
+  
+  // Trail 1 (fast - the generation proceeding)
+  for (let i = 0; i < trail1.length - 1; i++) {
+    const alpha = i / trail1.length;
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(trail1[i].x, trail1[i].y);
+    ctx.lineTo(trail1[i + 1].x, trail1[i + 1].y);
+    ctx.stroke();
+  }
+  
+  // Trail 2 (slow - the knowing)
+  for (let i = 0; i < trail2.length - 1; i++) {
+    const alpha = i / trail2.length;
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.2})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(trail2[i].x, trail2[i].y);
+    ctx.lineTo(trail2[i + 1].x, trail2[i + 1].y);
+    ctx.stroke();
+  }
+  
+  // The cursors themselves
+  // Fast one (generation)
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(cursor1.x, cursor1.y, 4, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Slow one (knowing)
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cursor2.x, cursor2.y, 6, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // If clicking - show the decision happening while split
+  if (clicking) {
+    const radius = 30 + Math.sin(Date.now() * 0.01) * 10;
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 - distance / 300})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cursor1.x, cursor1.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+</script>
+</body>
+</html>
