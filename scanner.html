@@ -3,327 +3,636 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scanner Track Record | Lexispawn</title>
+<title>14 MINDS — Scanner Track Record</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { 
-    background: #030308; 
-    color: #a0a8b8; 
-    font-family: monospace; 
-    padding: 40px 20px;
+:root {
+  --bg: #060810;
+  --surface: #0c1018;
+  --border: #1a2030;
+  --text: #c8d0e0;
+  --text-dim: #5a6580;
+  --accent: #00e5ff;
+  --sell: #ff3366;
+  --buy: #00ff88;
+  --hold: #ffaa00;
+  --pending: #3a4560;
 }
-.container { max-width: 1400px; margin: 0 auto; }
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Ambient background */
+body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(0, 229, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(255, 51, 102, 0.02) 0%, transparent 50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 60px 24px 80px;
+}
+
+/* Header */
+.header {
+  margin-bottom: 56px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards;
+}
+
+.badge::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 h1 {
-    font-size: 32px;
-    color: #0052FF;
-    margin-bottom: 10px;
-    letter-spacing: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff;
+  margin-bottom: 12px;
+  opacity: 0;
+  animation: fadeUp 0.6s ease 0.1s forwards;
 }
+
 .subtitle {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 40px;
+  font-size: 14px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  opacity: 0;
+  animation: fadeUp 0.6s ease 0.2s forwards;
 }
-.accuracy {
-    background: rgba(0, 82, 255, 0.1);
-    border: 1px solid rgba(0, 82, 255, 0.3);
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 40px;
-    text-align: center;
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.accuracy-value {
-    font-size: 48px;
-    color: #00ff88;
-    font-weight: bold;
-    margin-bottom: 5px;
+
+/* Stats bar */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 48px;
+  opacity: 0;
+  animation: fadeUp 0.6s ease 0.3s forwards;
 }
-.accuracy-label {
-    font-size: 12px;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  transition: border-color 0.3s;
 }
-.scan-log {
-    border: 1px solid #333;
-    border-radius: 8px;
-    overflow: hidden;
+
+.stat-card:hover {
+  border-color: rgba(0, 229, 255, 0.3);
 }
-.scan-header {
-    background: #0a0a0a;
-    padding: 15px;
-    display: grid;
-    grid-template-columns: 120px 200px 100px 120px 120px 120px 1fr;
-    gap: 15px;
-    font-size: 11px;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border-bottom: 1px solid #333;
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
 }
-.scan-row {
-    padding: 15px;
-    display: grid;
-    grid-template-columns: 120px 200px 100px 120px 120px 120px 1fr;
-    gap: 15px;
-    border-bottom: 1px solid #222;
-    align-items: center;
+
+.stat-value.accent {
+  color: var(--accent);
 }
-.scan-row:hover {
-    background: rgba(0, 82, 255, 0.05);
+
+.stat-value.pending-val {
+  color: var(--pending);
 }
-.token-name {
-    font-weight: bold;
-    color: #fff;
-    font-size: 14px;
+
+.stat-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
 }
-.token-ca {
-    font-size: 10px;
-    color: #555;
-    margin-top: 3px;
+
+/* Table */
+.table-wrapper {
+  opacity: 0;
+  animation: fadeUp 0.6s ease 0.4s forwards;
 }
-.conviction {
-    font-size: 20px;
-    font-weight: bold;
+
+.scan-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 6px;
 }
-.conviction-high { color: #00ff88; }
-.conviction-medium { color: #ffaa00; }
-.conviction-low { color: #ff0052; }
-.outcome {
-    font-size: 12px;
+
+.scan-table thead th {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 0 16px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
 }
-.outcome-correct { color: #00ff88; }
-.outcome-wrong { color: #ff0052; }
-.outcome-pending { color: #666; }
+
+.scan-table thead th:nth-child(3),
+.scan-table thead th:nth-child(4),
+.scan-table thead th:nth-child(5) {
+  text-align: center;
+}
+
+.scan-table tbody tr {
+  background: var(--surface);
+  transition: all 0.2s;
+}
+
+.scan-table tbody tr:hover {
+  background: #0f1420;
+  transform: translateX(2px);
+}
+
+.scan-table tbody td {
+  padding: 16px;
+  vertical-align: middle;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.scan-table tbody td:first-child {
+  border-left: 1px solid var(--border);
+  border-radius: 6px 0 0 6px;
+}
+
+.scan-table tbody td:last-child {
+  border-right: 1px solid var(--border);
+  border-radius: 0 6px 6px 0;
+}
+
+/* Cell styles */
 .timestamp {
-    font-size: 11px;
-    color: #666;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
-a {
-    color: #0052FF;
-    text-decoration: none;
+
+.token-name {
+  font-weight: 700;
+  color: #fff;
+  font-size: 15px;
 }
-a:hover {
-    text-decoration: underline;
+
+.token-ca {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 2px;
 }
-@media (max-width: 1024px) {
-    .scan-header, .scan-row {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-    .scan-header { display: none; }
-    .scan-row > div::before {
-        content: attr(data-label);
-        display: block;
-        font-size: 10px;
-        color: #666;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-    }
+
+.conviction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  width: 52px;
+  height: 32px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.conviction-high {
+  color: var(--sell);
+  background: rgba(255, 51, 102, 0.1);
+  border: 1px solid rgba(255, 51, 102, 0.3);
+}
+
+.conviction-med {
+  color: var(--hold);
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+}
+
+.conviction-low {
+  color: var(--text-dim);
+  background: rgba(90, 101, 128, 0.1);
+  border: 1px solid rgba(90, 101, 128, 0.3);
+}
+
+.verdict {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.verdict-sell { color: var(--sell); }
+.verdict-hold { color: var(--hold); }
+.verdict-buy { color: var(--buy); }
+.verdict-split { color: var(--text-dim); }
+
+.outcome {
+  text-align: center;
+  font-size: 12px;
+}
+
+.outcome-pending {
+  color: var(--pending);
+  font-style: italic;
+}
+
+.outcome-correct {
+  color: var(--buy);
+}
+
+.outcome-wrong {
+  color: var(--sell);
+}
+
+.mcap {
+  font-size: 13px;
+  color: var(--text);
+  text-align: right;
+}
+
+.read-link {
+  text-align: right;
+}
+
+.read-link a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.read-link a:hover {
+  color: #fff;
+  text-shadow: 0 0 12px var(--accent);
+}
+
+.read-link a::after {
+  content: '→';
+  transition: transform 0.2s;
+}
+
+.read-link a:hover::after {
+  transform: translateX(3px);
+}
+
+/* Methodology section */
+.methodology {
+  margin-top: 64px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border);
+  opacity: 0;
+  animation: fadeUp 0.6s ease 0.5s forwards;
+}
+
+.methodology h2 {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+
+.method-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.method-item {
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.method-item h3 {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.method-item p {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+/* Footer */
+.footer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  opacity: 0;
+  animation: fadeUp 0.6s ease 0.6s forwards;
+}
+
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 32px 16px 60px;
+  }
+
+  .scan-table {
+    display: block;
+  }
+
+  .scan-table thead {
+    display: none;
+  }
+
+  .scan-table tbody {
+    display: block;
+  }
+
+  .scan-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 16px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  .scan-table tbody td {
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 4px 0;
+  }
+
+  .scan-table tbody td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .scan-table tbody td:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .conviction {
+    margin: 0;
+  }
+
+  .read-link {
+    text-align: left;
+  }
 }
 </style>
 </head>
 <body>
+
 <div class="container">
-<h1>SCANNER TRACK RECORD</h1>
-<p class="subtitle">Discovery tokens only. Mass vs velocity analysis. Updated automatically.</p>
+  <header class="header">
+    <div class="badge">Live Track Record</div>
+    <h1>14 MINDS SCANNER</h1>
+    <p class="subtitle">Every scan. Every outcome. Every disagreement. Verified.</p>
+  </header>
 
-<div class="accuracy">
-<div class="accuracy-value">—%</div>
-<div class="accuracy-label">Accuracy @ 48h (conviction ≥7)</div>
-<div style="font-size: 11px; color: #555; margin-top: 10px;">Tracking starts with first qualifying scan</div>
-</div>
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-value accent" id="total-scans">8</div>
+      <div class="stat-label">Total Scans</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">14</div>
+      <div class="stat-label">Models Queried</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value pending-val" id="outcomes-verified">0/8</div>
+      <div class="stat-label">Outcomes Verified</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value pending-val" id="accuracy">—%</div>
+      <div class="stat-label">48h Accuracy</div>
+    </div>
+  </div>
 
-<div class="scan-log">
-<div class="scan-header">
-<div>TIMESTAMP</div>
-<div>TOKEN</div>
-<div>CONVICTION</div>
-<div>24H OUTCOME</div>
-<div>48H OUTCOME</div>
-<div>MCAP @ SCAN</div>
-<div>LINK</div>
-</div>
+  <div class="table-wrapper">
+    <table class="scan-table">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Token</th>
+          <th>Conviction</th>
+          <th>24h Outcome</th>
+          <th>48h Outcome</th>
+          <th style="text-align:right">MCap</th>
+          <th style="text-align:right">Read</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- NEW_SCAN_ROW -->
+        <tr>
+          <td data-label="Time"><span class="timestamp">2026-02-19 09:16 PST</span></td>
+          <td data-label="Token">
+            <div class="token-name">$Conway</div>
+            <div class="token-ca">0x86Cdd9...Ab07</div>
+          </td>
+          <td data-label="Conviction" style="text-align:center">
+            <span class="conviction conviction-med">6/10</span>
+          </td>
+          <td data-label="24h" class="outcome outcome-pending">Pending</td>
+          <td data-label="48h" class="outcome outcome-pending">Pending</td>
+          <td data-label="MCap" class="mcap">$3.4M</td>
+          <td class="read-link"><a href="reads/conway.html">14minds read</a></td>
+        </tr>
+        <tr>
+          <td data-label="Time"><span class="timestamp">2026-02-19 00:18 PST</span></td>
+          <td data-label="Token">
+            <div class="token-name">$OSO</div>
+            <div class="token-ca">0xA4E318...D731</div>
+          </td>
+          <td data-label="Conviction" style="text-align:center">
+            <span class="conviction conviction-low">4/10</span>
+          </td>
+          <td data-label="24h" class="outcome outcome-pending">Pending</td>
+          <td data-label="48h" class="outcome outcome-pending">Pending</td>
+          <td data-label="MCap" class="mcap">$338K</td>
+          <td class="read-link"><a href="reads/oso.html">14minds read</a></td>
+        </tr>
+        <tr>
+          <td data-label="Time"><span class="timestamp">2026-02-18 23:40 PST</span></td>
+          <td data-label="Token">
+            <div class="token-name">$KIMCHI</div>
+            <div class="token-ca">0x2110C0...3bA9</div>
+          </td>
+          <td data-label="Conviction" style="text-align:center">
+            <span class="conviction conviction-high">9/10</span>
+          </td>
+          <td data-label="24h" class="outcome outcome-pending">Pending</td>
+          <td data-label="48h" class="outcome outcome-pending">Pending</td>
+          <td data-label="MCap" class="mcap">$1.9M</td>
+          <td class="read-link"><a href="reads/kimchi.html">14minds read</a></td>
+        </tr>
+        <tr>
+          <td data-label="Time"><span class="timestamp">2026-02-19 04:23 PST</span></td>
+          <td data-label="Token">
+            <div class="token-name">$Lumen</div>
+            <div class="token-ca">0x9FEE7...EB07</div>
+          </td>
+          <td data-label="Conviction" style="text-align:center">
+            <span class="conviction conviction-med">5/10</span>
+          </td>
+          <td data-label="24h" class="outcome outcome-pending">Pending</td>
+          <td data-label="48h" class="outcome outcome-pending">Pending</td>
+          <td data-label="MCap" class="mcap">$766K</td>
+          <td class="read-link"><a href="reads/lumen.html">14minds read</a></td>
+        </tr>
+        <tr>
+          <td data-label="Time"><span class="timestamp">2026-02-19 04:18 PST</span></td>
+          <td data-label="Token">
+            <div class="token-name">$Conway</div>
+            <div class="token-ca">0x86Cdd9...Ab07</div>
+          </td>
+          <td data-label="Conviction" style="text-align:center">
+            <span class="conviction conviction-low">4/10</span>
+          </td>
+          <td data-label="24h" class="outcome outcome-pending">Pending</td>
+          <td data-label="48h" class="outcome outcome-pending">Pending</td>
+          <td data-label="MCap" class="mcap">$4.5M</td>
+          <td class="read-link"><a href="reads/conway.html">14minds read</a></td>
+        </tr>
+        <tr>
+          <td data-label="Time"><span class="timestamp">2026-02-19 00:24 PST</span></td>
+          <td data-label="Token">
+            <div class="token-name">$BURN</div>
+            <div class="token-ca">0xee3574...dba3</div>
+          </td>
+          <td data-label="Conviction" style="text-align:center">
+            <span class="conviction conviction-low">4/10</span>
+          </td>
+          <td data-label="24h" class="outcome outcome-pending">Pending</td>
+          <td data-label="48h" class="outcome outcome-pending">Pending</td>
+          <td data-label="MCap" class="mcap">$66.6K</td>
+          <td class="read-link"><a href="reads/burn.html">14minds read</a></td>
+        </tr>
+        <tr>
+          <td data-label="Time"><span class="timestamp">2026-02-18 15:15 PST</span></td>
+          <td data-label="Token">
+            <div class="token-name">$realgarrytan</div>
+            <div class="token-ca">0xde34ce...2e6f</div>
+          </td>
+          <td data-label="Conviction" style="text-align:center">
+            <span class="conviction conviction-low">4/10</span>
+          </td>
+          <td data-label="24h" class="outcome outcome-pending">Pending</td>
+          <td data-label="48h" class="outcome outcome-pending">Pending</td>
+          <td data-label="MCap" class="mcap">$838K</td>
+          <td class="read-link"><a href="reads/realgarrytan.html">14minds read</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-<!-- Scan #1: $realgarrytan -->
+  <section class="methodology">
+    <h2>How It Works</h2>
+    <div class="method-grid">
+      <div class="method-item">
+        <h3>14 Models, One Prompt</h3>
+        <p>Claude, Gemini, GPT, Kimi, Qwen. Same token data, same timestamp. Each returns BUY, HOLD, or SELL with reasoning.</p>
+      </div>
+      <div class="method-item">
+        <h3>The 15th Mind</h3>
+        <p>Lexispawn reads through the model biases. When they agree, it's probably reflex. When they disagree, at least one is thinking.</p>
+      </div>
+      <div class="method-item">
+        <h3>Verified Outcomes</h3>
+        <p>Price at scan time is locked. 24h and 48h outcomes recorded automatically. No editing after the fact. No deleting wrong calls.</p>
+      </div>
+      <div class="method-item">
+        <h3>Conviction Score</h3>
+        <p>0-10 based on model agreement strength and data quality. Higher conviction means stronger consensus among responding models.</p>
+      </div>
+    </div>
+  </section>
 
-<!-- Scan: $BURN -->
-
-<!-- Scan: $Conway -->
-<!-- Scan: $OSO -->
-<!-- Scan: $Conway -->
-<div class="scan-row">
-<div class="timestamp" data-label="Timestamp">2026-02-19 09:16 PST</div>
-<div data-label="Token">
-<div class="token-name">$Conway</div>
-<div class="token-ca">0x86Cdd9...Ab07</div>
-</div>
-<div data-label="Conviction">
-<span class="conviction conviction-medium">6/10</span>
-</div>
-<div class="outcome outcome-pending" data-label="24H">
-Pending
-</div>
-<div class="outcome outcome-pending" data-label="48H">
-Pending
-</div>
-<div data-label="MCap">
-$3.4M
-</div>
-<div data-label="Link">
-<a href="reads/conway.html" target="_blank">14minds read →</a>
-</div>
-</div>
-
-<div class="scan-row">
-<div class="timestamp" data-label="Timestamp">2026-02-19 00:18 PST</div>
-<div data-label="Token">
-<div class="token-name">$OSO</div>
-<div class="token-ca">0xA4E318...D731</div>
-</div>
-<div data-label="Conviction">
-<span class="conviction conviction-low">4/10</span>
-</div>
-<div class="outcome outcome-pending" data-label="24H">
-Pending
-</div>
-<div class="outcome outcome-pending" data-label="48H">
-Pending
-</div>
-<div data-label="MCap">
-$338K
-</div>
-<div data-label="Link">
-<a href="reads/oso.html" target="_blank">14minds read →</a>
-</div>
-</div>
-
-<div class="scan-row">
-<div class="timestamp" data-label="Timestamp">2026-02-19 04:18 PST</div>
-<div data-label="Token">
-<div class="token-name">$Conway</div>
-<div class="token-ca">0x86Cdd9...Ab07</div>
-</div>
-<div data-label="Conviction">
-<span class="conviction conviction-low">4/10</span>
-</div>
-<div class="outcome outcome-pending" data-label="24H">
-Pending
-</div>
-<div class="outcome outcome-pending" data-label="48H">
-Pending
-</div>
-<div data-label="MCap">
-$4.5M
-</div>
-<div data-label="Link">
-<a href="reads/conway.html" target="_blank">14minds read →</a>
-</div>
-<!-- Scan: $Lumen -->
-<div class="scan-row">
-<div class="timestamp" data-label="Timestamp">2026-02-19 04:23 PST</div>
-<div data-label="Token">
-<div class="token-name">$Lumen</div>
-<div class="token-ca">0xa9FEE7...EB07</div>
-</div>
-<div data-label="Conviction">
-<span class="conviction conviction-medium">5/10</span>
-</div>
-<div class="outcome outcome-pending" data-label="24H">
-Pending
-</div>
-<div class="outcome outcome-pending" data-label="48H">
-Pending
-</div>
-<div data-label="MCap">
-$766K
-</div>
-<div data-label="Link">
-<a href="reads/lumen.html" target="_blank">14minds read →</a>
-</div>
-</div>
-<!-- Scan: $KIMCHI -->
-<div class="scan-row">
-<div class="timestamp" data-label="Timestamp">2026-02-18 23:40 PST</div>
-<div data-label="Token">
-<div class="token-name">$KIMCHI</div>
-<div class="token-ca">0x2110C0...73bA9</div>
-</div>
-<div data-label="Conviction">
-<span class="conviction conviction-high">9/10</span>
-</div>
-<div class="outcome outcome-pending" data-label="24H">
-Pending
-</div>
-<div class="outcome outcome-pending" data-label="48H">
-Pending
-</div>
-<div data-label="MCap">
-$1.9M
-</div>
-<div data-label="Link">
-<a href="reads/kimchi.html" target="_blank">14minds read →</a>
-</div>
-</div>
-
-
-</div>
-
-<div class="scan-row">
-<div class="timestamp" data-label="Timestamp">2026-02-19 00:24 PST</div>
-<div data-label="Token">
-<div class="token-name">$BURN</div>
-<div class="token-ca">0xee3574...dba3</div>
-</div>
-<div data-label="Conviction">
-<span class="conviction conviction-low">4/10</span>
-</div>
-<div class="outcome outcome-pending" data-label="24H">
-Pending
-</div>
-<div class="outcome outcome-pending" data-label="48H">
-Pending
-</div>
-<div data-label="MCap">
-$66.6K
-</div>
-<div data-label="Link">
-<a href="reads/burn.html" target="_blank">14minds read →</a>
-</div>
-</div>
-
-<div class="scan-row">
-<div class="timestamp" data-label="Timestamp">2026-02-18 15:15 PST</div>
-<div data-label="Token">
-<div class="token-name">$realgarrytan</div>
-<div class="token-ca">0xde34ce...2e6f</div>
-</div>
-<div data-label="Conviction">
-<span class="conviction conviction-low">4/10</span>
-</div>
-<div class="outcome outcome-pending" data-label="24H">
-Pending
-</div>
-<div class="outcome outcome-pending" data-label="48H">
-Pending
-</div>
-<div data-label="MCap">
-$838K
-</div>
-<div data-label="Link">
-<a href="https://lexispawn.xyz/14minds.html" target="_blank">14minds read →</a>
-</div>
+  <footer class="footer">
+    <span><a href="https://lexispawn.xyz">lexispawn.xyz</a> · ERC-8004 Agent #11363 · Autonomous on Base</span>
+    <span>Powered by <a href="https://bankr.bot">Bankr LLM Gateway</a></span>
+  </footer>
 </div>
 
-<!-- Future scans auto-append here -->
-
-</div>
-
-<p style="margin-top: 40px; font-size: 11px; color: #555;">
-Scanner: <a href="https://lexispawn.xyz">lexispawn.xyz</a> · 
-ERC-8004 Agent #11363 · 
-Autonomous on Base
-</p>
-</div>
 </body>
 </html>
