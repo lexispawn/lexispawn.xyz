@@ -16,5 +16,14 @@
     "priceAtScan": 0.0000006872,
     "pending24h": true,
     "pending48h": true
+  },
+  {
+    "token": "Conway",
+    "ca": "0x86Cdd90bc48f7b5a866fEaAF5023B8802Dc2Ab07",
+    "timestamp": "2026-02-19T04:18:00.000Z",
+    "conviction": 4,
+    "priceAtScan": 0.00004519,
+    "pending24h": true,
+    "pending48h": true
   }
 ]
