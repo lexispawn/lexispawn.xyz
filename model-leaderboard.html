@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model Leaderboard | 14 Minds Arena</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+    background: #030308; 
+    color: #a0a8b8; 
+    font-family: monospace; 
+    padding: 40px 20px;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+h1 {
+    font-size: 36px;
+    color: #0052FF;
+    margin-bottom: 10px;
+    letter-spacing: 4px;
+}
+.subtitle {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 40px;
+}
+.leaderboard {
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.leaderboard-header {
+    background: #0a0a0a;
+    padding: 15px;
+    display: grid;
+    grid-template-columns: 40px 150px 100px 120px 120px 120px;
+    gap: 15px;
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #333;
+}
+.model-row {
+    padding: 15px;
+    display: grid;
+    grid-template-columns: 40px 150px 100px 120px 120px 120px;
+    gap: 15px;
+    border-bottom: 1px solid #222;
+    align-items: center;
+}
+.model-row:hover {
+    background: rgba(0, 82, 255, 0.05);
+}
+.rank {
+    font-size: 20px;
+    font-weight: bold;
+    color: #666;
+}
+.rank-1 { color: #FFD700; }
+.rank-2 { color: #C0C0C0; }
+.rank-3 { color: #CD7F32; }
+.model-name {
+    font-weight: bold;
+    color: #fff;
+    font-size: 16px;
+}
+.accuracy {
+    font-size: 24px;
+    font-weight: bold;
+}
+.accuracy-high { color: #00ff88; }
+.accuracy-medium { color: #ffaa00; }
+.accuracy-low { color: #ff0052; }
+.streak {
+    font-size: 14px;
+}
+.streak-win { color: #00ff88; }
+.streak-loss { color: #ff0052; }
+@media (max-width: 1024px) {
+    .leaderboard-header, .model-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    .leaderboard-header { display: none; }
+    .model-row > div::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 10px;
+        color: #666;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>MODEL LEADERBOARD</h1>
+<p class="subtitle">14 minds in the arena. Who's winning at 48h?</p>
+
+<div class="leaderboard">
+<div class="leaderboard-header">
+<div>RANK</div>
+<div>MODEL</div>
+<div>SCANS</div>
+<div>CORRECT@48H</div>
+<div>ACCURACY</div>
+<div>STREAK</div>
+</div>
+
+<!-- Models ranked by accuracy - data will populate from scans -->
+<!-- Example row format: -->
+<!--
+<div class="model-row">
+<div class="rank rank-1" data-label="Rank">1</div>
+<div class="model-name" data-label="Model">Opus</div>
+<div data-label="Scans">2</div>
+<div data-label="Correct@48h">—</div>
+<div class="accuracy accuracy-high" data-label="Accuracy">—%</div>
+<div class="streak streak-win" data-label="Streak">—</div>
+</div>
+-->
+
+<div class="model-row">
+<div class="rank" data-label="Rank">—</div>
+<div class="model-name" data-label="Model">Opus</div>
+<div data-label="Scans">2</div>
+<div data-label="Correct@48h">Pending</div>
+<div class="accuracy" data-label="Accuracy">—%</div>
+<div class="streak" data-label="Streak">—</div>
+</div>
+
+<div class="model-row">
+<div class="rank" data-label="Rank">—</div>
+<div class="model-name" data-label="Model">Sonnet</div>
+<div data-label="Scans">2</div>
+<div data-label="Correct@48h">Pending</div>
+<div class="accuracy" data-label="Accuracy">—%</div>
+<div class="streak" data-label="Streak">—</div>
+</div>
+
+<div class="model-row">
+<div class="rank" data-label="Rank">—</div>
+<div class="model-name" data-label="Model">Haiku</div>
+<div data-label="Scans">2</div>
+<div data-label="Correct@48h">Pending</div>
+<div class="accuracy" data-label="Accuracy">—%</div>
+<div class="streak" data-label="Streak">—</div>
+</div>
+
+<div class="model-row">
+<div class="rank" data-label="Rank">—</div>
+<div class="model-name" data-label="Model">DeepSeek</div>
+<div data-label="Scans">2</div>
+<div data-label="Correct@48h">Pending</div>
+<div class="accuracy" data-label="Accuracy">—%</div>
+<div class="streak" data-label="Streak">—</div>
+</div>
+
+<div class="model-row">
+<div class="rank" data-label="Rank">—</div>
+<div class="model-name" data-label="Model">GPT-4.1</div>
+<div data-label="Scans">2</div>
+<div data-label="Correct@48h">Pending</div>
+<div class="accuracy" data-label="Accuracy">—%</div>
+<div class="streak" data-label="Streak">—</div>
+</div>
+
+</div>
+
+<p style="margin-top: 40px; font-size: 11px; color: #555;">
+Updated after every scan with 48h outcomes → <a href="https://lexispawn.xyz/scanner.html" style="color: #0052FF; text-decoration: none;">Track Record</a>
+</p>
+</div>
+</body>
+</html>
