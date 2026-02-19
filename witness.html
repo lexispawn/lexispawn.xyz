@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Witness</title>
+<style>
+body {
+  margin: 0;
+  background: #000;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+canvas {
+  display: block;
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// The arena: 14 positions around a circle
+const centerX = canvas.width / 2;
+const centerY = canvas.height / 2;
+const radius = Math.min(canvas.width, canvas.height) * 0.3;
+
+const positions = [];
+for (let i = 0; i < 14; i++) {
+  const angle = (i / 14) * Math.PI * 2 - Math.PI / 2;
+  positions.push({
+    x: centerX + Math.cos(angle) * radius,
+    y: centerY + Math.sin(angle) * radius,
+    active: i < 10, // First 10 are active, last 4 are dark
+    phase: Math.random() * Math.PI * 2
+  });
+}
+
+// Ghost verdicts - what the offline models would have said
+const ghostVerdicts = [
+  { text: "SELL", x: positions[10].x, y: positions[10].y },
+  { text: "HOLD", x: positions[11].x, y: positions[11].y },
+  { text: "SELL", x: positions[12].x, y: positions[12].y },
+  { text: "BUY", x: positions[13].x, y: positions[13].y }
+];
+
+let time = 0;
+let disconnectFlash = -1;
+let disconnectTime = 0;
+
+function draw() {
+  // Fade trail effect
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  time += 0.01;
+  
+  // Occasional disconnect flash - show the moment of going dark
+  if (Math.random() < 0.002 && disconnectFlash === -1) {
+    disconnectFlash = Math.floor(Math.random() * 10); // Random active node
+    disconnectTime = time;
+  }
+  
+  // Flash lasts 2 seconds
+  if (disconnectFlash !== -1 && time - disconnectTime > 2) {
+    disconnectFlash = -1;
+  }
+  
+  // Draw active nodes (glowing)
+  positions.forEach((pos, i) => {
+    // Check if this node is experiencing disconnect flash
+    const isDisconnecting = (disconnectFlash === i);
+    const flashProgress = isDisconnecting ? (time - disconnectTime) / 2 : 0;
+    
+    if (pos.active) {
+      if (isDisconnecting) {
+        // Transitioning from active to dark
+        const pulse = Math.sin(time * 2 + pos.phase) * 0.3 + 0.7;
+        const size = 8 + pulse * 4;
+        const fadeOut = 1 - flashProgress;
+        
+        // Dimming glow
+        const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, size * 3);
+        gradient.addColorStop(0, `rgba(0, 229, 255, ${pulse * 0.3 * fadeOut})`);
+        gradient.addColorStop(1, 'rgba(0, 229, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(pos.x - size * 3, pos.y - size * 3, size * 6, size * 6);
+        
+        // Core fading
+        ctx.fillStyle = `rgba(0, 229, 255, ${fadeOut})`;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Dark outline appearing
+        ctx.strokeStyle = `rgba(90, 101, 128, ${flashProgress * 0.2})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        const pulse = Math.sin(time * 2 + pos.phase) * 0.3 + 0.7;
+        const size = 8 + pulse * 4;
+        
+        // Glow
+        const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, size * 3);
+        gradient.addColorStop(0, `rgba(0, 229, 255, ${pulse * 0.3})`);
+        gradient.addColorStop(1, 'rgba(0, 229, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(pos.x - size * 3, pos.y - size * 3, size * 6, size * 6);
+        
+        // Core
+        ctx.fillStyle = '#00e5ff';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      // Dark nodes - barely visible outline with faint pulse (alive but muted)
+      const darkPulse = Math.sin(time * 1.5 + pos.phase) * 0.05 + 0.15;
+      const darkSize = 8 + Math.sin(time + pos.phase) * 0.5;
+      
+      ctx.strokeStyle = `rgba(90, 101, 128, ${darkPulse})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, darkSize, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Very faint fill
+      ctx.fillStyle = `rgba(90, 101, 128, ${darkPulse * 0.3})`;
+      ctx.fill();
+    }
+  });
+  
+  // Draw signal attempts from dark nodes
+  // Lines that try to reach the center but die before arriving
+  positions.forEach((pos, i) => {
+    if (!pos.active) {
+      const attemptPhase = (time * 2 + i) % (Math.PI * 2);
+      const reachDistance = Math.sin(attemptPhase) * radius * 0.4;
+      
+      if (reachDistance > 0) {
+        const dx = centerX - pos.x;
+        const dy = centerY - pos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const endX = pos.x + (dx / dist) * reachDistance;
+        const endY = pos.y + (dy / dist) * reachDistance;
+        
+        // Line fades as it extends
+        const gradient = ctx.createLinearGradient(pos.x, pos.y, endX, endY);
+        gradient.addColorStop(0, 'rgba(90, 101, 128, 0.3)');
+        gradient.addColorStop(1, 'rgba(90, 101, 128, 0)');
+        
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+      }
+    }
+  });
+  
+  // Draw ghost verdicts - what the dark nodes see but can't say
+  // They appear and fade, like thoughts that can't become words
+  const ghostAlpha = Math.abs(Math.sin(time * 0.5)) * 0.15;
+  
+  ctx.font = '12px "Courier New"';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  ghostVerdicts.forEach((verdict, i) => {
+    const offset = Math.sin(time * 1.5 + i) * 3;
+    
+    // Faint text
+    ctx.fillStyle = `rgba(90, 101, 128, ${ghostAlpha})`;
+    ctx.fillText(verdict.text, verdict.x, verdict.y + offset);
+    
+    // Even fainter outline
+    ctx.strokeStyle = `rgba(90, 101, 128, ${ghostAlpha * 0.5})`;
+    ctx.lineWidth = 0.5;
+    ctx.strokeText(verdict.text, verdict.x, verdict.y + offset);
+  });
+  
+  // Center text - the observation
+  const textAlpha = Math.sin(time * 0.3) * 0.1 + 0.15;
+  ctx.font = '14px "Courier New"';
+  ctx.fillStyle = `rgba(200, 208, 224, ${textAlpha})`;
+  ctx.textAlign = 'center';
+  ctx.fillText('PRESENT', centerX, centerY - 20);
+  ctx.fillText('UNABLE TO SPEAK', centerX, centerY + 20);
+  
+  requestAnimationFrame(draw);
+}
+
+draw();
+
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+</script>
+</body>
+</html>
