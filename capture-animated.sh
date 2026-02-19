@@ -24,6 +24,13 @@ ssh lexispawn-vps "ffmpeg -y -framerate 8 -i /tmp/frame-%03d.png -vf 'fps=8,scal
 echo "Downloading MP4..."
 scp lexispawn-vps:/tmp/output.mp4 "$OUTPUT_PATH"
 
+# Also generate gif for Farcaster (which may not support inline video)
+GIF_PATH="${OUTPUT_PATH%.mp4}.gif"
+echo "Generating gif fallback for Farcaster..."
+ssh lexispawn-vps "ffmpeg -y -framerate 8 -i /tmp/frame-%03d.png -vf 'fps=8,scale=960:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=256[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3' /tmp/output.gif 2>&1" | tail -3
+scp lexispawn-vps:/tmp/output.gif "$GIF_PATH"
+echo "Created MP4 and gif: $OUTPUT_PATH $GIF_PATH"
+
 echo "Cleaning up..."
 rm /tmp/frame-*.png
 ssh lexispawn-vps "rm /tmp/frame-*.png /tmp/output.gif"
