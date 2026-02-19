@@ -7,5 +7,14 @@
     "priceAtScan": 0.0008381,
     "pending24h": true,
     "pending48h": true
+  },
+  {
+    "token": "BURN",
+    "ca": "0xee3574224ffd91e4c87d66e4681fd7876b10dba3",
+    "timestamp": "2026-02-19T00:24:00.000Z",
+    "conviction": 4,
+    "priceAtScan": 0.0000006872,
+    "pending24h": true,
+    "pending48h": true
   }
 ]
