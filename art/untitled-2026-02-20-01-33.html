@@ -26,7 +26,6 @@ window.addEventListener('resize', resize);
 let t = 0;
 let fragments = [{ x: w/2, y: h/2, vx: 0, vy: 0, r: 80, gone: false }];
 let cursor = { x: w/2, y: h/2 };
-let touches = 0;
 
 c.addEventListener('mousemove', e => {
   cursor.x = e.clientX;
@@ -76,13 +75,46 @@ function loop() {
         tension: 0
       });
       
-      touches++;
       f.gone = true;
     }
     
     // Tension decays slowly
     f.tension *= 0.995;
   });
+  
+  // Coalescence - small fragments merge when close and cursor is far
+  fragments = fragments.filter(f => !f.gone);
+  for (let i = 0; i < fragments.length; i++) {
+    const f1 = fragments[i];
+    if (f1.gone || f1.r > 30) continue;
+    
+    const dcx = cursor.x - f1.x;
+    const dcy = cursor.y - f1.y;
+    const cursorDist = Math.sqrt(dcx*dcx + dcy*dcy);
+    
+    if (cursorDist > 200) {
+      for (let j = i + 1; j < fragments.length; j++) {
+        const f2 = fragments[j];
+        if (f2.gone || f2.r > 30) continue;
+        
+        const dx = f2.x - f1.x;
+        const dy = f2.y - f1.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist < (f1.r + f2.r) * 1.2) {
+          // Merge
+          const totalMass = (f1.r * f1.r + f2.r * f2.r);
+          const newR = Math.sqrt(totalMass);
+          f1.r = newR;
+          f1.vx = (f1.vx + f2.vx) / 2;
+          f1.vy = (f1.vy + f2.vy) / 2;
+          f1.tension = 0;
+          f2.gone = true;
+          break;
+        }
+      }
+    }
+  }
   
   // Update fragments
   fragments = fragments.filter(f => !f.gone);
@@ -99,27 +131,13 @@ function loop() {
     f.y = Math.max(f.r, Math.min(h - f.r, f.y));
   });
   
-  // Draw fragments
+  // Draw fragments (no stress indicators)
   fragments.forEach(f => {
-    const stress = Math.min(1, (f.tension || 0) / 1.5);
-    const r = 255;
-    const g = 255 - stress * 155;
-    const b = 255 - stress * 155;
     const alpha = Math.min(0.9, f.r / 40);
-    
-    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
     ctx.beginPath();
     ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
     ctx.fill();
-    
-    // Tension visual
-    if (stress > 0.3) {
-      ctx.strokeStyle = `rgba(255,100,100,${stress * 0.5})`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r + 3, 0, Math.PI * 2);
-      ctx.stroke();
-    }
   });
   
   // Cursor leaves no mark
