@@ -1305,6 +1305,11 @@ function tick(timestamp) {
   globalTime += dt * 0.001;
 
   if (match.running) {
+  // Debug: log phase transitions
+  if (match.running && Math.floor(match.phaseTime / 100) !== Math.floor((match.phaseTime - dt) / 100)) {
+    console.log(`Phase: ${match.phase}, Time: ${(match.phaseTime/1000).toFixed(2)}s / ${(match.phaseDuration/1000).toFixed(2)}s`);
+  }
+
     match.phaseTime += dt;
     const progress = Math.min(1, match.phaseTime / match.phaseDuration);
 
@@ -1431,7 +1436,7 @@ document.getElementById('wager-confirm').addEventListener('click', () => {
   match.running = true;
   startPhase('breathe');
 });
-  match.phaseDuration = 1.2; // Quick first breathe so graph lights up faster
+  match.phaseDuration = 1200; // Quick first breathe so graph lights up faster
 
 
 // Payout on match end
