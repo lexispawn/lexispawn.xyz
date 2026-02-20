@@ -96,6 +96,14 @@
     letter-spacing: 0.25em;
     text-transform: uppercase;
     z-index: 2;
+    opacity: 0;
+    transition: opacity 0.8s ease 0.3s;
+
+
+  .wager-select.hidden ~ .split-container .panel-label {
+    opacity: 1;
+  }
+
   }
 
   .panel-label.agent-label {
@@ -244,6 +252,8 @@
     align-items: center;
     justify-content: center;
     background: rgba(6,6,8,0.92);
+    transition: opacity 0.6s ease;
+
   }
 
   @media (min-width: 900px) {
@@ -266,7 +276,11 @@
 
 
 
-  .wager-select.hidden { display: none; }
+  .wager-select.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
 
   /* Entrance animations */
   .wager-select {
@@ -1479,7 +1493,16 @@ document.getElementById('payout-again').addEventListener('click', () => {
 
 // Start
 startPhase('breathe');
-match.running = true; // attract mode — arena breathes on load
+// Attract mode only on desktop where transparent overlay shows the arena
+if (window.innerWidth >= 900) {
+  match.running = true;
+  try {
+    initAudio();
+    if (droneGain) droneGain.gain.value = 0.01;
+  } catch(e) {}
+} else {
+  match.running = false;
+}
 requestAnimationFrame(tick);
 
 </script>
