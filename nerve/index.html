@@ -243,8 +243,28 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(6,6,8,0.65);
+    background: rgba(6,6,8,0.92);
   }
+
+  @media (min-width: 900px) {
+    .wager-select {
+      background: rgba(6,6,8,0.65);
+    }
+  }
+
+  /* Hide top/bottom bars during wager screen */
+  .wager-select ~ .top-bar,
+  .wager-select ~ .bottom-bar {
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+
+  .wager-select.hidden ~ .top-bar,
+  .wager-select.hidden ~ .bottom-bar {
+    opacity: 1;
+  }
+
+
 
   .wager-select.hidden { display: none; }
 
@@ -531,6 +551,18 @@
       width: auto;
       height: 1px;
       align-self: stretch;
+    .wager-options {
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      padding: 0 16px;
+    }
+    .wager-option {
+      flex: 0 0 calc(50% - 14px);
+      padding: 12px 16px;
+      font-size: 12px;
+    }
+
     }
   }
 
