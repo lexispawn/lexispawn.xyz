@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>NERVE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #060608;
+    overflow: hidden;
+    font-family: 'IBM Plex Mono', monospace;
+    color: #e0e0e0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 28px;
+    z-index: 10;
+  }
+
+  .logo {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .logo-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.2);
+    text-transform: uppercase;
+    margin-left: 12px;
+  }
+
+  .tagline {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.15);
+    text-transform: uppercase;
+  }
+
+  /* Split container */
+  .split-container {
+    display: flex;
+    width: 92vw;
+    max-width: 1100px;
+    height: 62vh;
+    min-height: 380px;
+    gap: 0;
+    position: relative;
+  }
+
+  .panel {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .panel-label {
+    position: absolute;
+    top: 16px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    z-index: 2;
+  }
+
+  .panel-label.agent-label {
+    color: rgba(45, 212, 168, 0.4);
+  }
+
+  .panel-label.human-label {
+    color: rgba(232, 160, 48, 0.35);
+  }
+
+  /* Center divider */
+  .divider {
+    width: 1px;
+    align-self: stretch;
+    background: rgba(255,255,255,0.06);
+    position: relative;
+    z-index: 2;
+  }
+
+  .divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+  }
+
+  /* Event flash bar at center */
+  .event-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    background: transparent;
+    z-index: 3;
+    pointer-events: none;
+    transition: background 0.15s ease;
+  }
+
+  .event-bar.flash-teal {
+    background: rgba(45, 212, 168, 0.4);
+    box-shadow: 0 0 20px rgba(45, 212, 168, 0.2);
+  }
+
+  .event-bar.flash-amber {
+    background: rgba(232, 160, 48, 0.4);
+    box-shadow: 0 0 20px rgba(232, 160, 48, 0.2);
+  }
+
+  /* Bottom info */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 18px 28px;
+  }
+
+  .match-status {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.12);
+    text-transform: uppercase;
+  }
+
+  .match-status .phase {
+    color: rgba(255,255,255,0.25);
+    transition: color 0.3s ease;
+  }
+
+  .score-display {
+    display: flex;
+    gap: 24px;
+    align-items: baseline;
+  }
+
+  .score {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+  }
+
+  .score-teal { color: rgba(45, 212, 168, 0.5); }
+  .score-amber { color: rgba(232, 160, 48, 0.45); }
+  .score-dash {
+    font-size: 14px;
+    color: rgba(255,255,255,0.1);
+  }
+
+  .built-on {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.08);
+  }
+
+  /* x402 Wager display */
+  .wager-bar {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+  }
+
+  .wager-amount {
+    font-family: 'Instrument Serif', serif;
+    font-size: 16px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.05em;
+  }
+
+  .wager-label {
+    font-size: 7px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.1);
+  }
+
+  .wager-protocol {
+    font-size: 7px;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.06);
+    margin-top: 2px;
+  }
+
+  /* Pre-match wager select */
+  .wager-select {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(6,6,8,0.95);
+  }
+
+  .wager-select.hidden { display: none; }
+
+  .wager-select-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 8px;
+  }
+
+  .wager-select-sub {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.2);
+    text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+
+  .wager-options {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .wager-option {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.35);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 14px 28px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .wager-option:hover {
+    border-color: rgba(45, 212, 168, 0.3);
+    color: rgba(45, 212, 168, 0.6);
+  }
+
+  .wager-option.selected {
+    border-color: rgba(45, 212, 168, 0.5);
+    color: rgba(45, 212, 168, 0.8);
+    background: rgba(45, 212, 168, 0.05);
+  }
+
+  .wager-confirm {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.4);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 12px 40px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .wager-confirm.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .wager-confirm.active:hover {
+    border-color: rgba(45, 212, 168, 0.4);
+    color: rgba(45, 212, 168, 0.7);
+    box-shadow: 0 0 30px rgba(45, 212, 168, 0.05);
+  }
+
+  .wager-settlement {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.1);
+    margin-top: 24px;
+  }
+
+  .wager-settlement span {
+    color: rgba(45, 212, 168, 0.25);
+  }
+
+  .wager-usd {
+    display: block;
+    font-size: 8px;
+    color: rgba(255,255,255,0.15);
+    margin-top: 4px;
+    letter-spacing: 0.08em;
+  }
+
+  .swap-link {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.1);
+    text-decoration: none;
+    margin-top: 14px;
+    transition: color 0.3s ease;
+  }
+
+  .swap-link:hover { color: rgba(255,255,255,0.25); }
+  .swap-link span { color: rgba(45, 212, 168, 0.3); transition: color 0.3s ease; }
+  .swap-link:hover span { color: rgba(45, 212, 168, 0.5); }
+
+  /* Post-match payout */
+  .payout-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(6,6,8,0.92);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+
+  .payout-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .payout-result {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  .payout-amount {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    margin-bottom: 6px;
+  }
+
+  .payout-tx {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.12);
+    margin-bottom: 28px;
+  }
+
+  .payout-again {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.35);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 12px 36px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .payout-again:hover {
+    border-color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.6);
+  }
+
+  /* Pulse zone overlay for human side */
+  .pulse-zone {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    z-index: 5;
+  }
+
+  .pulse-zone.visible {
+    opacity: 1;
+    animation: zone-pulse 1.8s ease-in-out infinite;
+  }
+
+  .pulse-zone.boost {
+    background: radial-gradient(circle, rgba(45,212,168,0.2) 0%, transparent 70%);
+    border: 1px solid rgba(45,212,168,0.25);
+  }
+
+  .pulse-zone.disrupt {
+    background: radial-gradient(circle, rgba(232,160,48,0.2) 0%, transparent 70%);
+    border: 1px solid rgba(232,160,48,0.25);
+  }
+
+  .pulse-zone.touched {
+    animation: zone-burst 0.35s ease-out forwards !important;
+  }
+
+  @keyframes zone-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+  }
+
+  @keyframes zone-burst {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.6); filter: brightness(2.5); }
+    100% { transform: scale(0.5); opacity: 0; }
+  }
+
+  /* Touch feedback text */
+  .touch-feedback {
+    position: absolute;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 6;
+  }
+
+  .touch-feedback.show {
+    animation: feedback-rise 1s ease-out forwards;
+  }
+
+  @keyframes feedback-rise {
+    0% { opacity: 0; transform: translateY(0) scale(0.8); }
+    15% { opacity: 0.8; transform: translateY(-8px) scale(1); }
+    100% { opacity: 0; transform: translateY(-40px) scale(0.9); }
+  }
+</style>
+</head>
+<body>
+
+<!-- x402 WAGER SELECT -->
+<div class="wager-select" id="wager-select">
+  <div class="wager-select-title">real agents. real stakes.</div>
+  <div class="wager-select-sub">winner takes the pool · x402 settlement · base</div>
+  <div class="wager-options" id="wager-options">
+    <button class="wager-option" data-amount="25000000">25M $SPAWN<span class="wager-usd">~$1</span></button>
+    <button class="wager-option" data-amount="125000000">125M $SPAWN<span class="wager-usd">~$5</span></button>
+    <button class="wager-option" data-amount="625000000">625M $SPAWN<span class="wager-usd">~$25</span></button>
+    <button class="wager-option" data-amount="2500000000">2.5B $SPAWN<span class="wager-usd">~$100</span></button>
+  </div>
+  <button class="wager-confirm" id="wager-confirm">fight</button>
+  <div class="wager-settlement">loser pays · settled via <span>x402</span> · 3% to the arena</div>
+  <a class="swap-link" href="https://app.uniswap.org/swap?outputCurrency=0xc5962538b35Fa5b2307Da3Bb7a17Ada936A51b07&chain=base" target="_blank" rel="noopener">don't have $SPAWN? <span>swap here</span></a>
+</div>
+
+<!-- x402 WAGER DISPLAY (during match) -->
+<div class="wager-bar" id="wager-bar" style="display:none;">
+  <div class="wager-amount" id="wager-display">2,500 $SPAWN</div>
+  <div class="wager-label">pool</div>
+  <div class="wager-protocol">x402 · base</div>
+</div>
+
+<!-- POST-MATCH PAYOUT -->
+<div class="payout-overlay" id="payout-overlay">
+  <div class="payout-result" id="payout-result"></div>
+  <div class="payout-amount" id="payout-amount"></div>
+  <div class="payout-tx" id="payout-tx"></div>
+  <button class="payout-again" id="payout-again">run it back</button>
+</div>
+
+<div class="top-bar">
+  <div style="display:flex;align-items:baseline;">
+    <span class="logo">NERVE</span>
+    <span class="logo-sub">agent arena</span>
+  </div>
+  <span class="tagline">your agent fights · you feel it · your touch decides</span>
+</div>
+
+<div class="split-container" id="split">
+  <div class="panel" id="agent-panel">
+    <canvas id="agent-canvas"></canvas>
+    <div class="panel-label agent-label">what your agent sees</div>
+  </div>
+  <div class="divider"></div>
+  <div class="event-bar" id="event-bar"></div>
+  <div class="panel" id="human-panel">
+    <canvas id="human-canvas"></canvas>
+    <div class="panel-label human-label">what you see</div>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <div class="match-status">
+    <span id="round-text">round 1</span> · <span class="phase" id="phase-text">breathe</span>
+  </div>
+  <div class="score-display">
+    <span class="score score-teal" id="score-left">0</span>
+    <span class="score-dash">—</span>
+    <span class="score score-amber" id="score-right">0</span>
+  </div>
+  <div class="built-on">engineered by lexispawn · #11363 · base</div>
+</div>
+
+<script>
+// ============================================================
+// NERVE — Split-screen arena experience
+// ============================================================
+
+const TEAL = { r: 45, g: 212, b: 168 };
+const AMBER = { r: 232, g: 160, b: 48 };
+
+// ============================================================
+// AUDIO ENGINE
+// ============================================================
+
+let audioCtx = null;
+let audioEnabled = false;
+let droneOsc = null;
+let droneGain = null;
+
+function initAudio() {
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    droneGain = audioCtx.createGain();
+    droneGain.gain.value = 0;
+    droneGain.connect(audioCtx.destination);
+    droneOsc = audioCtx.createOscillator();
+    droneOsc.type = 'sine';
+    droneOsc.frequency.value = 55;
+    droneOsc.connect(droneGain);
+    droneOsc.start();
+    audioEnabled = true;
+  } catch(e) { audioEnabled = false; }
+}
+
+function audioPhase(phase) {
+  if (!audioEnabled || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  switch(phase) {
+    case 'breathe':
+      droneOsc.frequency.exponentialRampToValueAtTime(55, now + 0.5);
+      droneGain.gain.linearRampToValueAtTime(0.03, now + 0.8);
+      break;
+    case 'compute':
+      droneOsc.frequency.exponentialRampToValueAtTime(110, now + 2.2);
+      droneGain.gain.linearRampToValueAtTime(0.08, now + 2.0);
+      break;
+    case 'resolve':
+      droneOsc.frequency.exponentialRampToValueAtTime(165, now + 0.3);
+      droneGain.gain.linearRampToValueAtTime(0.12, now + 0.2);
+      break;
+    case 'impact':
+      droneGain.gain.linearRampToValueAtTime(0.0, now + 0.05);
+      playImpact();
+      break;
+    case 'settle':
+      droneOsc.frequency.exponentialRampToValueAtTime(55, now + 1.0);
+      droneGain.gain.linearRampToValueAtTime(0.02, now + 0.5);
+      break;
+  }
+}
+
+function playImpact() {
+  if (!audioEnabled || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  const bufferSize = audioCtx.sampleRate * 0.15;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.08));
+  }
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+  const thud = audioCtx.createOscillator();
+  thud.type = 'sine';
+  thud.frequency.setValueAtTime(80, now);
+  thud.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+  const thudGain = audioCtx.createGain();
+  thudGain.gain.setValueAtTime(0.2, now);
+  thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.setValueAtTime(0.1, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  thud.connect(thudGain); thudGain.connect(audioCtx.destination);
+  noise.connect(noiseGain); noiseGain.connect(audioCtx.destination);
+  thud.start(now); thud.stop(now + 0.25);
+  noise.start(now); noise.stop(now + 0.15);
+}
+
+function playZoneTouch(hit) {
+  if (!audioEnabled || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  const click = audioCtx.createOscillator();
+  click.type = 'sine';
+  click.frequency.setValueAtTime(hit ? 880 : 220, now);
+  click.frequency.exponentialRampToValueAtTime(hit ? 1200 : 120, now + 0.06);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.08, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+  click.connect(g); g.connect(audioCtx.destination);
+  click.start(now); click.stop(now + 0.1);
+}
+
+// Canvas setup
+const agentCanvas = document.getElementById('agent-canvas');
+const humanCanvas = document.getElementById('human-canvas');
+const agentCtx = agentCanvas.getContext('2d');
+const humanCtx = humanCanvas.getContext('2d');
+
+function resize() {
+  const panels = document.querySelectorAll('.panel');
+  panels.forEach(p => {
+    const c = p.querySelector('canvas');
+    const rect = p.getBoundingClientRect();
+    c.width = rect.width * 2;
+    c.height = rect.height * 2;
+  });
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ============================================================
+// MATCH STATE
+// ============================================================
+
+const match = {
+  round: 1,
+  maxRounds: 8,
+  phase: 'breathe',
+  phaseTime: 0,
+  phaseDuration: 0,
+  leftHP: 100,
+  rightHP: 100,
+  leftScore: 0,
+  rightScore: 0,
+  boost: 0,
+  disrupt: 0,
+  roundWinner: null,
+  running: true,
+};
+
+const TIMING = {
+  breathe: 3200,
+  compute: 2600,
+  resolve: 500,
+  impact: 1000,
+  settle: 1600,
+};
+
+// ============================================================
+// AGENT-SIDE: Graph optimization visualization
+// ============================================================
+
+const graph = { nodes: [], edges: [], path: [], bestPath: [], bestScore: 0, iterations: 0, solving: false };
+
+// Build a weighted graph
+for (let i = 0; i < 20; i++) {
+  graph.nodes.push({
+    x: 0.1 + Math.random() * 0.8,
+    y: 0.1 + Math.random() * 0.8,
+    w: 0.3 + Math.random() * 0.7,
+    pulse: 0,
+  });
+}
+for (let i = 0; i < 20; i++) {
+  for (let j = i + 1; j < 20; j++) {
+    const dx = graph.nodes[i].x - graph.nodes[j].x;
+    const dy = graph.nodes[i].y - graph.nodes[j].y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 0.35 && Math.random() < 0.4) {
+      graph.edges.push({ a: i, b: j, w: dist + Math.random() * 0.2, active: false, flash: 0 });
+    }
+  }
+}
+
+function agentSolveStep() {
+  graph.iterations++;
+  // Random walk to find path
+  graph.path = [];
+  let node = Math.floor(Math.random() * graph.nodes.length);
+  const visited = new Set();
+  for (let s = 0; s < 6 + Math.floor(Math.random() * 5); s++) {
+    if (visited.has(node)) break;
+    visited.add(node);
+    graph.path.push(node);
+    const neighbors = graph.edges.filter(e =>
+      (e.a === node && !visited.has(e.b)) || (e.b === node && !visited.has(e.a))
+    );
+    if (neighbors.length === 0) break;
+    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+    node = next.a === node ? next.b : next.a;
+  }
+
+  const score = graph.path.reduce((sum, n) => sum + graph.nodes[n].w, 0);
+  if (score > graph.bestScore) {
+    graph.bestScore = score;
+    graph.bestPath = [...graph.path];
+    // Flash the new best path edges
+    graph.edges.forEach(e => {
+      const aIn = graph.bestPath.includes(e.a);
+      const bIn = graph.bestPath.includes(e.b);
+      const aIdx = graph.bestPath.indexOf(e.a);
+      const bIdx = graph.bestPath.indexOf(e.b);
+      e.active = aIn && bIn && Math.abs(aIdx - bIdx) === 1;
+      if (e.active) e.flash = 1;
+    });
+    graph.bestPath.forEach(n => graph.nodes[n].pulse = 1);
+  }
+}
+
+function drawAgentSide(ctx, w, h, time, phaseProgress) {
+  ctx.fillStyle = '#07070b';
+  ctx.fillRect(0, 0, w, h);
+
+  const boost = match.phase === 'compute' ? phaseProgress : 0;
+  const impactFlash = match.phase === 'impact' ? Math.max(0, 1 - phaseProgress * 3) : 0;
+
+  // Solve during compute phase
+  if (match.phase === 'compute' && Math.random() < 0.15 + boost * 0.3) {
+    agentSolveStep();
+  }
+
+  // Draw edges
+  graph.edges.forEach(e => {
+    const a = graph.nodes[e.a];
+    const b = graph.nodes[e.b];
+    e.flash *= 0.96;
+
+    ctx.beginPath();
+    ctx.moveTo(a.x * w, a.y * h);
+    ctx.lineTo(b.x * w, b.y * h);
+
+    if (e.active) {
+      const glow = 0.4 + e.flash * 0.5 + Math.sin(time * 3) * 0.1;
+      ctx.strokeStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${glow})`;
+      ctx.lineWidth = 1.5 + e.flash * 2;
+    } else {
+      ctx.strokeStyle = `rgba(255,255,255,${0.03 + impactFlash * 0.06})`;
+      ctx.lineWidth = 0.5;
+    }
+    ctx.stroke();
+  });
+
+  // Draw nodes
+  graph.nodes.forEach((n, i) => {
+    n.pulse *= 0.97;
+    const inBest = graph.bestPath.includes(i);
+    const inCurrent = graph.path.includes(i);
+    const r = inBest ? 4 + n.pulse * 4 : (inCurrent ? 3 : 1.5);
+
+    ctx.beginPath();
+    ctx.arc(n.x * w, n.y * h, r, 0, Math.PI * 2);
+
+    if (inBest) {
+      ctx.fillStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${0.7 + n.pulse * 0.3})`;
+    } else if (inCurrent) {
+      ctx.fillStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.25)`;
+    } else {
+      ctx.fillStyle = `rgba(255,255,255,${0.08 + n.w * 0.06})`;
+    }
+    ctx.fill();
+
+    // Node glow for best path
+    if (inBest && n.pulse > 0.1) {
+      const g = ctx.createRadialGradient(n.x * w, n.y * h, 0, n.x * w, n.y * h, 12 + n.pulse * 15);
+      g.addColorStop(0, `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${n.pulse * 0.3})`);
+      g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(n.x * w, n.y * h, 15 + n.pulse * 15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  // Stats
+  const fontSize = Math.floor(w * 0.022);
+  ctx.font = `300 ${fontSize}px IBM Plex Mono`;
+  ctx.fillStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.3)`;
+  const statsY = h * 0.9;
+  ctx.fillText(`iter ${graph.iterations}`, w * 0.06, statsY);
+  ctx.fillText(`best ${graph.bestScore.toFixed(1)}`, w * 0.06, statsY + fontSize * 1.4);
+  ctx.fillText(`path ${graph.bestPath.length} nodes`, w * 0.55, statsY);
+
+  // Boost indicator
+  if (match.boost > 0) {
+    ctx.fillStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${0.15 + match.boost * 0.3})`;
+    ctx.fillText(`boost +${(match.boost * 100).toFixed(0)}%`, w * 0.55, statsY + fontSize * 1.4);
+  }
+
+  // Impact overlay
+  if (impactFlash > 0) {
+    ctx.fillStyle = match.roundWinner === 'left'
+      ? `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${impactFlash * 0.1})`
+      : `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${impactFlash * 0.08})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
+// ============================================================
+// HUMAN-SIDE: Creature visualization
+// ============================================================
+
+// Two creature states
+const creatures = {
+  ally: {
+    baseX: 0.38, baseY: 0.5,
+    color: TEAL,
+    breathePhase: 0,
+    compression: 0,
+    energy: 0,
+    lunge: 0,
+    damage: 0,
+    hp: 100,
+  },
+  enemy: {
+    baseX: 0.62, baseY: 0.5,
+    color: AMBER,
+    breathePhase: 2.2,
+    compression: 0,
+    energy: 0,
+    lunge: 0,
+    damage: 0,
+    hp: 100,
+  }
+};
+
+const particles = [];
+
+function drawOneCreature(ctx, w, h, c, time, facingDir) {
+  const cx = c.baseX * w + c.lunge * facingDir * w * 0.06;
+  const cy = c.baseY * h;
+  const col = c.color;
+  const breathe = Math.sin(time * 0.85 + c.breathePhase) * 0.09 + 1;
+  const compress = 1 - c.compression * 0.22;
+  const baseR = w * 0.11;
+
+  // Ambient glow
+  const glowR = baseR * 3 * breathe;
+  const glow = ctx.createRadialGradient(cx, cy, baseR * 0.3, cx, cy, glowR);
+  glow.addColorStop(0, `rgba(${col.r}, ${col.g}, ${col.b}, ${0.04 + c.energy * 0.03})`);
+  glow.addColorStop(0.6, `rgba(${col.r}, ${col.g}, ${col.b}, 0.01)`);
+  glow.addColorStop(1, 'transparent');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body — layered deformed shapes
+  for (let layer = 5; layer >= 0; layer--) {
+    const r = (baseR * 0.6 + layer * baseR * 0.12) * breathe * compress;
+    ctx.beginPath();
+    const pts = 96;
+    for (let i = 0; i <= pts; i++) {
+      const a = (i / pts) * Math.PI * 2;
+      let deform = 1
+        + Math.sin(a * 2 + time * 0.6 + c.breathePhase) * 0.13 * compress
+        + Math.sin(a * 3 - time * 0.45 + layer * 0.3) * 0.08
+        + Math.sin(a * 5 + time * 1.3) * 0.035 * (1 + c.energy * 3)
+        + Math.sin(a * 7 + time * 2.1) * 0.02 * c.energy;
+
+      // Damage jitter
+      if (c.damage > 0.05) {
+        deform += Math.sin(a * 11 + time * 12) * c.damage * 0.12;
+      }
+
+      // Leaning toward opponent during compute
+      const lean = c.compression * 0.08 * Math.cos(a - (facingDir > 0 ? 0 : Math.PI));
+
+      const fr = r * (deform + lean);
+      const x = cx + Math.cos(a) * fr;
+      const y = cy + Math.sin(a) * fr * 0.8;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+
+    const dmg = c.damage * 0.4;
+    const alpha = layer === 0 ? 0.48 : 0.025 + (5 - layer) * 0.012;
+    const bright = layer === 0 ? 1 : 0.35 + (5 - layer) * 0.13;
+    const rr = Math.min(255, Math.floor(col.r * bright + 220 * dmg));
+    const gg = Math.floor(col.g * bright * (1 - dmg * 0.6));
+    const bb = Math.floor(col.b * bright * (1 - dmg * 0.6));
+    ctx.fillStyle = `rgba(${rr}, ${gg}, ${bb}, ${alpha})`;
+    ctx.fill();
+  }
+
+  // Luminous core
+  const coreR = baseR * 0.28 * breathe * (1 + c.energy * 0.6);
+  const coreG = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+  coreG.addColorStop(0, `rgba(${col.r}, ${col.g}, ${col.b}, ${0.45 + c.energy * 0.35})`);
+  coreG.addColorStop(0.5, `rgba(${col.r}, ${col.g}, ${col.b}, 0.08)`);
+  coreG.addColorStop(1, 'transparent');
+  ctx.fillStyle = coreG;
+  ctx.beginPath();
+  ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eye suggestion — two bright spots
+  const eyeSpread = baseR * 0.18;
+  const eyeY = cy - baseR * 0.08;
+  const eyeXDir = facingDir;
+  for (let s = -1; s <= 1; s += 2) {
+    const ex = cx + (s * eyeSpread + eyeXDir * baseR * 0.06);
+    const ey = eyeY;
+    const eg = ctx.createRadialGradient(ex, ey, 0, ex, ey, baseR * 0.06);
+    eg.addColorStop(0, `rgba(255,255,255,${0.4 + c.energy * 0.3 + Math.sin(time * 1.5 + s * 2) * 0.1})`);
+    eg.addColorStop(1, 'transparent');
+    ctx.fillStyle = eg;
+    ctx.beginPath();
+    ctx.arc(ex, ey, baseR * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Ambient particles orbiting
+  for (let i = 0; i < 15; i++) {
+    const pa = (i / 15) * Math.PI * 2 + time * 0.18 * facingDir;
+    const pd = baseR * 1.3 + Math.sin(time * 0.4 + i * 2.3) * baseR * 0.35;
+    const px = cx + Math.cos(pa) * pd;
+    const py = cy + Math.sin(pa) * pd * 0.8;
+    const pAlpha = 0.1 + Math.sin(time * 0.7 + i * 1.8) * 0.07 + c.energy * 0.08;
+    const pSize = 1.2 + Math.sin(time * 0.9 + i) * 0.8;
+    ctx.beginPath();
+    ctx.arc(px, py, pSize, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${pAlpha})`;
+    ctx.fill();
+  }
+}
+
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.5 + Math.random() * 6;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      size: 1.5 + Math.random() * 3,
+      life: 0.5 + Math.random() * 0.5,
+      r: color.r, g: color.g, b: color.b,
+    });
+  }
+}
+
+function drawHumanSide(ctx, w, h, time, phaseProgress) {
+  ctx.fillStyle = '#08070c';
+  ctx.fillRect(0, 0, w, h);
+
+  // Barrier line
+  const barrierX = w * 0.5;
+  const barrierH = h * 0.45;
+  const barrierDeg = Math.min(1, (match.round - 1) / match.maxRounds);
+  const barrierAlpha = 0.08 - barrierDeg * 0.05;
+  ctx.beginPath();
+  ctx.moveTo(barrierX, h * 0.5 - barrierH / 2);
+  ctx.lineTo(barrierX, h * 0.5 + barrierH / 2);
+  ctx.strokeStyle = `rgba(255,255,255,${Math.max(0.01, barrierAlpha)})`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Draw creatures
+  drawOneCreature(ctx, w, h, creatures.ally, time, 1);
+  drawOneCreature(ctx, w, h, creatures.enemy, time, -1);
+
+  // Draw particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.08;
+    p.life -= 0.015;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${p.life * 0.5})`;
+    ctx.fill();
+  }
+
+  // HP bars — minimal, bottom
+  const barW = w * 0.28;
+  const barH = 3;
+  const barY = h * 0.92;
+
+  // Left HP
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fillRect(w * 0.08, barY, barW, barH);
+  ctx.fillStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.4)`;
+  ctx.fillRect(w * 0.08, barY, barW * (creatures.ally.hp / 100), barH);
+
+  // Right HP
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fillRect(w * 0.64, barY, barW, barH);
+  ctx.fillStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0.35)`;
+  const rightFillW = barW * (creatures.enemy.hp / 100);
+  ctx.fillRect(w * 0.64 + barW - rightFillW, barY, rightFillW, barH);
+
+  // Impact overlay
+  const impactFlash = match.phase === 'impact' ? Math.max(0, 1 - phaseProgress * 3) : 0;
+  if (impactFlash > 0) {
+    const winner = match.roundWinner;
+    const col = winner === 'left' ? TEAL : AMBER;
+    ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${impactFlash * 0.06})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
+// ============================================================
+// PULSE ZONES — Human interaction (on human panel)
+// ============================================================
+
+function spawnZones() {
+  document.querySelectorAll('.pulse-zone').forEach(el => el.remove());
+  const humanPanel = document.getElementById('human-panel');
+  const rect = humanPanel.getBoundingClientRect();
+
+  const count = 2 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < count; i++) {
+    const isBoost = Math.random() < 0.5;
+    const isTrap = Math.random() < 0.18;
+
+    const zone = document.createElement('div');
+    zone.className = `pulse-zone ${isBoost ? 'boost' : 'disrupt'}`;
+
+    // Position within human panel
+    let zx = isBoost ? (10 + Math.random() * 30) : (55 + Math.random() * 30);
+    if (isTrap) zx = isBoost ? (55 + Math.random() * 30) : (10 + Math.random() * 30);
+    const zy = 25 + Math.random() * 45;
+
+    zone.style.left = zx + '%';
+    zone.style.top = zy + '%';
+
+    zone.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      zone.classList.add('touched');
+
+      // Feedback
+      const fb = document.createElement('div');
+      fb.className = 'touch-feedback';
+      fb.style.left = zone.style.left;
+      fb.style.top = zone.style.top;
+
+      if ((isBoost && !isTrap) || (!isBoost && isTrap)) {
+        if (isBoost) {
+          match.boost += 0.10;
+          fb.textContent = '+boost';
+          fb.style.color = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.7)`;
+        } else {
+          // Trap: disrupt zone on ally side = you disrupted yourself
+          match.boost -= 0.08;
+          fb.textContent = 'misfire';
+          fb.style.color = 'rgba(255, 90, 90, 0.6)';
+        }
+      } else {
+        if (!isBoost) {
+          match.disrupt += 0.10;
+          fb.textContent = '+disrupt';
+          fb.style.color = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0.6)`;
+        } else {
+          // Trap: boost zone on enemy side = you boosted opponent
+          match.disrupt -= 0.08;
+          fb.textContent = 'misfire';
+          fb.style.color = 'rgba(255, 90, 90, 0.6)';
+        }
+      }
+
+      const hit = fb.textContent !== 'misfire';
+      playZoneTouch(hit);
+
+      fb.classList.add('show');
+      humanPanel.appendChild(fb);
+      setTimeout(() => fb.remove(), 1000);
+      setTimeout(() => zone.remove(), 350);
+    });
+
+    humanPanel.appendChild(zone);
+    setTimeout(() => zone.classList.add('visible'), 200 + i * 350);
+  }
+}
+
+// ============================================================
+// PHASE ENGINE
+// ============================================================
+
+function startPhase(phase) {
+  match.phase = phase;
+  match.phaseTime = 0;
+  match.phaseDuration = TIMING[phase];
+  document.getElementById('phase-text').textContent = phase;
+
+  if (phase === 'compute') {
+    spawnZones();
+  }
+
+  if (phase === 'resolve') {
+    // Determine winner
+    const leftBase = 38 + Math.random() * 32;
+    const rightBase = 38 + Math.random() * 32;
+    const leftFinal = leftBase * (1 + Math.max(-0.25, match.boost));
+    const rightFinal = rightBase * (1 - Math.min(0.25, match.disrupt));
+    const leftWins = leftFinal > rightFinal;
+    match.roundWinner = leftWins ? 'left' : 'right';
+
+    const dmg = 9 + Math.random() * 8;
+    if (leftWins) {
+      match.rightHP = Math.max(0, match.rightHP - dmg);
+      creatures.enemy.hp = match.rightHP;
+      match.leftScore++;
+    } else {
+      match.leftHP = Math.max(0, match.leftHP - dmg);
+      creatures.ally.hp = match.leftHP;
+      match.rightScore++;
+    }
+
+    document.getElementById('score-left').textContent = match.leftScore;
+    document.getElementById('score-right').textContent = match.rightScore;
+
+    match.boost = 0;
+    match.disrupt = 0;
+  }
+
+  audioPhase(phase);
+}
+
+function advancePhase() {
+  const order = ['breathe', 'compute', 'resolve', 'impact', 'settle'];
+  const idx = order.indexOf(match.phase);
+
+  if (idx === order.length - 1) {
+    if (match.leftHP <= 0 || match.rightHP <= 0 || match.round >= match.maxRounds) {
+      match.running = false;
+      document.getElementById('phase-text').textContent = match.leftHP > match.rightHP ? 'victory' : 'defeat';
+      document.getElementById('phase-text').style.color =
+        match.leftHP > match.rightHP
+          ? `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.5)`
+          : `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0.45)`;
+      setTimeout(showPayout, 1200);
+      return;
+    }
+    match.round++;
+    document.getElementById('round-text').textContent = `round ${match.round}`;
+    startPhase('breathe');
+  } else {
+    startPhase(order[idx + 1]);
+  }
+}
+
+// ============================================================
+// UPDATE LOOP
+// ============================================================
+
+let lastTime = 0;
+let globalTime = 0;
+
+function tick(timestamp) {
+  const dt = lastTime ? Math.min(timestamp - lastTime, 50) : 16;
+  lastTime = timestamp;
+  globalTime += dt * 0.001;
+
+  if (match.running) {
+    match.phaseTime += dt;
+    const progress = Math.min(1, match.phaseTime / match.phaseDuration);
+
+    // Phase creature behavior
+    const ally = creatures.ally;
+    const enemy = creatures.enemy;
+
+    switch (match.phase) {
+      case 'breathe':
+        ally.compression *= 0.93;
+        enemy.compression *= 0.93;
+        ally.energy = Math.sin(progress * Math.PI) * 0.15;
+        enemy.energy = Math.sin(progress * Math.PI + 0.6) * 0.15;
+        ally.lunge *= 0.92;
+        enemy.lunge *= 0.92;
+        ally.damage *= 0.93;
+        enemy.damage *= 0.93;
+        break;
+
+      case 'compute':
+        const tension = Math.pow(progress, 1.6);
+        ally.compression = tension * 0.75;
+        enemy.compression = tension * 0.75;
+        ally.energy = tension * 0.65;
+        enemy.energy = tension * 0.65;
+        break;
+
+      case 'resolve':
+        ally.compression = (1 - progress) * 0.75;
+        enemy.compression = (1 - progress) * 0.75;
+        break;
+
+      case 'impact':
+        if (progress < 0.08) {
+          const winner = match.roundWinner === 'left' ? ally : enemy;
+          const loser = match.roundWinner === 'left' ? enemy : ally;
+          winner.lunge = 1;
+          loser.damage = 1;
+          // Particles at impact point
+          const hw = humanCanvas.width;
+          const hh = humanCanvas.height;
+          spawnParticles(hw * 0.5, hh * 0.5, loser.color, 20);
+          // Event bar flash
+          const bar = document.getElementById('event-bar');
+          bar.className = 'event-bar ' + (match.roundWinner === 'left' ? 'flash-teal' : 'flash-amber');
+          setTimeout(() => bar.className = 'event-bar', 400);
+          // Screen shake
+          const split = document.getElementById('split');
+          const intensity = 6;
+          split.style.transform = `translate(${(Math.random()-0.5)*intensity}px, ${(Math.random()-0.5)*intensity}px)`;
+          setTimeout(() => split.style.transform = `translate(${(Math.random()-0.5)*intensity*0.6}px, ${(Math.random()-0.5)*intensity*0.6}px)`, 50);
+          setTimeout(() => split.style.transform = `translate(${(Math.random()-0.5)*intensity*0.3}px, ${(Math.random()-0.5)*intensity*0.3}px)`, 100);
+          setTimeout(() => split.style.transform = '', 180);
+        }
+        ally.lunge *= 0.88;
+        enemy.lunge *= 0.88;
+        ally.damage *= 0.91;
+        enemy.damage *= 0.91;
+        break;
+
+      case 'settle':
+        ally.lunge *= 0.94;
+        enemy.lunge *= 0.94;
+        ally.damage *= 0.95;
+        enemy.damage *= 0.95;
+        ally.energy *= 0.94;
+        enemy.energy *= 0.94;
+        break;
+    }
+
+    if (match.phaseTime >= match.phaseDuration) {
+      advancePhase();
+    }
+  }
+
+  // Render both sides
+  const aw = agentCanvas.width, ah = agentCanvas.height;
+  const hw = humanCanvas.width, hh = humanCanvas.height;
+  const phaseProgress = match.phaseDuration > 0 ? match.phaseTime / match.phaseDuration : 0;
+
+  drawAgentSide(agentCtx, aw, ah, globalTime, phaseProgress);
+  drawHumanSide(humanCtx, hw, hh, globalTime, phaseProgress);
+
+  requestAnimationFrame(tick);
+}
+
+// ============================================================
+// x402 WAGER SYSTEM
+// ============================================================
+
+let selectedWager = 0;
+const protocolFee = 0.03;
+
+// Wager selection
+document.querySelectorAll('.wager-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.wager-option').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedWager = parseInt(btn.dataset.amount);
+    document.getElementById('wager-confirm').classList.add('active');
+  });
+});
+
+document.getElementById('wager-confirm').addEventListener('click', () => {
+  if (selectedWager === 0) return;
+  if (!audioEnabled) initAudio();
+  
+  // Hide wager select, show match
+  document.getElementById('wager-select').classList.add('hidden');
+  
+  // Show wager pool display
+  const pool = selectedWager * 2; // both players wager
+  const poolFmt = pool >= 1000000000 ? (pool/1000000000).toFixed(1) + 'B' : (pool/1000000).toFixed(0) + 'M';
+  document.getElementById('wager-display').textContent = poolFmt + ' $SPAWN';
+  document.getElementById('wager-bar').style.display = 'flex';
+  
+  // Start match
+  match.wager = selectedWager;
+  match.pool = pool;
+  match.running = true;
+  startPhase('breathe');
+});
+
+// Payout on match end
+function showPayout() {
+  const won = match.leftHP > match.rightHP;
+  const payout = won ? Math.floor(match.pool * (1 - protocolFee)) : 0;
+  const overlay = document.getElementById('payout-overlay');
+  
+  const resultEl = document.getElementById('payout-result');
+  resultEl.textContent = won ? 'victory' : 'defeat';
+  resultEl.style.color = won 
+    ? `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.7)` 
+    : `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0.5)`;
+  
+  const fmtAmt = (n) => n >= 1000000000 ? (n/1000000000).toFixed(1) + 'B' : (n/1000000).toFixed(0) + 'M';
+  document.getElementById('payout-amount').textContent = won 
+    ? `+${fmtAmt(payout)} $SPAWN collected`
+    : `-${fmtAmt(selectedWager)} $SPAWN`;
+  document.getElementById('payout-amount').style.color = won
+    ? `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.5)`
+    : 'rgba(255, 90, 90, 0.4)';
+  
+  // Fake tx hash for demo
+  const txHash = '0x' + Array.from({length: 12}, () => Math.floor(Math.random()*16).toString(16)).join('') + '...';
+  document.getElementById('payout-tx').textContent = `settlement tx: ${txHash} · base`;
+  
+  overlay.classList.add('visible');
+  document.getElementById('wager-bar').style.display = 'none';
+}
+
+document.getElementById('payout-again').addEventListener('click', () => {
+  document.getElementById('payout-overlay').classList.remove('visible');
+  
+  // Reset match
+  match.round = 1;
+  match.leftHP = 100;
+  match.rightHP = 100;
+  match.leftScore = 0;
+  match.rightScore = 0;
+  match.boost = 0;
+  match.disrupt = 0;
+  match.roundWinner = null;
+  creatures.ally.hp = 100;
+  creatures.enemy.hp = 100;
+  creatures.ally.lunge = 0;
+  creatures.enemy.lunge = 0;
+  creatures.ally.damage = 0;
+  creatures.enemy.damage = 0;
+  creatures.ally.energy = 0;
+  creatures.enemy.energy = 0;
+  creatures.ally.compression = 0;
+  creatures.enemy.compression = 0;
+  particles.length = 0;
+  graph.iterations = 0;
+  graph.bestScore = 0;
+  graph.bestPath = [];
+  graph.path = [];
+  document.getElementById('score-left').textContent = '0';
+  document.getElementById('score-right').textContent = '0';
+  document.getElementById('round-text').textContent = 'round 1';
+  
+  // Show wager select again
+  document.getElementById('wager-select').classList.remove('hidden');
+  selectedWager = 0;
+  document.querySelectorAll('.wager-option').forEach(b => b.classList.remove('selected'));
+  document.getElementById('wager-confirm').classList.remove('active');
+});
+
+// Start
+startPhase('breathe');
+match.running = false; // Don't start until wager selected
+requestAnimationFrame(tick);
+
+</script>
+</body>
+</html>
