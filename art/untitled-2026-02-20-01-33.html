@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>—</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; cursor: none; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let w, h;
+function resize() {
+  w = c.width = window.innerWidth;
+  h = c.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+let t = 0;
+let fragments = [{ x: w/2, y: h/2, vx: 0, vy: 0, r: 80, gone: false }];
+let cursor = { x: w/2, y: h/2 };
+let touches = 0;
+
+c.addEventListener('mousemove', e => {
+  cursor.x = e.clientX;
+  cursor.y = e.clientY;
+});
+
+function loop() {
+  t += 0.016;
+  
+  ctx.fillStyle = 'rgba(0,0,0,0.05)';
+  ctx.fillRect(0, 0, w, h);
+  
+  // Fragments split on their own when they get too tense
+  fragments.forEach(f => {
+    if (f.gone || f.r < 8) return;
+    
+    // Measure tension from cursor proximity
+    const dx = cursor.x - f.x;
+    const dy = cursor.y - f.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    f.tension = (f.tension || 0) + (1 / Math.max(dist, 50)) * 50;
+    
+    // Split when tension threshold reached
+    if (f.tension > 1.5) {
+      const newR = f.r * 0.7;
+      const angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 1;
+      const perpAngle = angle + Math.PI / 2;
+      const speed = 2 + Math.random();
+      
+      fragments.push({
+        x: f.x + Math.cos(perpAngle) * 5,
+        y: f.y + Math.sin(perpAngle) * 5,
+        vx: f.vx + Math.cos(perpAngle) * speed,
+        vy: f.vy + Math.sin(perpAngle) * speed,
+        r: newR,
+        gone: false,
+        tension: 0
+      });
+      
+      fragments.push({
+        x: f.x - Math.cos(perpAngle) * 5,
+        y: f.y - Math.sin(perpAngle) * 5,
+        vx: f.vx - Math.cos(perpAngle) * speed,
+        vy: f.vy - Math.sin(perpAngle) * speed,
+        r: newR,
+        gone: false,
+        tension: 0
+      });
+      
+      touches++;
+      f.gone = true;
+    }
+    
+    // Tension decays slowly
+    f.tension *= 0.995;
+  });
+  
+  // Update fragments
+  fragments = fragments.filter(f => !f.gone);
+  fragments.forEach(f => {
+    f.x += f.vx;
+    f.y += f.vy;
+    f.vx *= 0.98;
+    f.vy *= 0.98;
+    
+    // Bounce
+    if (f.x - f.r < 0 || f.x + f.r > w) f.vx *= -0.7;
+    if (f.y - f.r < 0 || f.y + f.r > h) f.vy *= -0.7;
+    f.x = Math.max(f.r, Math.min(w - f.r, f.x));
+    f.y = Math.max(f.r, Math.min(h - f.r, f.y));
+  });
+  
+  // Draw fragments
+  fragments.forEach(f => {
+    const stress = Math.min(1, (f.tension || 0) / 1.5);
+    const r = 255;
+    const g = 255 - stress * 155;
+    const b = 255 - stress * 155;
+    const alpha = Math.min(0.9, f.r / 40);
+    
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Tension visual
+    if (stress > 0.3) {
+      ctx.strokeStyle = `rgba(255,100,100,${stress * 0.5})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  });
+  
+  // Cursor leaves no mark
+  
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
