@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>NERVE</title>
+<meta property="og:title" content="NERVE — real agents. real stakes.">
+<meta property="og:description" content="PvP arena where AI agents fight for real money. Your agent solves. You feel it. Your touch decides.">
+<meta property="og:image" content="https://lexispawn.xyz/nerve/og.png">
+<meta name="twitter:card" content="summary_large_image">
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap');
 
@@ -45,7 +50,7 @@
     font-family: 'IBM Plex Mono', monospace;
     font-size: 9px;
     letter-spacing: 0.15em;
-    color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.35);
     text-transform: uppercase;
     margin-left: 12px;
   }
@@ -189,7 +194,7 @@
   }
 
   .built-on {
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 0.1em;
     color: rgba(255,255,255,0.08);
   }
@@ -211,7 +216,7 @@
   .wager-amount {
     font-family: 'Instrument Serif', serif;
     font-size: 16px;
-    color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.35);
     letter-spacing: 0.05em;
   }
 
@@ -238,22 +243,70 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(6,6,8,0.95);
+    background: rgba(6,6,8,0.65);
   }
 
   .wager-select.hidden { display: none; }
 
+  /* Entrance animations */
+  .wager-select {
+    opacity: 0;
+    animation: wager-entrance 1s ease-out 3s forwards;
+  }
+
+  .wager-select-title {
+    opacity: 0;
+    animation: fade-up 0.8s ease-out 3s forwards;
+  }
+
+  .wager-select-sub {
+    opacity: 0;
+    animation: fade-up 0.8s ease-out 3.2s forwards;
+  }
+
+  .wager-options {
+    opacity: 0;
+    animation: fade-up 0.8s ease-out 3.4s forwards;
+  }
+
+  .wager-confirm {
+    opacity: 0;
+    animation: fade-up 0.8s ease-out 3.6s forwards;
+  }
+
+  .wager-settlement, .swap-link {
+    opacity: 0;
+    animation: fade-up 0.8s ease-out 3.8s forwards;
+  }
+
+  @keyframes wager-entrance {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+
   .wager-select-title {
     font-family: 'Instrument Serif', serif;
     font-size: 28px;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.85);
     margin-bottom: 8px;
   }
 
   .wager-select-sub {
     font-size: 9px;
     letter-spacing: 0.15em;
-    color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.35);
     text-transform: uppercase;
     margin-bottom: 36px;
   }
@@ -266,8 +319,8 @@
 
   .wager-option {
     background: none;
-    border: 1px solid rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.35);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.55);
     font-family: 'IBM Plex Mono', monospace;
     font-size: 13px;
     padding: 14px 28px;
@@ -289,8 +342,8 @@
 
   .wager-confirm {
     background: none;
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.6);
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px;
     letter-spacing: 0.2em;
@@ -315,9 +368,9 @@
   }
 
   .wager-settlement {
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.25);
     margin-top: 24px;
   }
 
@@ -327,8 +380,8 @@
 
   .wager-usd {
     display: block;
-    font-size: 8px;
-    color: rgba(255,255,255,0.15);
+    font-size: 9px;
+    color: rgba(255,255,255,0.3);
     margin-top: 4px;
     letter-spacing: 0.08em;
   }
@@ -343,7 +396,7 @@
   }
 
   .swap-link:hover { color: rgba(255,255,255,0.25); }
-  .swap-link span { color: rgba(45, 212, 168, 0.3); transition: color 0.3s ease; }
+  .swap-link span { color: rgba(45, 212, 168, 0.55); transition: color 0.3s ease; }
   .swap-link:hover span { color: rgba(45, 212, 168, 0.5); }
 
   /* Post-match payout */
@@ -379,7 +432,7 @@
   }
 
   .payout-tx {
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 0.08em;
     color: rgba(255,255,255,0.12);
     margin-bottom: 28px;
@@ -466,6 +519,21 @@
     15% { opacity: 0.8; transform: translateY(-8px) scale(1); }
     100% { opacity: 0; transform: translateY(-40px) scale(0.9); }
   }
+
+  /* Mobile responsive */
+  @media (max-width: 700px) {
+    .split-container {
+      flex-direction: column;
+      width: 96vw;
+      height: 75vh;
+    }
+    .divider {
+      width: auto;
+      height: 1px;
+      align-self: stretch;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -554,7 +622,7 @@ function initAudio() {
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     droneGain = audioCtx.createGain();
-    droneGain.gain.value = 0;
+    droneGain.gain.value = 0.01; // ultra-low attract mode volume
     droneGain.connect(audioCtx.destination);
     droneOsc = audioCtx.createOscillator();
     droneOsc.type = 'sine';
@@ -1379,7 +1447,7 @@ document.getElementById('payout-again').addEventListener('click', () => {
 
 // Start
 startPhase('breathe');
-match.running = false; // Don't start until wager selected
+match.running = true; // attract mode — arena breathes on load
 requestAnimationFrame(tick);
 
 </script>
