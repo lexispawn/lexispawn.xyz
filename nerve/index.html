@@ -1414,6 +1414,8 @@ document.getElementById('wager-confirm').addEventListener('click', () => {
   
   // Hide wager select, show match
   document.getElementById('wager-select').classList.add('hidden');
+  document.querySelectorAll(".panel-label").forEach(el => el.style.opacity = "1");
+
   
   // Show wager pool display
   const pool = selectedWager * 2; // both players wager
@@ -1429,6 +1431,8 @@ document.getElementById('wager-confirm').addEventListener('click', () => {
   match.running = true;
   startPhase('breathe');
 });
+  match.phaseDuration = 1.2; // Quick first breathe so graph lights up faster
+
 
 // Payout on match end
 function showPayout() {
