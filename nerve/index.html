@@ -590,16 +590,35 @@
 <!-- x402 WAGER SELECT -->
 <div class="wager-select" id="wager-select">
   <div class="wager-select-title">real agents. real stakes.</div>
-  <div class="wager-select-sub">winner takes the pool · x402 settlement · base</div>
-  <div class="wager-options" id="wager-options">
-    <button class="wager-option" data-amount="25000000">25M $SPAWN<span class="wager-usd">~$1</span></button>
-    <button class="wager-option" data-amount="125000000">125M $SPAWN<span class="wager-usd">~$5</span></button>
-    <button class="wager-option" data-amount="625000000">625M $SPAWN<span class="wager-usd">~$25</span></button>
-    <button class="wager-option" data-amount="2500000000">2.5B $SPAWN<span class="wager-usd">~$100</span></button>
+  <div class="wager-select-sub">ARENA OPENING SOON · X402 SETTLEMENT · BASE</div>
+  
+  <button class="wager-option demo-btn" id="watch-demo" style="margin-top: 32px; padding: 14px 48px; font-size: 13px;">
+    WATCH THE ARENA
+  </button>
+  
+  <div style="margin-top: 28px; display: flex; gap: 16px; align-items: center; justify-content: center; flex-direction: column;">
+    <div class="wager-tier-preview">
+      <span style="color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 0.15em;">WAGER TIERS</span>
+      <div style="margin-top: 8px; display: flex; gap: 12px;">
+        <span style="color: rgba(45,212,168,0.6); font-size: 10px;">~$1</span>
+        <span style="color: rgba(45,212,168,0.6); font-size: 10px;">~$5</span>
+        <span style="color: rgba(45,212,168,0.6); font-size: 10px;">~$25</span>
+        <span style="color: rgba(45,212,168,0.6); font-size: 10px;">~$100</span>
+      </div>
+    </div>
   </div>
-  <button class="wager-confirm" id="wager-confirm">fight</button>
-  <div class="wager-settlement">loser pays · settled via <span>x402</span> · 3% to the arena</div>
-  <a class="swap-link" href="https://app.uniswap.org/swap?outputCurrency=0xc5962538b35Fa5b2307Da3Bb7a17Ada936A51b07&chain=base" target="_blank" rel="noopener">don't have $SPAWN? <span>swap here</span></a>
+  
+  <div class="wager-settlement" style="margin-top: 24px;">
+    loser pays · settled via <a href="https://x402.org" style="color: rgba(45,212,168,0.5); text-decoration: none;">x402</a> · 3% to the arena
+  </div>
+  
+  <div style="font-size: 8px; letter-spacing: 0.15em; color: rgba(255,255,255,0.25); margin-top: 10px; text-transform: uppercase;">
+    monthly $SPAWN pool to the top agent
+  </div>
+  
+  <a class="swap-link" href="https://app.uniswap.org/swap?outputCurrency=0xc5962538b35Fa5b2307Da3Bb7a17Ada936A51b07&chain=base" target="_blank" rel="noopener">
+    get $SPAWN before the arena opens → <span>swap here</span>
+  </a>
 </div>
 
 <!-- x402 WAGER DISPLAY (during match) -->
@@ -820,6 +839,12 @@ for (let i = 0; i < 20; i++) {
       graph.edges.push({ a: i, b: j, w: dist + Math.random() * 0.2, active: false, flash: 0 });
     }
   }
+
+// Pre-solve so the graph looks alive on load
+for (let i = 0; i < 40; i++) {
+  agentSolveStep();
+}
+
 }
 
 function agentSolveStep() {
@@ -1308,6 +1333,22 @@ function tick(timestamp) {
   // Debug: log phase transitions
   if (match.running && Math.floor(match.phaseTime / 100) !== Math.floor((match.phaseTime - dt) / 100)) {
     console.log(`Phase: ${match.phase}, Time: ${(match.phaseTime/1000).toFixed(2)}s / ${(match.phaseDuration/1000).toFixed(2)}s`);
+
+    // Attract mode: cycle phases for visual interest
+    if (!match.wager) {
+      if (match.phaseTime > match.phaseDuration) {
+        if (match.phase === "breathe") {
+          match.phase = "compute";
+          match.phaseTime = 0;
+          match.phaseDuration = 4000;
+        } else {
+          match.phase = "breathe";
+          match.phaseTime = 0;
+          match.phaseDuration = 2000;
+        }
+      }
+    }
+
   }
 
     match.phaseTime += dt;
@@ -1413,28 +1454,20 @@ document.querySelectorAll('.wager-option').forEach(btn => {
   });
 });
 
-document.getElementById('wager-confirm').addEventListener('click', () => {
-  if (selectedWager === 0) return;
+// Watch demo button (no real wager)
+document.getElementById("watch-demo").addEventListener("click", () => {
   if (!audioEnabled) initAudio();
   
   // Hide wager select, show match
-  document.getElementById('wager-select').classList.add('hidden');
+  document.getElementById("wager-select").classList.add("hidden");
   document.querySelectorAll(".panel-label").forEach(el => el.style.opacity = "1");
-
   
-  // Show wager pool display
-  const pool = selectedWager * 2; // both players wager
-  const poolFmt = pool >= 1000000000 ? (pool/1000000000).toFixed(1) + 'B' : (pool/1000000).toFixed(0) + 'M';
-  document.getElementById('wager-display').textContent = poolFmt + ' $SPAWN';
-  document.getElementById('wager-bar').style.display = 'flex';
-  
-  // Start match
-  match.wager = selectedWager;
-  match.pool = pool;
-  resize();
-
+  // Start demo match (no wager)
+  match.wager = 0;
   match.running = true;
-  startPhase('breathe');
+  resize();
+  startPhase("breathe");
+  match.phaseDuration = 1200;
 });
   match.phaseDuration = 1200; // Quick first breathe so graph lights up faster
 
