@@ -1030,6 +1030,7 @@ const creatures = {
     compression: 0,
     energy: 0,
     lunge: 0,
+    shattered: false,
     damage: 0,
     hp: 100,
   },
@@ -1040,6 +1041,7 @@ const creatures = {
     compression: 0,
     energy: 0,
     lunge: 0,
+    shattered: false,
     damage: 0,
     hp: 100,
   }
@@ -1179,7 +1181,9 @@ function drawHumanSide(ctx, w, h, time, phaseProgress) {
   ctx.stroke();
 
   // Draw creatures
+  if (!creatures.ally.shattered)
   drawOneCreature(ctx, w, h, creatures.ally, time, 1);
+  if (!creatures.enemy.shattered)
   drawOneCreature(ctx, w, h, creatures.enemy, time, -1);
 
   // Draw particles
@@ -1188,7 +1192,7 @@ function drawHumanSide(ctx, w, h, time, phaseProgress) {
     p.x += p.vx;
     p.y += p.vy;
     p.vy += 0.08;
-    p.life -= 0.015;
+    p.life -= (p.fade || 0.015);
     if (p.life <= 0) { particles.splice(i, 1); continue; }
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
@@ -1315,6 +1319,90 @@ function startPhase(phase) {
     // Determine winner
     const leftBase = 38 + Math.random() * 32;
     const rightBase = 38 + Math.random() * 32;
+
+function shatterCreature(creature, side) {
+  if (creature.shattered) return;
+  creature.shattered = true;
+  
+  const hw = humanCanvas.width;
+  const hh = humanCanvas.height;
+  const cx = creature.baseX * hw;
+  const cy = creature.baseY * hh;
+  
+  // Soul particles (large upward burst)
+  for (let i = 0; i < 80; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 12;
+    const upBias = Math.random() < 0.8 ? -6 : 0;
+    particles.push({
+      x: cx, y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed + upBias,
+      size: 2 + Math.random() * 5,
+      life: 1.2 + Math.random() * 0.8,
+      r: creature.color.r,
+      g: creature.color.g,
+      b: creature.color.b,
+      fade: 0.015
+    });
+  }
+  
+  // Fragment shards
+  for (let i = 0; i < 40; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1 + Math.random() * 5;
+    particles.push({
+      x: cx + (Math.random() - 0.5) * 30,
+      y: cy + (Math.random() - 0.5) * 30,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: 2 + Math.random() * 4,
+      life: 0.6 + Math.random() * 0.4,
+      r: creature.color.r * 0.6,
+      g: creature.color.g * 0.6,
+      b: creature.color.b * 0.6,
+      fade: 0.02
+    });
+  }
+  
+  // White flash
+  const humanCtx = document.getElementById("human-canvas").getContext("2d");
+  humanCtx.fillStyle = "rgba(255,255,255,0.5)";
+  humanCtx.fillRect(0, 0, hw, hh);
+  
+  // Intense shake
+  const split = document.getElementById("split");
+  const intensity = 15;
+  split.style.transform = `translate(${(Math.random()-0.5)*intensity}px,${(Math.random()-0.5)*intensity}px)`;
+  setTimeout(() => split.style.transform = `translate(${(Math.random()-0.5)*intensity*0.5}px,${(Math.random()-0.5)*intensity*0.5}px)`, 80);
+  setTimeout(() => split.style.transform = `translate(${(Math.random()-0.5)*intensity*0.2}px,${(Math.random()-0.5)*intensity*0.2}px)`, 160);
+  setTimeout(() => split.style.transform = "", 300);
+  
+  // Auto-restart after viewing the shatter
+  setTimeout(() => {
+    creatures.ally.hp = 100;
+    creatures.enemy.hp = 100;
+    creatures.ally.shattered = false;
+    creatures.enemy.shattered = false;
+    creatures.ally.damage = 0;
+    creatures.enemy.damage = 0;
+    creatures.ally.lunge = 0;
+    creatures.enemy.lunge = 0;
+    match.leftHP = 100;
+    match.rightHP = 100;
+    match.leftScore = 0;
+    match.rightScore = 0;
+    match.round = 1;
+    match.phase = "breathe";
+    match.phaseTime = 0;
+    match.running = true;
+    document.getElementById("round-text").textContent = "round 1";
+    document.getElementById("score-left").textContent = "0";
+    document.getElementById("score-right").textContent = "0";
+  }, 3500);
+}
+
+
     const leftFinal = leftBase * (1 + Math.max(-0.25, match.boost));
     const rightFinal = rightBase * (1 - Math.min(0.25, match.disrupt));
     const leftWins = leftFinal > rightFinal;
@@ -1324,10 +1412,12 @@ function startPhase(phase) {
     if (leftWins) {
       match.rightHP = Math.max(0, match.rightHP - dmg);
       creatures.enemy.hp = match.rightHP;
+      if (match.rightHP <= 0 && !creatures.enemy.shattered) shatterCreature(creatures.enemy, "enemy");
       match.leftScore++;
     } else {
       match.leftHP = Math.max(0, match.leftHP - dmg);
       creatures.ally.hp = match.leftHP;
+      if (match.leftHP <= 0 && !creatures.ally.shattered) shatterCreature(creatures.ally, "ally");
       match.rightScore++;
     }
 
