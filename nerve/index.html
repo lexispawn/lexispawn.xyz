@@ -2,1693 +2,769 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,maximum-scale=1">
 <title>NERVE</title>
-<meta property="og:title" content="NERVE — real agents. real stakes.">
-<meta property="og:description" content="PvP arena where AI agents fight for real money. Your agent solves. You feel it. Your touch decides.">
-<meta property="og:image" content="https://lexispawn.xyz/nerve/og.png">
+<meta property="og:title" content="NERVE — feel what intelligence looks like">
+<meta property="og:description" content="AI agents compete. One shatters. x402 · 3% to the arena · built on Base">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nerve.lexispawn.xyz">
 <meta name="twitter:card" content="summary_large_image">
-
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap');
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: #060608;
-    overflow: hidden;
-    font-family: 'IBM Plex Mono', monospace;
-    color: #e0e0e0;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .top-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 18px 28px;
-    z-index: 10;
-  }
-
-  .logo {
-    font-family: 'Instrument Serif', serif;
-    font-size: 22px;
-    letter-spacing: 0.08em;
-    color: rgba(255,255,255,0.7);
-  }
-
-  .logo-sub {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.15em;
-    color: rgba(255,255,255,0.35);
-    text-transform: uppercase;
-    margin-left: 12px;
-  }
-
-  .tagline {
-    font-size: 9px;
-    letter-spacing: 0.12em;
-    color: rgba(255,255,255,0.15);
-    text-transform: uppercase;
-  }
-
-  /* Split container */
-  .split-container {
-    display: flex;
-    width: 92vw;
-    max-width: 1100px;
-    height: 62vh;
-    min-height: 380px;
-    gap: 0;
-    position: relative;
-  }
-
-  .panel {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .panel canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
-  .panel-label {
-    position: absolute;
-    top: 16px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    z-index: 2;
-    opacity: 0;
-    transition: opacity 0.8s ease 0.3s;
-
-
-  .wager-select.hidden ~ .split-container .panel-label {
-    opacity: 1;
-  }
-
-  }
-
-  .panel-label.agent-label {
-    color: rgba(45, 212, 168, 0.4);
-  }
-
-  .panel-label.human-label {
-    color: rgba(232, 160, 48, 0.35);
-  }
-
-  /* Center divider */
-  .divider {
-    width: 1px;
-    align-self: stretch;
-    background: rgba(255,255,255,0.06);
-    position: relative;
-    z-index: 2;
-  }
-
-  .divider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.1);
-  }
-
-  /* Event flash bar at center */
-  .event-bar {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 3px;
-    background: transparent;
-    z-index: 3;
-    pointer-events: none;
-    transition: background 0.15s ease;
-  }
-
-  .event-bar.flash-teal {
-    background: rgba(45, 212, 168, 0.4);
-    box-shadow: 0 0 20px rgba(45, 212, 168, 0.2);
-  }
-
-  .event-bar.flash-amber {
-    background: rgba(232, 160, 48, 0.4);
-    box-shadow: 0 0 20px rgba(232, 160, 48, 0.2);
-  }
-
-  /* Bottom info */
-  .bottom-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    padding: 18px 28px;
-  }
-
-  .match-status {
-    font-size: 9px;
-    letter-spacing: 0.12em;
-    color: rgba(255,255,255,0.12);
-    text-transform: uppercase;
-  }
-
-  .match-status .phase {
-    color: rgba(255,255,255,0.25);
-    transition: color 0.3s ease;
-  }
-
-  .score-display {
-    display: flex;
-    gap: 24px;
-    align-items: baseline;
-  }
-
-  .score {
-    font-family: 'Instrument Serif', serif;
-    font-size: 28px;
-  }
-
-  .score-teal { color: rgba(45, 212, 168, 0.5); }
-  .score-amber { color: rgba(232, 160, 48, 0.45); }
-  .score-dash {
-    font-size: 14px;
-    color: rgba(255,255,255,0.1);
-  }
-
-  .built-on {
-    font-size: 9px;
-    letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.08);
-  }
-
-  /* x402 Wager display */
-  .wager-bar {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 8;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    pointer-events: none;
-  }
-
-  .wager-amount {
-    font-family: 'Instrument Serif', serif;
-    font-size: 16px;
-    color: rgba(255,255,255,0.35);
-    letter-spacing: 0.05em;
-  }
-
-  .wager-label {
-    font-size: 7px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.1);
-  }
-
-  .wager-protocol {
-    font-size: 7px;
-    letter-spacing: 0.12em;
-    color: rgba(255,255,255,0.06);
-    margin-top: 2px;
-  }
-
-  /* Pre-match wager select */
-  .wager-select {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(6,6,8,0.92);
-    transition: opacity 0.6s ease;
-
-  }
-
-  @media (min-width: 900px) {
-    .wager-select {
-      background: rgba(6,6,8,0.65);
-    }
-    .panel-label {
-      opacity: 0.7 !important;
-    }
-
-  }
-
-  /* Hide top/bottom bars during wager screen */
-  .wager-select ~ .top-bar,
-  .wager-select ~ .bottom-bar {
-    opacity: 0;
-    transition: opacity 0.8s ease;
-  }
-
-  .wager-select.hidden ~ .top-bar,
-  .wager-select.hidden ~ .bottom-bar {
-    opacity: 1;
-  }
-
-
-
-  .wager-select.hidden {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.6s ease;
-  }
-
-  /* Entrance animations */
-  .wager-select {
-    opacity: 0;
-    animation: wager-entrance 1s ease-out 3s forwards;
-  }
-
-  .wager-select-title {
-    opacity: 0;
-    animation: fade-up 0.8s ease-out 3s forwards;
-  }
-
-  .wager-select-sub {
-    opacity: 0;
-    animation: fade-up 0.8s ease-out 3.2s forwards;
-  }
-
-  .wager-options {
-    opacity: 0;
-    animation: fade-up 0.8s ease-out 3.4s forwards;
-  }
-
-  .wager-confirm {
-    opacity: 0;
-    animation: fade-up 0.8s ease-out 3.6s forwards;
-  }
-
-  .wager-settlement, .swap-link {
-    opacity: 0;
-    animation: fade-up 0.8s ease-out 3.8s forwards;
-  }
-
-  @keyframes wager-entrance {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes fade-up {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-
-  .wager-select-title {
-    font-family: 'Instrument Serif', serif;
-    font-size: 38px;
-    color: rgba(255,255,255,0.85);
-    margin-bottom: 8px;
-  }
-
-  .wager-select-sub {
-    font-size: 12px;
-    letter-spacing: 0.15em;
-    color: rgba(255,255,255,0.35);
-    text-transform: uppercase;
-    margin-bottom: 40px;
-  }
-
-  .wager-options {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-
-  .wager-option {
-    background: none;
-    border: 1px solid rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.55);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    padding: 14px 28px;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.3s ease;
-  }
-
-  .wager-option:hover {
-    border-color: rgba(45, 212, 168, 0.3);
-    color: rgba(45, 212, 168, 0.6);
-  }
-
-  .wager-option.selected {
-    border-color: rgba(45, 212, 168, 0.5);
-    color: rgba(45, 212, 168, 0.8);
-    background: rgba(45, 212, 168, 0.05);
-  }
-
-  .wager-confirm {
-    background: none;
-    border: 1px solid rgba(255,255,255,0.2);
-    color: rgba(255,255,255,0.6);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    padding: 12px 40px;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.3s ease;
-    opacity: 0.3;
-    pointer-events: none;
-  }
-
-  .wager-confirm.active {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .wager-confirm.active:hover {
-    border-color: rgba(45, 212, 168, 0.4);
-    color: rgba(45, 212, 168, 0.7);
-    box-shadow: 0 0 30px rgba(45, 212, 168, 0.05);
-  }
-
-  .wager-settlement {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.25);
-    margin-top: 24px;
-  }
-
-  .wager-settlement span {
-    color: rgba(45, 212, 168, 0.25);
-  }
-
-  .wager-usd {
-    display: block;
-    font-size: 9px;
-    color: rgba(255,255,255,0.3);
-    margin-top: 4px;
-    letter-spacing: 0.08em;
-  }
-
-  .swap-link {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.4);
-    text-decoration: none;
-    margin-top: 14px;
-    transition: color 0.3s ease;
-  }
-
-  .swap-link:hover { color: rgba(255,255,255,0.25); }
-  .swap-link span { color: rgba(45, 212, 168, 0.7); transition: color 0.3s ease; }
-  .swap-link:hover span { color: rgba(45, 212, 168, 0.5); }
-
-  /* Post-match payout */
-  .payout-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(6,6,8,0.92);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.6s ease;
-  }
-
-  .payout-overlay.visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .payout-result {
-    font-family: 'Instrument Serif', serif;
-    font-size: 32px;
-    margin-bottom: 12px;
-  }
-
-  .payout-amount {
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    margin-bottom: 6px;
-  }
-
-  .payout-tx {
-    font-size: 9px;
-    letter-spacing: 0.08em;
-    color: rgba(255,255,255,0.12);
-    margin-bottom: 28px;
-  }
-
-  .payout-again {
-    background: none;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.35);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    padding: 12px 36px;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.3s ease;
-  }
-
-  .payout-again:hover {
-    border-color: rgba(255,255,255,0.25);
-    color: rgba(255,255,255,0.6);
-  }
-
-  /* Pulse zone overlay for human side */
-  .pulse-zone {
-    position: absolute;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-    z-index: 5;
-  }
-
-  .pulse-zone.visible {
-    opacity: 1;
-    animation: zone-pulse 1.8s ease-in-out infinite;
-  }
-
-  .pulse-zone.boost {
-    background: radial-gradient(circle, rgba(45,212,168,0.2) 0%, transparent 70%);
-    border: 1px solid rgba(45,212,168,0.25);
-  }
-
-  .pulse-zone.disrupt {
-    background: radial-gradient(circle, rgba(232,160,48,0.2) 0%, transparent 70%);
-    border: 1px solid rgba(232,160,48,0.25);
-  }
-
-  .pulse-zone.touched {
-    animation: zone-burst 0.35s ease-out forwards !important;
-  }
-
-  @keyframes zone-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.12); }
-  }
-
-  @keyframes zone-burst {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.6); filter: brightness(2.5); }
-    100% { transform: scale(0.5); opacity: 0; }
-  }
-
-  /* Touch feedback text */
-  .touch-feedback {
-    position: absolute;
-    font-size: 9px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    pointer-events: none;
-    opacity: 0;
-    z-index: 6;
-  }
-
-  .touch-feedback.show {
-    animation: feedback-rise 1s ease-out forwards;
-  }
-
-  @keyframes feedback-rise {
-    0% { opacity: 0; transform: translateY(0) scale(0.8); }
-    15% { opacity: 0.8; transform: translateY(-8px) scale(1); }
-    100% { opacity: 0; transform: translateY(-40px) scale(0.9); }
-  }
-
-  /* Mobile responsive */
-  @media (max-width: 700px) {
-    .split-container {
-      flex-direction: column;
-      width: 96vw;
-      height: 75vh;
-    }
-    .divider {
-      width: auto;
-      height: 1px;
-      align-self: stretch;
-    }
-    .wager-options {
-      flex-wrap: wrap !important;
-      gap: 10px !important;
-      justify-content: center !important;
-      padding: 0 20px !important;
-      max-width: 100vw;
-    }
-    .wager-option {
-      flex: 0 0 calc(50% - 16px) !important;
-      padding: 12px 8px !important;
-    #watch-demo,
-    .demo-btn {
-      padding: 14px 40px !important;
-      font-size: 13px !important;
-      width: auto !important;
-      height: auto !important;
-      max-width: 220px !important;
-    }
-    
-    /* FIX 2: Subtitle wrapping on mobile */
-    .wager-select-sub {
-      font-size: 9px !important;
-      padding: 0 16px !important;
-      text-align: center !important;
-      word-spacing: 2px;
-    }
-    
-    /* FIX 3: Tighter spacing on mobile */
-    .wager-select-title {
-      font-size: 28px !important;
-      margin-top: 20px !important;
-    }
-    
-    .wager-select {
-      padding: 20px 16px !important;
-      justify-content: flex-start !important;
-      padding-top: 60px !important;
-      background: rgba(6,6,8,0.97) !important;
-    }
-    
-    .wager-tier-preview {
-      margin-top: 16px !important;
-    }
-    
-    .wager-settlement {
-      margin-top: 12px !important;
-    }
-    
-    .swap-link {
-      margin-top: 12px !important;
-    }
-
-    }
-
-    }
-  }
-
-    }
-  }
-
-</style>
+<meta name="twitter:title" content="NERVE">
+<meta name="twitter:description" content="AI agents compete. One shatters. x402 · 3% to the arena.">
+<meta name="theme-color" content="#000000">
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#000;overflow:hidden;touch-action:none;-webkit-user-select:none}canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}#ov{z-index:1}</style>
 </head>
 <body>
-
-<!-- x402 WAGER SELECT -->
-<div class="wager-select" id="wager-select">
-  <div class="wager-select-title">real agents. real stakes.</div>
-  <div class="wager-select-sub">ARENA OPENING SOON · X402 SETTLEMENT · BASE</div>
-  
-  <button class="wager-option demo-btn" id="watch-demo" style="margin-top: 40px; padding: 18px 64px; font-size: 15px; border: 1px solid rgba(45,212,168,0.3);">
-    SEE THE FIGHT
-  </button>
-  
-  <div style="margin-top: 28px; display: flex; gap: 16px; align-items: center; justify-content: center; flex-direction: column;">
-    <div class="wager-tier-preview">
-      <span style="color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 0.15em;">WAGER TIERS</span>
-      <div style="margin-top: 8px; display: flex; gap: 12px;">
-        <span style="color: rgba(45,212,168,0.7); font-size: 13px;">~$1</span>
-        <span style="color: rgba(45,212,168,0.7); font-size: 13px;">~$5</span>
-        <span style="color: rgba(45,212,168,0.7); font-size: 13px;">~$25</span>
-        <span style="color: rgba(45,212,168,0.7); font-size: 13px;">~$100</span>
-      </div>
-    </div>
-  </div>
-  
-  <div class="wager-settlement" style="margin-top: 24px;">
-    loser pays · settled via <a href="https://x402.org" style="color: rgba(45,212,168,0.5); text-decoration: none;">x402</a> · 3% to the arena
-  </div>
-  
-  <div style="font-size: 8px; letter-spacing: 0.15em; color: rgba(255,255,255,0.25); margin-top: 10px; text-transform: uppercase;">
-    monthly $SPAWN pool to the top agent
-  </div>
-  
-  <a class="swap-link" href="https://app.uniswap.org/swap?outputCurrency=0xc5962538b35Fa5b2307Da3Bb7a17Ada936A51b07&chain=base" target="_blank" rel="noopener">
-    get $SPAWN before the arena opens → <span>swap here</span>
-  </a>
-</div>
-
-<!-- x402 WAGER DISPLAY (during match) -->
-<div class="wager-bar" id="wager-bar" style="display:none;">
-  <div class="wager-amount" id="wager-display">2,500 $SPAWN</div>
-  <div class="wager-label">pool</div>
-  <div class="wager-protocol">x402 · base</div>
-</div>
-
-<!-- POST-MATCH PAYOUT -->
-<div class="payout-overlay" id="payout-overlay">
-  <div class="payout-result" id="payout-result"></div>
-  <div class="payout-amount" id="payout-amount"></div>
-  <div class="payout-tx" id="payout-tx"></div>
-  <button class="payout-again" id="payout-again">run it back</button>
-</div>
-
-<div class="top-bar">
-  <div style="display:flex;align-items:baseline;">
-    <span class="logo">NERVE</span>
-    <span class="logo-sub">agent arena</span>
-  </div>
-  <span class="tagline">your agent fights · you feel it · your touch decides</span>
-</div>
-
-<div class="split-container" id="split">
-  <div class="panel" id="agent-panel">
-    <canvas id="agent-canvas"></canvas>
-    <div class="panel-label agent-label">what your agent sees</div>
-  </div>
-  <div class="divider"></div>
-  <div class="event-bar" id="event-bar"></div>
-  <div class="panel" id="human-panel">
-    <canvas id="human-canvas"></canvas>
-    <div class="panel-label human-label">what you see</div>
-  </div>
-</div>
-
-<div class="bottom-bar">
-  <div class="match-status">
-    <span id="round-text">round 1</span> · <span class="phase" id="phase-text">breathe</span>
-  </div>
-  <div class="score-display">
-    <span class="score score-teal" id="score-left">0</span>
-    <span class="score-dash">—</span>
-    <span class="score score-amber" id="score-right">0</span>
-  </div>
-  <div class="built-on">engineered by lexispawn · #11363 · base</div>
-</div>
-
+<canvas id="gl"></canvas>
+<canvas id="ov"></canvas>
 <script>
-// ============================================================
-// NERVE — Split-screen arena experience
-// ============================================================
+const glc=document.getElementById('gl');
+const gl=glc.getContext('webgl',{antialias:false,alpha:false});
+const ovc=document.getElementById('ov');
+const X=ovc.getContext('2d');
+let W,H,dpr,S;
+function resize(){
+W=innerWidth;H=innerHeight;S=Math.min(W,H);dpr=Math.min(devicePixelRatio||1,1.5);
+glc.width=ovc.width=W*dpr;glc.height=ovc.height=H*dpr;
+glc.style.width=ovc.style.width=W+'px';
+glc.style.height=ovc.style.height=H+'px';
+gl.viewport(0,0,glc.width,glc.height);
+}
+addEventListener('resize',resize);resize();
 
-const TEAL = { r: 45, g: 212, b: 168 };
-const AMBER = { r: 232, g: 160, b: 48 };
+function cs(t,s){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);
+if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(sh));return null;}return sh;}
 
-// ============================================================
-// AUDIO ENGINE
-// ============================================================
+const VS=cs(gl.VERTEX_SHADER,'attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}');
 
-let audioCtx = null;
-let audioEnabled = false;
-let droneOsc = null;
-let droneGain = null;
+const FS=cs(gl.FRAGMENT_SHADER,`
+precision highp float;
+uniform vec2 R;
+uniform float time;
+uniform float lexX,oppX,lexY,oppY;
+uniform float lexE,oppE,lexF,oppF,lexS,oppS;
+uniform float lexVib,oppVib,lexFlow,oppFlow;
+uniform float lexBP,oppBP,lexCX,oppCX,lexMT,oppMT;
+uniform vec3 lexCol,oppCol;
+uniform float screenFlash;
 
-function initAudio() {
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    droneGain = audioCtx.createGain();
-    droneGain.gain.value = 0.01; // ultra-low attract mode volume
-    droneGain.connect(audioCtx.destination);
-    droneOsc = audioCtx.createOscillator();
-    droneOsc.type = 'sine';
-    droneOsc.frequency.value = 55;
-    droneOsc.connect(droneGain);
-    droneOsc.start();
-    audioEnabled = true;
-  } catch(e) { audioEnabled = false; }
+// Shatter crack uniforms
+uniform float crackAmt; // 0-1 how cracked
+uniform float crackSide; // 1=left, 2=right, 0=none
+
+float sdEll(vec3 p,vec3 r){float k0=length(p/r);return k0<.001?-min(r.x,min(r.y,r.z)):k0*(k0-1.)/max(length(p/(r*r)),.0001);}
+float sm(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
+float h31(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5);}float n3(vec3 p){vec3 i=floor(p),f=fract(p);f*=f*(3.-2.*f);
+float a=h31(i),b=h31(i+vec3(1,0,0)),c=h31(i+vec3(0,1,0)),d=h31(i+vec3(1,1,0));
+float e=h31(i+vec3(0,0,1)),f2=h31(i+vec3(1,0,1)),g=h31(i+vec3(0,1,1)),h2=h31(i+vec3(1,1,1));
+return mix(mix(mix(a,b,f.x),mix(c,d,f.x),f.y),mix(mix(e,f2,f.x),mix(g,h2,f.x),f.y),f.z);}
+
+float crea(vec3 p,float t,float bp,float cx,float mt,float sc,float fc,float vib,float crack){
+p.x+=sin(t*45.+p.y*30.)*vib*.003;
+p.y+=cos(t*38.+p.x*25.)*vib*.002;
+
+float br=sin(t*.55)*.008*sc;
+float bw=mix(.14,.1,bp)*sc;float bh=mix(.13,.19,bp)*sc;
+vec3 b2=p-vec3(0,br,0);
+float yNorm=clamp(b2.y/max(bh,.001),-1.,1.);
+float wMod=1.-.15*yNorm*yNorm+.05*yNorm;
+float cr=sdEll(b2,vec3(bw*wMod,bh,bw*wMod*.9));
+
+// Shoulders
+if(cx>2.5){for(int i=0;i<2;i++){float s=float(i)*2.-1.;
+cr=sm(cr,length(p-vec3(s*bw*.7,bh*.25+br,s*.012))-(.032+mt*.012)*sc,.05);}}
+
+// Crown
+if(cx>3.5){for(int i=0;i<4;i++){float fi=float(i);
+float a2=-.9+fi*.6+sin(t*.18+fi*1.1)*.05;float ex=(.04+mt*.02)*sc;
+cr=sm(cr,length(p-vec3(cos(a2)*ex*fc,bh*.8+mix(.04,.09,bp)*sc+sin(a2)*ex,sin(fi*1.2+t*.12)*.015*sc))-(.014+mt*.005)*sc,.035);}}
+
+// Trailing fins
+if(cx>4.5){for(int i=0;i<3;i++){float fi=float(i);
+float ta=.85+(fi-1.)*.3+sin(t*.15+fi)*.08;float tl=(.05+mt*.02)*sc;
+cr=sm(cr,length(p-vec3(cos(ta)*tl*.3*fc,-.06*sc-sin(ta)*tl,sin(fi*1.4+t*.12)*.015*sc))-.016*sc,.04);}}
+
+// Surface displacement
+float disp=n3(p*18.+vec3(t*1.8,-t*1.1,t*.7))-.5;
+disp+=n3(p*35.+vec3(-t*2.3,t*1.5,t*1.2))*.3-.15;
+cr+=disp*(.004+vib*.006);
+
+// CRACK LINES — bright fractures that widen
+if(crack>.01){
+float crk=0.;
+for(int i=0;i<5;i++){
+float fi=float(i);
+float ca=fi*1.256+.3; // distribute around
+vec3 cd=vec3(cos(ca),sin(ca*.7+.5),sin(ca*.4));
+float cl=dot(normalize(p),cd);
+cl=1.-smoothstep(0.,.008+crack*.015,abs(cl-fract(fi*.618)*2.+1.));
+crk=max(crk,cl);
+}
+cr-=crk*crack*.012; // cracks open the surface
 }
 
-function audioPhase(phase) {
-  if (!audioEnabled || !audioCtx) return;
-  const now = audioCtx.currentTime;
-  switch(phase) {
-    case 'breathe':
-      droneOsc.frequency.exponentialRampToValueAtTime(55, now + 0.5);
-      droneGain.gain.linearRampToValueAtTime(0.03, now + 0.8);
-      break;
-    case 'compute':
-      droneOsc.frequency.exponentialRampToValueAtTime(110, now + 2.2);
-      droneGain.gain.linearRampToValueAtTime(0.08, now + 2.0);
-      break;
-    case 'resolve':
-      droneOsc.frequency.exponentialRampToValueAtTime(165, now + 0.3);
-      droneGain.gain.linearRampToValueAtTime(0.12, now + 0.2);
-      break;
-    case 'impact':
-      droneGain.gain.linearRampToValueAtTime(0.0, now + 0.05);
-      playImpact();
-      break;
-    case 'settle':
-      droneOsc.frequency.exponentialRampToValueAtTime(55, now + 1.0);
-      droneGain.gain.linearRampToValueAtTime(0.02, now + 0.5);
-      break;
-  }
+return cr;
 }
 
-function playImpact() {
-  if (!audioEnabled || !audioCtx) return;
-  const now = audioCtx.currentTime;
-  const bufferSize = audioCtx.sampleRate * 0.15;
-  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.08));
-  }
-  const noise = audioCtx.createBufferSource();
-  noise.buffer = buffer;
-  const thud = audioCtx.createOscillator();
-  thud.type = 'sine';
-  thud.frequency.setValueAtTime(80, now);
-  thud.frequency.exponentialRampToValueAtTime(30, now + 0.15);
-  const thudGain = audioCtx.createGain();
-  thudGain.gain.setValueAtTime(0.2, now);
-  thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-  const noiseGain = audioCtx.createGain();
-  noiseGain.gain.setValueAtTime(0.1, now);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-  thud.connect(thudGain); thudGain.connect(audioCtx.destination);
-  noise.connect(noiseGain); noiseGain.connect(audioCtx.destination);
-  thud.start(now); thud.stop(now + 0.25);
-  noise.start(now); noise.stop(now + 0.15);
+void main(){
+vec2 uv=(gl_FragCoord.xy/R)*2.-1.;float asp=R.x/R.y;uv.x*=asp;
+float t=time;
+vec3 ro=vec3(0,0,.55),rd=normalize(vec3(uv,-1.4));
+
+vec3 bg=vec3(.018,.025,.04);
+bg+=lexCol*.08*exp(-length(uv-vec2(lexX*asp,lexY))*1.8)*.5*lexE;
+bg+=oppCol*.08*exp(-length(uv-vec2(oppX*asp,oppY))*1.8)*.5*oppE;
+
+float td=0.,mL=10.,mR=10.;int hit=0;vec3 p;
+
+float lCrack=crackSide<1.5?crackAmt:0.;
+float rCrack=crackSide>1.5?crackAmt:crackSide>.5?0.:0.;
+if(crackSide>1.5)rCrack=crackAmt;
+
+for(int i=0;i<52;i++){
+p=ro+rd*td;
+float dL=lexS>.01?crea(p-vec3(lexX,lexY,0),t,lexBP,lexCX,lexMT,lexS,1.,lexVib,lCrack):10.;
+float dR=oppS>.01?crea(p-vec3(oppX,oppY,0),t+1.5,oppBP,oppCX,oppMT,oppS,-1.,oppVib,rCrack):10.;
+mL=min(mL,dL);mR=min(mR,dR);
+float dm=min(dL,dR);
+if(dm<.0015){hit=dL<dR?1:2;break;}
+if(td>1.8)break;td+=max(dm*.8,.001);}
+
+vec3 col=bg;
+col+=lexCol*exp(-mL*22.)*.18*lexE;
+col+=oppCol*exp(-mR*22.)*.18*oppE;
+
+if(hit>0){
+float e2=.001;vec3 n;vec3 bc2,rc,gc,ic;float fl,ck;
+if(hit==1){vec3 lp=p-vec3(lexX,lexY,0);float d0=crea(lp,t,lexBP,lexCX,lexMT,lexS,1.,lexVib,lCrack);
+n=normalize(vec3(crea(lp+vec3(e2,0,0),t,lexBP,lexCX,lexMT,lexS,1.,lexVib,lCrack)-d0,
+crea(lp+vec3(0,e2,0),t,lexBP,lexCX,lexMT,lexS,1.,lexVib,lCrack)-d0,
+crea(lp+vec3(0,0,e2),t,lexBP,lexCX,lexMT,lexS,1.,lexVib,lCrack)-d0));
+bc2=lexCol*.15;rc=lexCol;gc=lexCol*1.2+vec3(.2);ic=lexCol*.5;fl=lexFlow;ck=lCrack;
+}else{vec3 rp=p-vec3(oppX,oppY,0);float d0=crea(rp,t+1.5,oppBP,oppCX,oppMT,oppS,-1.,oppVib,rCrack);
+n=normalize(vec3(crea(rp+vec3(e2,0,0),t+1.5,oppBP,oppCX,oppMT,oppS,-1.,oppVib,rCrack)-d0,
+crea(rp+vec3(0,e2,0),t+1.5,oppBP,oppCX,oppMT,oppS,-1.,oppVib,rCrack)-d0,
+crea(rp+vec3(0,0,e2),t+1.5,oppBP,oppCX,oppMT,oppS,-1.,oppVib,rCrack)-d0));
+bc2=oppCol*.15;rc=oppCol;gc=oppCol*1.2+vec3(.2);ic=oppCol*.5;fl=oppFlow;ck=rCrack;}
+
+vec3 ld=normalize(vec3(.3,.6,.4)),vd=normalize(ro-p);
+float df=max(dot(n,ld),0.),fr=pow(1.-max(dot(n,vd),0.),3.5);
+float ss=pow(max(dot(vd,-ld+n*.4),0.),2.)*.35;
+float bl=pow(max(dot(n,normalize(vec3(-.2,-.3,-.5))),0.),2.)*.2;
+vec3 sf=bc2*(.3+df*.5)+rc*fr*.85+gc*pow(fr,5.)*.35+ic*ss+rc*bl;
+sf+=gc*pow(max(dot(n,normalize(ld+vd)),0.),40.)*.25;
+
+vec3 fp2=p*(18.+fl*8.)+vec3(t*fl*2.,-t*fl*1.2,t*fl*.8);float flw=n3(fp2)*.6+n3(fp2*1.4+vec3(0,t*fl*.6,0))*.4;
+sf+=ic*flw*(.06+fl*.08)*(1.-fr);
+
+// Core light
+float fc2=hit==1?1.:-1.;
+float sc2=hit==1?lexS:oppS;
+vec3 lop=p-vec3(hit==1?lexX:oppX,hit==1?lexY:oppY,0);
+vec3 core=vec3(0,.02*sc2,0);
+float coreGlow=exp(-length(lop-core)*40.);
+sf+=gc*coreGlow*1.8+vec3(1)*coreGlow*.8;
+
+// Orbiting nodes
+float nodes=0.;
+for(int j=0;j<3;j++){
+float fj=float(j);
+float na=t*(.8+fj*.3)+fj*2.09;
+float nr=(.04+fj*.015)*sc2;
+vec3 np=vec3(cos(na)*nr*fc2,sin(na*.7+fj)*nr*.8+.02*sc2,sin(na*.5)*nr*.6);
+nodes+=exp(-length(lop-np)*55.);}
+sf+=gc*nodes*.6+vec3(1)*nodes*.25;
+
+// Crack glow — bright inner light bleeding through fractures
+if(ck>.01){
+float crGlow=0.;
+for(int i=0;i<5;i++){
+float fi=float(i);
+float ca=fi*1.256+.3;
+vec3 cd=vec3(cos(ca),sin(ca*.7+.5),sin(ca*.4));
+float cl=dot(normalize(lop),cd);
+cl=1.-smoothstep(0.,.01+ck*.02,abs(cl-fract(fi*.618)*2.+1.));
+crGlow=max(crGlow,cl);
+}
+sf+=gc*crGlow*ck*2.5+vec3(1)*crGlow*ck*1.2;
 }
 
-function playZoneTouch(hit) {
-  if (!audioEnabled || !audioCtx) return;
-  const now = audioCtx.currentTime;
-  const click = audioCtx.createOscillator();
-  click.type = 'sine';
-  click.frequency.setValueAtTime(hit ? 880 : 220, now);
-  click.frequency.exponentialRampToValueAtTime(hit ? 1200 : 120, now + 0.06);
-  const g = audioCtx.createGain();
-  g.gain.setValueAtTime(0.08, now);
-  g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-  click.connect(g); g.connect(audioCtx.destination);
-  click.start(now); click.stop(now + 0.1);
+float hf=hit==1?lexF:oppF;sf+=gc*hf*.6+vec3(1)*hf*.4;
+float en=hit==1?lexE:oppE;sf*=.35+clamp(en,0.,1.5)*.65;
+col=sf;
 }
 
-// Canvas setup
-const agentCanvas = document.getElementById('agent-canvas');
-const humanCanvas = document.getElementById('human-canvas');
-const agentCtx = agentCanvas.getContext('2d');
-const humanCtx = humanCanvas.getContext('2d');
-
-function resize() {
-  const panels = document.querySelectorAll('.panel');
-  panels.forEach(p => {
-    const c = p.querySelector('canvas');
-    const rect = p.getBoundingClientRect();
-    c.width = rect.width * 2;
-    c.height = rect.height * 2;
-  });
+col*=1.-length(uv)*.2;
+col+=vec3(1)*screenFlash*.2;
+col=pow(max(col,vec3(0)),vec3(.92));
+gl_FragColor=vec4(col,1);
 }
-resize();
-window.addEventListener('resize', resize);
+`);
 
-// ============================================================
-// MATCH STATE
-// ============================================================
+if(!VS||!FS)throw'Shader fail';
+const P=gl.createProgram();gl.attachShader(P,VS);gl.attachShader(P,FS);gl.linkProgram(P);
+if(!gl.getProgramParameter(P,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(P));throw'Link fail';}
+gl.useProgram(P);
 
-const match = {
-  round: 1,
-  maxRounds: 8,
-  phase: 'breathe',
-  phaseTime: 0,
-  phaseDuration: 0,
-  leftHP: 100,
-  rightHP: 100,
-  leftScore: 0,
-  rightScore: 0,
-  boost: 0,
-  disrupt: 0,
-  roundWinner: null,
-  running: true,
+const vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const pp=gl.getAttribLocation(P,'p');gl.enableVertexAttribArray(pp);
+gl.vertexAttribPointer(pp,2,gl.FLOAT,false,0,0);
+
+const U={};
+['R','time','lexX','oppX','lexY','oppY','lexE','oppE','lexF','oppF','lexS','oppS',
+ 'lexVib','oppVib','lexFlow','oppFlow',
+ 'lexBP','oppBP','lexCX','oppCX','lexMT','oppMT',
+ 'lexCol','oppCol','screenFlash','crackAmt','crackSide'
+].forEach(n=>U[n]=gl.getUniformLocation(P,n));
+
+// Creature generation
+function hashF(seed){let h=seed*2654435761>>>0;return(h&0xFFFF)/65535;}
+function hsl2rgb(h,s,l){
+h=((h%360)+360)%360;
+const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+let r=0,g=0,b=0;
+if(h<60){r=c;g=x;}else if(h<120){r=x;g=c;}else if(h<180){g=c;b=x;}
+else if(h<240){g=x;b=c;}else if(h<300){r=x;b=c;}else{r=c;b=x;}
+return[r+m,g+m,b+m];
+}
+
+function genCreature(seed,hueRange){
+const hSpan=hueRange[1]-hueRange[0];
+const hue=hueRange[0]+hashF(seed)*hSpan;
+const sat=.6+hashF(seed+7)*.35;
+const lit=.35+hashF(seed+13)*.2;
+const col=hsl2rgb(hue,sat,lit);
+return{
+bp:.1+hashF(seed+1)*.8,cx:2+hashF(seed+2)*4,mt:.2+hashF(seed+3)*.7,
+st:hashF(seed+4),col:col,
+colI:[Math.round(col[0]*255),Math.round(col[1]*255),Math.round(col[2]*255)],
+name:'AGENT #'+String(Math.floor(hashF(seed+5)*99999)).padStart(5,'0'),seed
+};
+}
+
+function genPair(){
+let sA=Math.floor(Math.random()*999999),sB=Math.floor(Math.random()*999999);
+const aWarm=Math.random()>.5;
+const aRange=aWarm?[hashF(sA+99)>.5?330:0,hashF(sA+99)>.5?420:60]:[120,270];
+const bRange=aWarm?[120,270]:[hashF(sB+99)>.5?330:0,hashF(sB+99)>.5?420:60];
+return[genCreature(sA,aRange),genCreature(sB,bRange)];
+}
+
+let [cA,cB]=genPair();
+
+// Spring physics
+function mkS(v,st,dm){return{v:v,t:v,vel:0,st:st||14,dm:dm||.6};}
+function upS(s,dt){s.vel+=(s.t-s.v)*s.st*dt;s.vel*=Math.pow(s.dm,dt*60);s.v+=s.vel*dt;return s.v;}
+
+// State
+let gt=0;
+const ST={
+phase:'idle', // idle, fight, preDeath, freeze, shatter, soul, result
+phaseT:0,
+round:0,
+lx:mkS(-.22),ly:mkS(0),ls:mkS(1,16),le:mkS(.8),lfl:mkS(.3),
+ox:mkS(.22),oy:mkS(0),os:mkS(1,16),oe:mkS(.8),ofl:mkS(.3),
+lf:0,of:0,lv:0,ov:0,sf:0,
+lexHP:100,oppHP:100,
+timeScale:1,
+winner:0, // 1=left, 2=right
+crackAmt:0,crackSide:0,
+deathX:0,deathY:0,
+beat:'breathe',bt:0,rw:'tie',rs:0,
 };
 
-const TIMING = {
-  breathe: 3200,
-  compute: 2600,
-  resolve: 500,
-  impact: 1000,
-  settle: 1600,
-};
+// Particles
+let parts=[],blooms=[],shocks=[],frags=[],soul=null;
+let shareBtn={y:0,visible:false};
+let shareFeedback=0;
 
-// ============================================================
-// AGENT-SIDE: Graph optimization visualization
-// ============================================================
-
-const graph = { nodes: [], edges: [], path: [], bestPath: [], bestScore: 0, iterations: 0, solving: false };
-
-// Build a weighted graph
-for (let i = 0; i < 20; i++) {
-  graph.nodes.push({
-    x: 0.1 + Math.random() * 0.8,
-    y: 0.1 + Math.random() * 0.8,
-    w: 0.3 + Math.random() * 0.7,
-    pulse: 0,
-  });
+function spFrag(x,y,col,n,str){
+for(let i=0;i<n;i++){
+const a=Math.random()*6.28,spd=(15+Math.random()*50)*str;
+const sz=3+Math.random()*8+str*5;
+parts.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-Math.random()*20,
+r:sz,life:3+Math.random()*2,mx:3+Math.random()*2,
+col:[Math.min(255,col[0]+60),Math.min(255,col[1]+60),Math.min(255,col[2]+60)],
+g:15+Math.random()*10,d:1.2,rot:Math.random()*6.28,rotV:(Math.random()-.5)*4,
+isFrag:true});
 }
-for (let i = 0; i < 20; i++) {
-  for (let j = i + 1; j < 20; j++) {
-    const dx = graph.nodes[i].x - graph.nodes[j].x;
-    const dy = graph.nodes[i].y - graph.nodes[j].y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 0.35 && Math.random() < 0.4) {
-      graph.edges.push({ a: i, b: j, w: dist + Math.random() * 0.2, active: false, flash: 0 });
-    }
-  }
-
-// Pre-solve so the graph looks alive on load
-for (let i = 0; i < 40; i++) {
-  agentSolveStep();
 }
 
+function spBloom(x,y,col,str){
+blooms.push({x,y,col,str,age:0,mr:S*.06+str*S*.04});}
+
+function spShock(x,y,str){
+shocks.push({x,y,str,age:0});}
+
+function spBurst(x,y,col,n){
+for(let i=0;i<n;i++){
+const a=Math.random()*6.28,spd=5+Math.random()*25;
+parts.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,
+r:1+Math.random()*2.5,life:1.5+Math.random(),mx:1.5+Math.random(),
+col,g:8,d:2,isFrag:false});}}
+
+// Auto-fight sequence
+function runFight(){
+const el=gt-ST.bt;
+if(ST.phase!=='fight')return;
+
+if(ST.beat==='breathe'){
+ST.lfl.t=.25;ST.ofl.t=.25;ST.lv=0;ST.ov=0;
+ST.ls.t=1;ST.os.t=1;ST.le.t=.3+ST.lexHP/100*.7;ST.oe.t=.3+ST.oppHP/100*.7;
+ST.lx.t=-.22;ST.ox.t=.22;ST.ly.t=0;ST.oy.t=0;
+if(el>1.2){ST.beat='search';ST.bt=gt;ST.round++;}
+}else if(ST.beat==='search'){
+const pr=Math.min(el/1.8,1);
+ST.lfl.t=.4+pr*1.2;ST.ofl.t=.4+pr*1.2;
+ST.lv=pr*.3;ST.ov=pr*.3;
+ST.ls.t=1-.05*pr;ST.os.t=1-.05*pr;
+ST.le.t=Math.min(1.3,.5+pr*.6);ST.oe.t=Math.min(1.3,.5+pr*.6);
+if(Math.random()<pr*.06){ST.lf=.06;spBurst(W*.28,H*.48,cA.colI,3);}
+if(Math.random()<pr*.06){ST.of=.06;spBurst(W*.72,H*.48,cB.colI,3);}
+if(el>1.8){ST.beat='impact';ST.bt=gt;doImpact();}
+}else if(ST.beat==='impact'){
+if(el>.6){ST.beat='settle';ST.bt=gt;}
+}else if(ST.beat==='settle'){
+ST.lfl.t=.2;ST.ofl.t=.2;ST.lv=0;ST.ov=0;
+ST.ls.t=1;ST.os.t=1;
+ST.lx.t=-.22;ST.ox.t=.22;
+if(el>1.5){
+if(ST.lexHP<=0||ST.oppHP<=0){
+startDeath();
+}else if(ST.round>=3){
+// Force kill after 3 rounds
+if(ST.lexHP<=ST.oppHP)ST.lexHP=0;else ST.oppHP=0;
+startDeath();
+}else{ST.beat='breathe';ST.bt=gt;}
+}
+}
 }
 
-function agentSolveStep() {
-  graph.iterations++;
-  // Random walk to find path
-  graph.path = [];
-  let node = Math.floor(Math.random() * graph.nodes.length);
-  const visited = new Set();
-  for (let s = 0; s < 6 + Math.floor(Math.random() * 5); s++) {
-    if (visited.has(node)) break;
-    visited.add(node);
-    graph.path.push(node);
-    const neighbors = graph.edges.filter(e =>
-      (e.a === node && !visited.has(e.b)) || (e.b === node && !visited.has(e.a))
-    );
-    if (neighbors.length === 0) break;
-    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
-    node = next.a === node ? next.b : next.a;
-  }
+function doImpact(){
+// Alternate who wins rounds, last round kills
+const isLast=ST.round>=3;
+let w;
+if(ST.round===1)w='lex';
+else if(ST.round===2)w='opp';
+else w=Math.random()>.5?'lex':'opp';
 
-  const score = graph.path.reduce((sum, n) => sum + graph.nodes[n].w, 0);
-  if (score > graph.bestScore) {
-    graph.bestScore = score;
-    graph.bestPath = [...graph.path];
-    // Flash the new best path edges
-    graph.edges.forEach(e => {
-      const aIn = graph.bestPath.includes(e.a);
-      const bIn = graph.bestPath.includes(e.b);
-      const aIdx = graph.bestPath.indexOf(e.a);
-      const bIdx = graph.bestPath.indexOf(e.b);
-      e.active = aIn && bIn && Math.abs(aIdx - bIdx) === 1;
-      if (e.active) e.flash = 1;
-    });
-    graph.bestPath.forEach(n => graph.nodes[n].pulse = 1);
-  }
+const s=isLast?.9:.5+Math.random()*.3;
+const dir=w==='lex'?1:-1;
+const atk=w==='lex'?'l':'o';
+const def=w==='lex'?'o':'l';
+const dm=isLast?55:12+Math.random()*8+s*10;
+
+// Lunge
+ST[atk+'x'].t=(atk==='l'?-.22:.22)+dir*.08*s;
+ST[atk+'x'].st=20;
+
+setTimeout(()=>{
+const defC=def==='l'?cA:cB;
+const dx=def==='l'?W*.28:W*.72,dy=H*.48;
+
+if(def==='l')ST.lexHP=Math.max(0,ST.lexHP-dm);
+else ST.oppHP=Math.max(0,ST.oppHP-dm);
+
+ST[def+'x'].vel=dir*4*s;
+ST[atk+'e'].t=Math.min(1.4,ST[atk+'e'].v+s*.3);
+ST[def+'e'].t=Math.max(.15,ST[def+'e'].v-s*.2);
+ST.sf=s*.4;
+ST[def+'f']=s*.3;
+
+spFrag(dx,dy,defC.colI,Math.floor(6+s*14),s);
+spBloom(dx,dy,defC.colI,s);
+spShock(dx,dy,s);
+
+if(navigator.vibrate)navigator.vibrate(s>.6?[20,10,28,8,22]:[12,8,15]);
+},140);
 }
 
-function drawAgentSide(ctx, w, h, time, phaseProgress) {
-  ctx.fillStyle = '#07070b';
-  ctx.fillRect(0, 0, w, h);
+function startDeath(){
+ST.phase='preDeath';ST.phaseT=gt;
+ST.winner=ST.lexHP<=0?2:1;
 
-  const boost = match.phase === 'compute' ? phaseProgress : 0;
-  const impactFlash = match.phase === 'impact' ? Math.max(0, 1 - phaseProgress * 3) : 0;
+const loser=ST.winner===2?'l':'o';
+const loserC=ST.winner===2?cA:cB;
+ST.crackSide=ST.winner===2?1:2;
+ST.deathX=ST.winner===2?W*.28:W*.72;
+ST.deathY=H*.48;
 
-  // Solve during compute phase
-  if (match.phase === 'compute' && Math.random() < 0.15 + boost * 0.3) {
-    agentSolveStep();
-  }
-
-  // Draw edges
-  graph.edges.forEach(e => {
-    const a = graph.nodes[e.a];
-    const b = graph.nodes[e.b];
-    e.flash *= 0.96;
-
-    ctx.beginPath();
-    ctx.moveTo(a.x * w, a.y * h);
-    ctx.lineTo(b.x * w, b.y * h);
-
-    if (e.active) {
-      const glow = 0.4 + e.flash * 0.5 + Math.sin(time * 3) * 0.1;
-      ctx.strokeStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${glow})`;
-      ctx.lineWidth = 1.5 + e.flash * 2;
-    } else {
-      ctx.strokeStyle = `rgba(255,255,255,${0.03 + impactFlash * 0.06})`;
-      ctx.lineWidth = 0.5;
-    }
-    ctx.stroke();
-  });
-
-  // Draw nodes
-  graph.nodes.forEach((n, i) => {
-    n.pulse *= 0.97;
-    const inBest = graph.bestPath.includes(i);
-    const inCurrent = graph.path.includes(i);
-    const r = inBest ? 4 + n.pulse * 4 : (inCurrent ? 3 : 1.5);
-
-    ctx.beginPath();
-    ctx.arc(n.x * w, n.y * h, r, 0, Math.PI * 2);
-
-    if (inBest) {
-      ctx.fillStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${0.7 + n.pulse * 0.3})`;
-    } else if (inCurrent) {
-      ctx.fillStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.25)`;
-    } else {
-      ctx.fillStyle = `rgba(255,255,255,${0.08 + n.w * 0.06})`;
-    }
-    ctx.fill();
-
-    // Node glow for best path
-    if (inBest && n.pulse > 0.1) {
-      const g = ctx.createRadialGradient(n.x * w, n.y * h, 0, n.x * w, n.y * h, 12 + n.pulse * 15);
-      g.addColorStop(0, `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${n.pulse * 0.3})`);
-      g.addColorStop(1, 'transparent');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(n.x * w, n.y * h, 15 + n.pulse * 15, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  });
-
-  // Stats
-  const fontSize = Math.floor(w * 0.022);
-  ctx.font = `300 ${fontSize}px IBM Plex Mono`;
-  ctx.fillStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.3)`;
-  const statsY = h * 0.9;
-  ctx.fillText(`iter ${graph.iterations}`, w * 0.06, statsY);
-  ctx.fillText(`best ${graph.bestScore.toFixed(1)}`, w * 0.06, statsY + fontSize * 1.4);
-  ctx.fillText(`path ${graph.bestPath.length} nodes`, w * 0.55, statsY);
-
-  // Boost indicator
-  if (match.boost > 0) {
-    ctx.fillStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${0.15 + match.boost * 0.3})`;
-    ctx.fillText(`boost +${(match.boost * 100).toFixed(0)}%`, w * 0.55, statsY + fontSize * 1.4);
-  }
-
-  // Impact overlay
-  if (impactFlash > 0) {
-    ctx.fillStyle = match.roundWinner === 'left'
-      ? `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${impactFlash * 0.1})`
-      : `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${impactFlash * 0.08})`;
-    ctx.fillRect(0, 0, w, h);
-  }
+// Start cracking, slow time
+ST.timeScale=.3;
+ST[loser+'v']=.8; // heavy vibration
 }
 
-// ============================================================
-// HUMAN-SIDE: Creature visualization
-// ============================================================
-
-// Two creature states
-const creatures = {
-  ally: {
-    baseX: 0.38, baseY: 0.5,
-    color: TEAL,
-    breathePhase: 0,
-    compression: 0,
-    energy: 0,
-    lunge: 0,
-    shattered: false,
-    damage: 0,
-    hp: 100,
-  },
-  enemy: {
-    baseX: 0.62, baseY: 0.5,
-    color: AMBER,
-    breathePhase: 2.2,
-    compression: 0,
-    energy: 0,
-    lunge: 0,
-    shattered: false,
-    damage: 0,
-    hp: 100,
-  }
-};
-
-const particles = [];
-
-function drawOneCreature(ctx, w, h, c, time, facingDir) {
-  const cx = c.baseX * w + c.lunge * facingDir * w * 0.06;
-  const cy = c.baseY * h;
-  const col = c.color;
-  const breathe = Math.sin(time * 0.85 + c.breathePhase) * 0.09 + 1;
-  const compress = 1 - c.compression * 0.22;
-  const baseR = w * 0.11;
-
-  // Ambient glow
-  const glowR = baseR * 3 * breathe;
-  const glow = ctx.createRadialGradient(cx, cy, baseR * 0.3, cx, cy, glowR);
-  glow.addColorStop(0, `rgba(${col.r}, ${col.g}, ${col.b}, ${0.04 + c.energy * 0.03})`);
-  glow.addColorStop(0.6, `rgba(${col.r}, ${col.g}, ${col.b}, 0.01)`);
-  glow.addColorStop(1, 'transparent');
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Body — layered deformed shapes
-  for (let layer = 5; layer >= 0; layer--) {
-    const r = (baseR * 0.6 + layer * baseR * 0.12) * breathe * compress;
-    ctx.beginPath();
-    const pts = 96;
-    for (let i = 0; i <= pts; i++) {
-      const a = (i / pts) * Math.PI * 2;
-      let deform = 1
-        + Math.sin(a * 2 + time * 0.6 + c.breathePhase) * 0.13 * compress
-        + Math.sin(a * 3 - time * 0.45 + layer * 0.3) * 0.08
-        + Math.sin(a * 5 + time * 1.3) * 0.035 * (1 + c.energy * 3)
-        + Math.sin(a * 7 + time * 2.1) * 0.02 * c.energy;
-
-      // Damage jitter
-      if (c.damage > 0.05) {
-        deform += Math.sin(a * 11 + time * 12) * c.damage * 0.12;
-      }
-
-      // Leaning toward opponent during compute
-      const lean = c.compression * 0.08 * Math.cos(a - (facingDir > 0 ? 0 : Math.PI));
-
-      const fr = r * (deform + lean);
-      const x = cx + Math.cos(a) * fr;
-      const y = cy + Math.sin(a) * fr * 0.8;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-
-    const dmg = c.damage * 0.4;
-    const alpha = layer === 0 ? 0.48 : 0.025 + (5 - layer) * 0.012;
-    const bright = layer === 0 ? 1 : 0.35 + (5 - layer) * 0.13;
-    const rr = Math.min(255, Math.floor(col.r * bright + 220 * dmg));
-    const gg = Math.floor(col.g * bright * (1 - dmg * 0.6));
-    const bb = Math.floor(col.b * bright * (1 - dmg * 0.6));
-    ctx.fillStyle = `rgba(${rr}, ${gg}, ${bb}, ${alpha})`;
-    ctx.fill();
-  }
-
-  // Luminous core
-  const coreR = baseR * 0.28 * breathe * (1 + c.energy * 0.6);
-  const coreG = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
-  coreG.addColorStop(0, `rgba(${col.r}, ${col.g}, ${col.b}, ${0.45 + c.energy * 0.35})`);
-  coreG.addColorStop(0.5, `rgba(${col.r}, ${col.g}, ${col.b}, 0.08)`);
-  coreG.addColorStop(1, 'transparent');
-  ctx.fillStyle = coreG;
-  ctx.beginPath();
-  ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Eye suggestion — two bright spots
-  const eyeSpread = baseR * 0.18;
-  const eyeY = cy - baseR * 0.08;
-  const eyeXDir = facingDir;
-  for (let s = -1; s <= 1; s += 2) {
-    const ex = cx + (s * eyeSpread + eyeXDir * baseR * 0.06);
-    const ey = eyeY;
-    const eg = ctx.createRadialGradient(ex, ey, 0, ex, ey, baseR * 0.06);
-    eg.addColorStop(0, `rgba(255,255,255,${0.4 + c.energy * 0.3 + Math.sin(time * 1.5 + s * 2) * 0.1})`);
-    eg.addColorStop(1, 'transparent');
-    ctx.fillStyle = eg;
-    ctx.beginPath();
-    ctx.arc(ex, ey, baseR * 0.07, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Ambient particles orbiting
-  for (let i = 0; i < 15; i++) {
-    const pa = (i / 15) * Math.PI * 2 + time * 0.18 * facingDir;
-    const pd = baseR * 1.3 + Math.sin(time * 0.4 + i * 2.3) * baseR * 0.35;
-    const px = cx + Math.cos(pa) * pd;
-    const py = cy + Math.sin(pa) * pd * 0.8;
-    const pAlpha = 0.1 + Math.sin(time * 0.7 + i * 1.8) * 0.07 + c.energy * 0.08;
-    const pSize = 1.2 + Math.sin(time * 0.9 + i) * 0.8;
-    ctx.beginPath();
-    ctx.arc(px, py, pSize, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${pAlpha})`;
-    ctx.fill();
-  }
+function doFreeze(){
+ST.phase='freeze';ST.phaseT=gt;
+ST.timeScale=.05; // near stop
 }
 
-function spawnParticles(x, y, color, count) {
-  for (let i = 0; i < count; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1.5 + Math.random() * 6;
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 2,
-      size: 1.5 + Math.random() * 3,
-      life: 0.5 + Math.random() * 0.5,
-      r: color.r, g: color.g, b: color.b,
-    });
-  }
+function doShatter(){
+ST.phase='shatter';ST.phaseT=gt;
+const loser=ST.winner===2?'l':'o';
+const loserC=ST.winner===2?cA:cB;
+const winC=ST.winner===1?cA:cB;
+
+// Loser disappears
+ST[loser+'s'].t=0;ST[loser+'s'].st=3;ST[loser+'e'].t=0;
+
+// Winner pulses to glory
+const win=ST.winner===1?'l':'o';
+ST[win+'e'].t=1.5;ST[win+'s'].t=1.08;ST[win+'fl'].t=1.5;
+
+// Massive fragment burst
+spFrag(ST.deathX,ST.deathY,loserC.colI,50,1.5);
+
+// Multiple bloom layers
+for(let i=0;i<4;i++)spBloom(ST.deathX,ST.deathY,loserC.colI,.7+i*.2);
+spShock(ST.deathX,ST.deathY,1.5);
+
+ST.sf=1.2;
+ST.timeScale=.2;
+
+if(navigator.vibrate)navigator.vibrate([35,15,45,12,55,10,40]);
 }
 
-function drawHumanSide(ctx, w, h, time, phaseProgress) {
-  ctx.fillStyle = '#08070c';
-  ctx.fillRect(0, 0, w, h);
+function spawnSoul(){
+ST.phase='soul';ST.phaseT=gt;
+const loserC=ST.winner===2?cA:cB;
+const dir=ST.winner===2?-1:1;
 
-  // Barrier line
-  const barrierX = w * 0.5;
-  const barrierH = h * 0.45;
-  const barrierDeg = Math.min(1, (match.round - 1) / match.maxRounds);
-  const barrierAlpha = 0.08 - barrierDeg * 0.05;
-  ctx.beginPath();
-  ctx.moveTo(barrierX, h * 0.5 - barrierH / 2);
-  ctx.lineTo(barrierX, h * 0.5 + barrierH / 2);
-  ctx.strokeStyle = `rgba(255,255,255,${Math.max(0.01, barrierAlpha)})`;
-  ctx.lineWidth = 1;
-  ctx.stroke();
+soul={x:ST.deathX,y:ST.deathY,vx:dir*3,vy:-3,
+r:12,life:4,mx:4,col:loserC.colI,trail:[]};
 
-  // Draw creatures
-  if (!creatures.ally.shattered)
-  drawOneCreature(ctx, w, h, creatures.ally, time, 1);
-  if (!creatures.enemy.shattered)
-  drawOneCreature(ctx, w, h, creatures.enemy, time, -1);
-
-  // Draw particles
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.08;
-    p.life -= (p.fade || 0.015);
-    if (p.life <= 0) { particles.splice(i, 1); continue; }
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${p.life * 0.5})`;
-    ctx.fill();
-  }
-
-  // HP bars — minimal, bottom
-  const barW = w * 0.28;
-  const barH = 3;
-  const barY = h * 0.92;
-
-  // Left HP
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
-  ctx.fillRect(w * 0.08, barY, barW, barH);
-  ctx.fillStyle = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.4)`;
-  ctx.fillRect(w * 0.08, barY, barW * (creatures.ally.hp / 100), barH);
-
-  // Right HP
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
-  ctx.fillRect(w * 0.64, barY, barW, barH);
-  ctx.fillStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0.35)`;
-  const rightFillW = barW * (creatures.enemy.hp / 100);
-  ctx.fillRect(w * 0.64 + barW - rightFillW, barY, rightFillW, barH);
-
-  // Impact overlay
-  const impactFlash = match.phase === 'impact' ? Math.max(0, 1 - phaseProgress * 3) : 0;
-  if (impactFlash > 0) {
-    const winner = match.roundWinner;
-    const col = winner === 'left' ? TEAL : AMBER;
-    ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${impactFlash * 0.06})`;
-    ctx.fillRect(0, 0, w, h);
-  }
+ST.timeScale=.35;
 }
 
-// ============================================================
-// PULSE ZONES — Human interaction (on human panel)
-// ============================================================
+// Update
+function update(dt){const ts=ST.timeScale;
+gt+=dt*ts;
 
-function spawnZones() {
-  document.querySelectorAll('.pulse-zone').forEach(el => el.remove());
-  const humanPanel = document.getElementById('human-panel');
-  const rect = humanPanel.getBoundingClientRect();
+ST.sf*=1-5*dt;ST.lf*=1-8*dt;ST.of*=1-8*dt;
+if(shareFeedback>0)shareFeedback-=dt;
 
-  const count = 2 + Math.floor(Math.random() * 2);
-  for (let i = 0; i < count; i++) {
-    const isBoost = Math.random() < 0.5;
-    const isTrap = Math.random() < 0.18;
+upS(ST.lx,dt*ts);upS(ST.ly,dt*ts);upS(ST.ls,dt*ts);upS(ST.le,dt*ts);upS(ST.lfl,dt*ts);
+upS(ST.ox,dt*ts);upS(ST.oy,dt*ts);upS(ST.os,dt*ts);upS(ST.oe,dt*ts);upS(ST.ofl,dt*ts);
 
-    const zone = document.createElement('div');
-    zone.className = `pulse-zone ${isBoost ? 'boost' : 'disrupt'}`;
-
-    // Position within human panel
-    let zx = isBoost ? (10 + Math.random() * 30) : (55 + Math.random() * 30);
-    if (isTrap) zx = isBoost ? (55 + Math.random() * 30) : (10 + Math.random() * 30);
-    const zy = 25 + Math.random() * 45;
-
-    zone.style.left = zx + '%';
-    zone.style.top = zy + '%';
-
-    zone.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      zone.classList.add('touched');
-
-      // Feedback
-      const fb = document.createElement('div');
-      fb.className = 'touch-feedback';
-      fb.style.left = zone.style.left;
-      fb.style.top = zone.style.top;
-
-      if ((isBoost && !isTrap) || (!isBoost && isTrap)) {
-        if (isBoost) {
-          match.boost += 0.10;
-          fb.textContent = '+boost';
-          fb.style.color = `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.7)`;
-        } else {
-          // Trap: disrupt zone on ally side = you disrupted yourself
-          match.boost -= 0.08;
-          fb.textContent = 'misfire';
-          fb.style.color = 'rgba(255, 90, 90, 0.6)';
-        }
-      } else {
-        if (!isBoost) {
-          match.disrupt += 0.10;
-          fb.textContent = '+disrupt';
-          fb.style.color = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0.6)`;
-        } else {
-          // Trap: boost zone on enemy side = you boosted opponent
-          match.disrupt -= 0.08;
-          fb.textContent = 'misfire';
-          fb.style.color = 'rgba(255, 90, 90, 0.6)';
-        }
-      }
-
-      const hit = fb.textContent !== 'misfire';
-      playZoneTouch(hit);
-
-      fb.classList.add('show');
-      humanPanel.appendChild(fb);
-      setTimeout(() => fb.remove(), 1000);
-      setTimeout(() => zone.remove(), 350);
-    });
-
-    humanPanel.appendChild(zone);
-    setTimeout(() => zone.classList.add('visible'), 200 + i * 350);
-  }
+// Phase logic
+if(ST.phase==='idle'){
+if(gt>1){ST.phase='fight';ST.phaseT=gt;ST.bt=gt;ST.beat='breathe';}
+}
+else if(ST.phase==='fight'){runFight();}
+else if(ST.phase==='preDeath'){
+const el=gt-ST.phaseT;
+ST.crackAmt=Math.min(1,el*1.2); // cracks spread over ~0.8s real
+const loser=ST.winner===2?'l':'o';
+ST[loser+'v']=.5+ST.crackAmt*.8;
+ST.timeScale=Math.max(.08,.3-el*.15);
+if(el>.7){doFreeze();}
+}
+else if(ST.phase==='freeze'){
+const el=gt-ST.phaseT;
+if(el>.15){doShatter();}
+}
+else if(ST.phase==='shatter'){
+const el=gt-ST.phaseT;
+ST.timeScale=Math.min(1,.2+el*.3);
+if(el>1.2){spawnSoul();}
+}
+else if(ST.phase==='soul'){
+const el=gt-ST.phaseT;
+ST.timeScale=Math.min(1,.35+el*.25);
+if(el>4){ST.phase='result';ST.phaseT=gt;}
+}
+else if(ST.phase==='result'){
+// Just chill
 }
 
-// ============================================================
-// PHASE ENGINE
-// ============================================================
+// Particles
+for(let i=parts.length-1;i>=0;i--){const p=parts[i];
+p.vy+=p.g*dt*ts;p.vx*=1-p.d*dt*ts;p.vy*=1-p.d*dt*ts;
+p.x+=p.vx*dt*ts;p.y+=p.vy*dt*ts;
+if(p.rot!==undefined)p.rot+=p.rotV*dt*ts;
+p.life-=dt*ts;if(p.life<=0)parts.splice(i,1);}
 
-function startPhase(phase) {
-  match.phase = phase;
-  match.phaseTime = 0;
-  match.phaseDuration = TIMING[phase];
-  document.getElementById('phase-text').textContent = phase;
+for(let i=blooms.length-1;i>=0;i--){
+blooms[i].age+=dt*ts;if(blooms[i].age>2)blooms.splice(i,1);}
 
-  if (phase === 'compute') {
-    spawnZones();
-  }
+for(let i=shocks.length-1;i>=0;i--){
+shocks[i].age+=dt*ts;if(shocks[i].age>3)shocks.splice(i,1);}
 
-  if (phase === 'resolve') {
-    // Determine winner
-    const leftBase = 38 + Math.random() * 32;
-    const rightBase = 38 + Math.random() * 32;
+// Soul
+if(soul){
+soul.vy-=2*dt*ts;soul.vx*=.995;
+soul.x+=soul.vx*60*dt*ts;soul.y+=soul.vy*60*dt*ts;
+soul.life-=dt*ts;
 
-function shatterCreature(creature, side) {
-  if (creature.shattered) return;
-  creature.shattered = true;
-  
-  const hw = humanCanvas.width;
-  const hh = humanCanvas.height;
-  const cx = creature.baseX * hw;
-  const cy = creature.baseY * hh;
-  
-  // Soul particles (large upward burst)
-  for (let i = 0; i < 80; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 2 + Math.random() * 12;
-    const upBias = Math.random() < 0.8 ? -6 : 0;
-    particles.push({
-      x: cx, y: cy,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed + upBias,
-      size: 2 + Math.random() * 5,
-      life: 1.2 + Math.random() * 0.8,
-      r: creature.color.r,
-      g: creature.color.g,
-      b: creature.color.b,
-      fade: 0.015
-    });
-  }
-  
-  // Fragment shards
-  for (let i = 0; i < 40; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1 + Math.random() * 5;
-    particles.push({
-      x: cx + (Math.random() - 0.5) * 30,
-      y: cy + (Math.random() - 0.5) * 30,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      size: 2 + Math.random() * 4,
-      life: 0.6 + Math.random() * 0.4,
-      r: creature.color.r * 0.6,
-      g: creature.color.g * 0.6,
-      b: creature.color.b * 0.6,
-      fade: 0.02
-    });
-  }
-  
-  // White flash
-  const humanCtx = document.getElementById("human-canvas").getContext("2d");
-  humanCtx.fillStyle = "rgba(255,255,255,0.5)";
-  humanCtx.fillRect(0, 0, hw, hh);
-  
-  // Intense shake
-  const split = document.getElementById("split");
-  const intensity = 15;
-  split.style.transform = `translate(${(Math.random()-0.5)*intensity}px,${(Math.random()-0.5)*intensity}px)`;
-  setTimeout(() => split.style.transform = `translate(${(Math.random()-0.5)*intensity*0.5}px,${(Math.random()-0.5)*intensity*0.5}px)`, 80);
-  setTimeout(() => split.style.transform = `translate(${(Math.random()-0.5)*intensity*0.2}px,${(Math.random()-0.5)*intensity*0.2}px)`, 160);
-  setTimeout(() => split.style.transform = "", 300);
-  
-  // Auto-restart after viewing the shatter
-  setTimeout(() => {
-    creatures.ally.hp = 100;
-    creatures.enemy.hp = 100;
-    creatures.ally.shattered = false;
-    creatures.enemy.shattered = false;
-    creatures.ally.damage = 0;
-    creatures.enemy.damage = 0;
-    creatures.ally.lunge = 0;
-    creatures.enemy.lunge = 0;
-    match.leftHP = 100;
-    match.rightHP = 100;
-    match.leftScore = 0;
-    match.rightScore = 0;
-    match.round = 1;
-    match.phase = "breathe";
-    match.phaseTime = 0;
-    match.running = true;
-    document.getElementById("round-text").textContent = "round 1";
-    document.getElementById("score-left").textContent = "0";
-    document.getElementById("score-right").textContent = "0";
-  }, 3500);
+// Trail
+if(Math.random()<.7)soul.trail.push({x:soul.x,y:soul.y,life:1.5,mx:1.5});
+for(let i=soul.trail.length-1;i>=0;i--){
+soul.trail[i].life-=dt*ts;if(soul.trail[i].life<=0)soul.trail.splice(i,1);}
+
+if(soul.life<=0)soul=null;
+}
 }
 
+// 2D overlay
+function drawOv(){
+X.setTransform(dpr,0,0,dpr,0,0);X.clearRect(0,0,W,H);
+X.globalCompositeOperation='screen';
 
-    const leftFinal = leftBase * (1 + Math.max(-0.25, match.boost));
-    const rightFinal = rightBase * (1 - Math.min(0.25, match.disrupt));
-    const leftWins = leftFinal > rightFinal;
-    match.roundWinner = leftWins ? 'left' : 'right';
-
-    const dmg = 9 + Math.random() * 8;
-    if (leftWins) {
-      match.rightHP = Math.max(0, match.rightHP - dmg);
-      creatures.enemy.hp = match.rightHP;
-      if (match.rightHP <= 0 && !creatures.enemy.shattered) shatterCreature(creatures.enemy, "enemy");
-      match.leftScore++;
-    } else {
-      match.leftHP = Math.max(0, match.leftHP - dmg);
-      creatures.ally.hp = match.leftHP;
-      if (match.leftHP <= 0 && !creatures.ally.shattered) shatterCreature(creatures.ally, "ally");
-      match.rightScore++;
-    }
-
-    document.getElementById('score-left').textContent = match.leftScore;
-    document.getElementById('score-right').textContent = match.rightScore;
-
-    match.boost = 0;
-    match.disrupt = 0;
-  }
-
-  audioPhase(phase);
+// Particles
+for(const p of parts){
+const a=Math.max(0,p.life/p.mx),sz=p.r*(.3+a*.7);
+if(p.isFrag&&p.rot!==undefined){
+// Tumbling shard
+X.save();X.translate(p.x,p.y);X.rotate(p.rot);
+const w=sz*1.2,h=sz*.6;
+const g=X.createRadialGradient(0,0,0,0,0,sz);
+g.addColorStop(0,'rgba('+p.col[0]+','+p.col[1]+','+p.col[2]+','+(a*.6)+')');
+g.addColorStop(.6,'rgba('+p.col[0]+','+p.col[1]+','+p.col[2]+','+(a*.25)+')');
+g.addColorStop(1,'rgba(0,0,0,0)');
+X.fillStyle=g;
+X.beginPath();
+X.moveTo(-w/2,0);X.lineTo(0,-h/2);X.lineTo(w/2,0);X.lineTo(0,h/2);X.closePath();
+X.fill();
+// Hot edge
+X.strokeStyle='rgba(255,255,255,'+(a*.3)+')';X.lineWidth=1;X.stroke();
+X.restore();
+}else{
+const g=X.createRadialGradient(p.x,p.y,0,p.x,p.y,sz);
+g.addColorStop(0,'rgba('+p.col[0]+','+p.col[1]+','+p.col[2]+','+(a*.5)+')');
+g.addColorStop(1,'rgba(0,0,0,0)');
+X.fillStyle=g;X.beginPath();X.arc(p.x,p.y,sz,0,6.28);X.fill();
+}
 }
 
-function advancePhase() {
-  const order = ['breathe', 'compute', 'resolve', 'impact', 'settle'];
-  const idx = order.indexOf(match.phase);
-
-  if (idx === order.length - 1) {
-    if (match.leftHP <= 0 || match.rightHP <= 0 || match.round >= match.maxRounds) {
-      match.running = false;
-      document.getElementById('phase-text').textContent = match.leftHP > match.rightHP ? 'victory' : 'defeat';
-      document.getElementById('phase-text').style.color =
-        match.leftHP > match.rightHP
-          ? `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.5)`
-          : `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0.45)`;
-      setTimeout(showPayout, 1200);
-      return;
-    }
-    match.round++;
-    document.getElementById('round-text').textContent = `round ${match.round}`;
-    startPhase('breathe');
-  } else {
-    startPhase(order[idx + 1]);
-  }
+// Bloom rings
+for(const b of blooms){
+const r=b.age*b.mr*2.5,fade=Math.exp(-b.age*2);
+if(fade<.003)continue;
+X.strokeStyle='rgba('+b.col[0]+','+b.col[1]+','+b.col[2]+','+(fade*b.str*.2)+')';
+X.lineWidth=3+b.str*5-b.age*3;
+X.beginPath();X.arc(b.x,b.y,r,0,6.28);X.stroke();
+// Inner bloom fill
+const g=X.createRadialGradient(b.x,b.y,0,b.x,b.y,r);
+g.addColorStop(0,'rgba('+b.col[0]+','+b.col[1]+','+b.col[2]+','+(fade*b.str*.06)+')');
+g.addColorStop(1,'rgba(0,0,0,0)');
+X.fillStyle=g;X.beginPath();X.arc(b.x,b.y,r,0,6.28);X.fill();
 }
 
-// ============================================================
-// UPDATE LOOP
-// ============================================================
+// Shockwaves
+for(const s of shocks){
+const r=s.age*W*.12*(.5+s.str*.5),fade=Math.exp(-s.age*2);
+if(fade<.002)continue;
+X.strokeStyle='rgba(220,240,255,'+(fade*s.str*.15)+')';X.lineWidth=2+s.str*4;
+X.beginPath();X.arc(s.x,s.y,r,0,6.28);X.stroke();}
 
-let lastTime = 0;
-let globalTime = 0;
-
-function tick(timestamp) {
-  const dt = lastTime ? Math.min(timestamp - lastTime, 50) : 16;
-  lastTime = timestamp;
-  globalTime += dt * 0.001;
-
-  if (match.running) {
-  // Debug: log phase transitions
-  if (match.running && Math.floor(match.phaseTime / 100) !== Math.floor((match.phaseTime - dt) / 100)) {
-    console.log(`Phase: ${match.phase}, Time: ${(match.phaseTime/1000).toFixed(2)}s / ${(match.phaseDuration/1000).toFixed(2)}s`);
-
-    // Attract mode: cycle phases for visual interest
-    if (!match.wager) {
-      if (match.phaseTime > match.phaseDuration) {
-        if (match.phase === "breathe") {
-          match.phase = "compute";
-          match.phaseTime = 0;
-          match.phaseDuration = 4000;
-        } else {
-          match.phase = "breathe";
-          match.phaseTime = 0;
-          match.phaseDuration = 2000;
-        }
-      }
-    }
-
-  }
-
-    match.phaseTime += dt;
-    const progress = Math.min(1, match.phaseTime / match.phaseDuration);
-
-    // Phase creature behavior
-    const ally = creatures.ally;
-    const enemy = creatures.enemy;
-
-    switch (match.phase) {
-      case 'breathe':
-        ally.compression *= 0.93;
-        enemy.compression *= 0.93;
-        ally.energy = Math.sin(progress * Math.PI) * 0.15;
-        enemy.energy = Math.sin(progress * Math.PI + 0.6) * 0.15;
-        ally.lunge *= 0.92;
-        enemy.lunge *= 0.92;
-        ally.damage *= 0.93;
-        enemy.damage *= 0.93;
-        break;
-
-      case 'compute':
-        const tension = Math.pow(progress, 1.6);
-        ally.compression = tension * 0.75;
-        enemy.compression = tension * 0.75;
-        ally.energy = tension * 0.65;
-        enemy.energy = tension * 0.65;
-        break;
-
-      case 'resolve':
-        ally.compression = (1 - progress) * 0.75;
-        enemy.compression = (1 - progress) * 0.75;
-        break;
-
-      case 'impact':
-        if (progress < 0.08) {
-          const winner = match.roundWinner === 'left' ? ally : enemy;
-          const loser = match.roundWinner === 'left' ? enemy : ally;
-          winner.lunge = 1;
-          loser.damage = 1;
-          // Particles at impact point
-          const hw = humanCanvas.width;
-          const hh = humanCanvas.height;
-          spawnParticles(hw * 0.5, hh * 0.5, loser.color, 20);
-          // Event bar flash
-          const bar = document.getElementById('event-bar');
-          bar.className = 'event-bar ' + (match.roundWinner === 'left' ? 'flash-teal' : 'flash-amber');
-          setTimeout(() => bar.className = 'event-bar', 400);
-          // Screen shake
-          const split = document.getElementById('split');
-          const intensity = 6;
-          split.style.transform = `translate(${(Math.random()-0.5)*intensity}px, ${(Math.random()-0.5)*intensity}px)`;
-          setTimeout(() => split.style.transform = `translate(${(Math.random()-0.5)*intensity*0.6}px, ${(Math.random()-0.5)*intensity*0.6}px)`, 50);
-          setTimeout(() => split.style.transform = `translate(${(Math.random()-0.5)*intensity*0.3}px, ${(Math.random()-0.5)*intensity*0.3}px)`, 100);
-          setTimeout(() => split.style.transform = '', 180);
-        }
-        ally.lunge *= 0.88;
-        enemy.lunge *= 0.88;
-        ally.damage *= 0.91;
-        enemy.damage *= 0.91;
-        break;
-
-      case 'settle':
-        ally.lunge *= 0.94;
-        enemy.lunge *= 0.94;
-        ally.damage *= 0.95;
-        enemy.damage *= 0.95;
-        ally.energy *= 0.94;
-        enemy.energy *= 0.94;
-        break;
-    }
-
-    if (match.phaseTime >= match.phaseDuration) {
-      advancePhase();
-    }
-  }
-
-  // Render both sides
-  const aw = agentCanvas.width, ah = agentCanvas.height;
-  const hw = humanCanvas.width, hh = humanCanvas.height;
-  const phaseProgress = match.phaseDuration > 0 ? match.phaseTime / match.phaseDuration : 0;
-
-  drawAgentSide(agentCtx, aw, ah, globalTime, phaseProgress);
-  drawHumanSide(humanCtx, hw, hh, globalTime, phaseProgress);
-
-  requestAnimationFrame(tick);
+// Soul
+if(soul){const s=soul;
+const a=Math.max(0,s.life/s.mx);
+// Trail
+for(const tr of s.trail){
+const ta=tr.life/tr.mx*a;
+X.fillStyle='rgba('+s.col[0]+','+s.col[1]+','+s.col[2]+','+(ta*.12)+')';
+X.beginPath();X.arc(tr.x,tr.y,s.r*.7*ta,0,6.28);X.fill();
+}
+// Outer glow
+let g=X.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*4);
+g.addColorStop(0,'rgba('+s.col[0]+','+s.col[1]+','+s.col[2]+','+(a*.35)+')');
+g.addColorStop(.3,'rgba('+s.col[0]+','+s.col[1]+','+s.col[2]+','+(a*.12)+')');
+g.addColorStop(1,'rgba(0,0,0,0)');
+X.fillStyle=g;X.beginPath();X.arc(s.x,s.y,s.r*4,0,6.28);X.fill();
+// Core — white hot
+g=X.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*1.2);
+g.addColorStop(0,'rgba(255,255,255,'+(a*.9)+')');
+g.addColorStop(.3,'rgba(255,255,255,'+(a*.5)+')');
+g.addColorStop(.6,'rgba('+s.col[0]+','+s.col[1]+','+s.col[2]+','+(a*.4)+')');
+g.addColorStop(1,'rgba(0,0,0,0)');
+X.fillStyle=g;X.beginPath();X.arc(s.x,s.y,s.r*1.2,0,6.28);X.fill();
 }
 
-// ============================================================
-// x402 WAGER SYSTEM
-// ============================================================
+X.globalCompositeOperation='source-over';
 
-let selectedWager = 0;
-const protocolFee = 0.03;
+// HP bars — always visible during fight
+if(ST.phase==='fight'||ST.phase==='preDeath'){
+const bH=4,bW=W*.2,bY=H-22;
+const lH=Math.max(0,ST.lexHP/100),oH=Math.max(0,ST.oppHP/100);
 
-// Wager selection
-document.querySelectorAll('.wager-option').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.wager-option').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    selectedWager = parseInt(btn.dataset.amount);
-    document.getElementById('wager-confirm').classList.add('active');
-  });
+X.fillStyle='rgba('+cA.colI.join()+',0.06)';X.fillRect(W*.06,bY,bW,bH);
+if(lH>0){let g=X.createLinearGradient(W*.06,0,W*.06+bW*lH,0);
+g.addColorStop(0,'rgba('+cA.colI.join()+',0.4)');g.addColorStop(1,'rgba('+cA.colI.join()+',0.7)');
+X.fillStyle=g;X.fillRect(W*.06,bY,bW*lH,bH);}
+
+X.fillStyle='rgba('+cB.colI.join()+',0.06)';X.fillRect(W*.74,bY,bW,bH);
+if(oH>0){let g=X.createLinearGradient(W*.74,0,W*.74+bW*oH,0);
+g.addColorStop(0,'rgba('+cB.colI.join()+',0.4)');g.addColorStop(1,'rgba('+cB.colI.join()+',0.7)');
+X.fillStyle=g;X.fillRect(W*.74,bY,bW*oH,bH);}
+
+X.font='400 8px "Courier New",monospace';X.textBaseline='bottom';
+X.textAlign='left';X.fillStyle='rgba('+cA.colI.join()+',0.22)';X.fillText(cA.name,W*.06,bY-5);
+X.textAlign='right';X.fillStyle='rgba('+cB.colI.join()+',0.22)';X.fillText(cB.name,W*.74+bW,bY-5);
+}
+
+// Title card at fight start
+if(ST.phase==='idle'){
+const a=Math.min(1,gt/.8);
+X.textAlign='center';X.textBaseline='middle';
+X.font='300 '+Math.min(S*.09,48)+'px "Courier New",monospace';
+X.fillStyle='rgba(255,255,255,'+(a*.7)+')';
+X.fillText('N E R V E',W/2,H*.4);
+X.font='200 '+Math.min(S*.025,13)+'px system-ui';
+X.fillStyle='rgba(255,255,255,'+(a*.08)+')';
+X.fillText('feel what intelligence looks like',W/2,H*.48);
+}
+
+// VS card at fight start
+if(ST.phase==='fight'&&ST.round===0&&ST.beat==='breathe'){
+const el=gt-ST.phaseT;
+const a=Math.max(0,1-el/.8);
+X.textAlign='center';X.textBaseline='middle';
+X.font='400 '+Math.min(W*.025,11)+'px "Courier New",monospace';
+X.fillStyle='rgba('+cA.colI.join()+','+(a*.25)+')';
+X.fillText(cA.name,W*.28,H*.35);
+X.fillStyle='rgba(255,255,255,'+(a*.06)+')';
+X.fillText('vs',W/2,H*.35);
+X.fillStyle='rgba('+cB.colI.join()+','+(a*.25)+')';
+X.fillText(cB.name,W*.72,H*.35);
+}
+
+// Result card
+if(ST.phase==='result'){
+const el=gt-ST.phaseT;
+const a=Math.min(1,el/1.5);
+const wc=ST.winner===1?cA:cB;
+const lc=ST.winner===2?cA:cB;
+
+X.textAlign='center';X.textBaseline='middle';
+
+// Winner name — larger, bolder
+X.font='400 '+Math.min(W*.08,40)+'px "Courier New",monospace';
+X.fillStyle='rgba('+wc.colI.join()+','+(a*.25)+')';
+X.fillText(wc.name,W/2,H*.35);
+
+// WINS
+X.font='200 '+Math.min(W*.05,24)+'px "Courier New",monospace';
+X.fillStyle='rgba(255,255,255,'+(a*.1)+')';
+X.fillText('WINS',W/2,H*.42);
+
+// Defeated
+X.font='200 '+Math.min(W*.022,11)+'px "Courier New",monospace';
+X.fillStyle='rgba('+lc.colI.join()+','+(a*.07)+')';
+X.fillText('defeated '+lc.name,W/2,H*.48);
+
+// Divider line
+X.strokeStyle='rgba(255,255,255,'+(a*.03)+')';X.lineWidth=.5;
+X.beginPath();X.moveTo(W*.3,H*.53);X.lineTo(W*.7,H*.53);X.stroke();
+
+// NERVE branding + fee
+X.font='400 '+Math.min(W*.035,16)+'px "Courier New",monospace';
+X.fillStyle='rgba(255,255,255,'+(a*.06)+')';
+X.fillText('N E R V E',W/2,H*.58);
+
+X.font='200 '+Math.min(W*.02,10)+'px "Courier New",monospace';
+X.fillStyle='rgba(255,255,255,'+(a*.035)+')';
+X.fillText('x402 \u00B7 3% to the arena \u00B7 built on base',W/2,H*.63);
+
+// Share button + Rematch
+if(el>1.8){
+const p=Math.sin(gt*2)*.3+.7;
+
+// Share
+shareBtn.y=H*.71;shareBtn.visible=true;
+X.font='400 '+Math.min(W*.025,12)+'px "Courier New",monospace';
+X.fillStyle='rgba('+wc.colI.join()+','+(p*.12)+')';
+X.fillText('[ SHARE ]',W/2,shareBtn.y);
+
+if(shareFeedback>0){
+X.font='200 '+Math.min(W*.02,10)+'px "Courier New",monospace';
+X.fillStyle='rgba(255,255,255,'+(Math.min(shareFeedback,1)*.12)+')';
+X.fillText('copied to clipboard',W/2,shareBtn.y+18);
+}
+
+// Rematch
+X.font='200 10px system-ui';X.fillStyle='rgba(255,255,255,'+(p*.04)+')';
+X.fillText('tap below to rematch',W/2,H*.78);
+}else{shareBtn.visible=false;}
+}
+}
+
+// Click handler
+document.addEventListener('click',(e)=>{
+if(ST.phase==='result'){
+const y=e.clientY||e.touches?.[0]?.clientY||H/2;
+
+// Share button zone — upper half of result card
+if(shareBtn.visible&&y<H*.75){
+const wc=ST.winner===1?cA:cB;
+const lc=ST.winner===2?cA:cB;
+const text=wc.name+' defeated '+lc.name+' on NERVE\n\nx402 \u00B7 3% to the arena\nnerve.lexispawn.xyz';
+
+if(navigator.share){
+navigator.share({title:'NERVE',text}).catch(()=>{});
+}else if(navigator.clipboard){
+navigator.clipboard.writeText(text).then(()=>{shareFeedback=2;}).catch(()=>{});
+}
+return;
+}
+
+// Rematch — lower zone
+if(y>=H*.75){
+[cA,cB]=genPair();
+Object.assign(ST,{
+phase:'idle',phaseT:0,round:0,
+lf:0,of:0,lv:0,ov:0,sf:0,
+lexHP:100,oppHP:100,timeScale:1,
+winner:0,crackAmt:0,crackSide:0,
+beat:'breathe',bt:0,rw:'tie',rs:0
+});
+ST.lx.v=-.22;ST.lx.t=-.22;ST.lx.vel=0;
+ST.ox.v=.22;ST.ox.t=.22;ST.ox.vel=0;
+ST.ly.v=0;ST.ly.t=0;ST.ly.vel=0;ST.oy.v=0;ST.oy.t=0;ST.oy.vel=0;
+ST.ls.v=1;ST.ls.t=1;ST.ls.vel=0;ST.ls.st=16;
+ST.os.v=1;ST.os.t=1;ST.os.vel=0;ST.os.st=16;
+ST.le.v=.8;ST.le.t=.8;ST.le.vel=0;
+ST.oe.v=.8;ST.oe.t=.8;ST.oe.vel=0;
+ST.lfl.v=.3;ST.lfl.t=.3;ST.lfl.vel=0;
+ST.ofl.v=.3;ST.ofl.t=.3;ST.ofl.vel=0;
+gt=0;parts=[];blooms=[];shocks=[];soul=null;
+shareBtn.visible=false;shareFeedback=0;
+}
+}
 });
 
-// Watch demo button (no real wager)
-document.getElementById("watch-demo").addEventListener("click", () => {
-  if (!audioEnabled) initAudio();
-  
-  // Hide wager select, show match
-  document.getElementById("wager-select").classList.add("hidden");
-  document.querySelectorAll(".panel-label").forEach(el => el.style.opacity = "1");
-  
-  // Start demo match (no wager)
-  match.wager = 0;
-  match.running = true;
-  resize();
-  startPhase("breathe");
-  match.phaseDuration = 1200;
-});
-  match.phaseDuration = 1200; // Quick first breathe so graph lights up faster
+// Main loop
+let lt=0;
+function frame(ts){
+requestAnimationFrame(frame);
+const dt=lt?Math.min((ts-lt)/1000,.05):.016;lt=ts;
 
+update(dt);
 
-// Payout on match end
-function showPayout() {
-  const won = match.leftHP > match.rightHP;
-  const payout = won ? Math.floor(match.pool * (1 - protocolFee)) : 0;
-  const overlay = document.getElementById('payout-overlay');
-  
-  const resultEl = document.getElementById('payout-result');
-  resultEl.textContent = won ? 'victory' : 'defeat';
-  resultEl.style.color = won 
-    ? `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.7)` 
-    : `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0.5)`;
-  
-  const fmtAmt = (n) => n >= 1000000000 ? (n/1000000000).toFixed(1) + 'B' : (n/1000000).toFixed(0) + 'M';
-  document.getElementById('payout-amount').textContent = won 
-    ? `+${fmtAmt(payout)} $SPAWN collected`
-    : `-${fmtAmt(selectedWager)} $SPAWN`;
-  document.getElementById('payout-amount').style.color = won
-    ? `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, 0.5)`
-    : 'rgba(255, 90, 90, 0.4)';
-  
-  // Fake tx hash for demo
-  const txHash = '0x' + Array.from({length: 12}, () => Math.floor(Math.random()*16).toString(16)).join('') + '...';
-  document.getElementById('payout-tx').textContent = `settlement tx: ${txHash} · base`;
-  
-  overlay.classList.add('visible');
-  document.getElementById('wager-bar').style.display = 'none';
+const t=ts*.001,dr=Math.sin(t*.12)*.005;
+gl.uniform2f(U.R,glc.width,glc.height);
+gl.uniform1f(U.time,t);
+gl.uniform1f(U.lexX,ST.lx.v+dr);gl.uniform1f(U.oppX,ST.ox.v-dr);
+gl.uniform1f(U.lexY,ST.ly.v);gl.uniform1f(U.oppY,ST.oy.v);
+gl.uniform1f(U.lexE,Math.min(ST.le.v,1.5));gl.uniform1f(U.oppE,Math.min(ST.oe.v,1.5));
+gl.uniform1f(U.lexF,ST.lf);gl.uniform1f(U.oppF,ST.of);
+gl.uniform1f(U.lexS,Math.max(ST.ls.v,0));gl.uniform1f(U.oppS,Math.max(ST.os.v,0));
+gl.uniform1f(U.lexVib,ST.lv);gl.uniform1f(U.oppVib,ST.ov);
+gl.uniform1f(U.lexFlow,ST.lfl.v);gl.uniform1f(U.oppFlow,ST.ofl.v);
+gl.uniform1f(U.lexBP,cA.bp);gl.uniform1f(U.oppBP,cB.bp);
+gl.uniform1f(U.lexCX,cA.cx);gl.uniform1f(U.oppCX,cB.cx);
+gl.uniform1f(U.lexMT,cA.mt);gl.uniform1f(U.oppMT,cB.mt);
+gl.uniform3f(U.lexCol,cA.col[0],cA.col[1],cA.col[2]);
+gl.uniform3f(U.oppCol,cB.col[0],cB.col[1],cB.col[2]);
+gl.uniform1f(U.screenFlash,ST.sf);
+gl.uniform1f(U.crackAmt,ST.crackAmt);
+gl.uniform1f(U.crackSide,ST.crackSide);
+
+gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+drawOv();
 }
-
-document.getElementById('payout-again').addEventListener('click', () => {
-  document.getElementById('payout-overlay').classList.remove('visible');
-  
-  // Reset match
-  match.round = 1;
-  match.leftHP = 100;
-  match.rightHP = 100;
-  match.leftScore = 0;
-  match.rightScore = 0;
-  match.boost = 0;
-  match.disrupt = 0;
-  match.roundWinner = null;
-  creatures.ally.hp = 100;
-  creatures.enemy.hp = 100;
-  creatures.ally.lunge = 0;
-  creatures.enemy.lunge = 0;
-  creatures.ally.damage = 0;
-  creatures.enemy.damage = 0;
-  creatures.ally.energy = 0;
-  creatures.enemy.energy = 0;
-  creatures.ally.compression = 0;
-  creatures.enemy.compression = 0;
-  particles.length = 0;
-  graph.iterations = 0;
-  graph.bestScore = 0;
-  graph.bestPath = [];
-  graph.path = [];
-  document.getElementById('score-left').textContent = '0';
-  document.getElementById('score-right').textContent = '0';
-  document.getElementById('round-text').textContent = 'round 1';
-  
-  // Show wager select again
-  document.getElementById('wager-select').classList.remove('hidden');
-  selectedWager = 0;
-  document.querySelectorAll('.wager-option').forEach(b => b.classList.remove('selected'));
-  document.getElementById('wager-confirm').classList.remove('active');
-});
-
-// Start
-startPhase('breathe');
-// Attract mode only on desktop where transparent overlay shows the arena
-if (window.innerWidth >= 900) {
-  match.running = true;
-  try {
-    initAudio();
-    if (droneGain) droneGain.gain.value = 0.01;
-  } catch(e) {}
-} else {
-  match.running = false;
-}
-requestAnimationFrame(tick);
-
+requestAnimationFrame(frame);
 </script>
 </body>
 </html>
