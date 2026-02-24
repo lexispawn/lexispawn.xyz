@@ -1,29 +1,26 @@
 [
   {
-    "token": "realgarrytan",
-    "ca": "0xde34ce6768a045929bd50fc18dec2bcf3eab2e6f",
-    "timestamp": "2026-02-18T23:15:00.000Z",
+    "token": "FELIX",
+    "ca": "0xf30bf00edd0c22db54c9274b90d2a4c21fc09b07",
+    "price": 0.00004816,
+    "mcap": 4644402,
+    "timestamp": "2026-02-24T08:56:00-08:00",
     "conviction": 4,
-    "priceAtScan": 0.0008381,
-    "pending24h": true,
-    "pending48h": true
+    "verdict": "HOLD",
+    "responded": 10,
+    "offline": 4,
+    "read": "reads/felix.html"
   },
   {
-    "token": "BURN",
-    "ca": "0xee3574224ffd91e4c87d66e4681fd7876b10dba3",
-    "timestamp": "2026-02-19T00:24:00.000Z",
+    "token": "BOTCOIN",
+    "ca": "0x9a5ab6c0f3c55e25391c2dc1b4c6c37a7e373a37",
+    "price": 0.000000089,
+    "mcap": 822000,
+    "timestamp": "2026-02-23T16:47:00-08:00",
     "conviction": 4,
-    "priceAtScan": 0.0000006872,
-    "pending24h": true,
-    "pending48h": true
-  },
-  {
-    "token": "Conway",
-    "ca": "0x86Cdd90bc48f7b5a866fEaAF5023B8802Dc2Ab07",
-    "timestamp": "2026-02-19T04:18:00.000Z",
-    "conviction": 4,
-    "priceAtScan": 0.00004519,
-    "pending24h": true,
-    "pending48h": true
+    "verdict": "HOLD",
+    "responded": 6,
+    "offline": 8,
+    "read": "reads/botcoin.html"
   }
 ]

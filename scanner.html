@@ -666,3 +666,75 @@ h1 {
 
 </body>
 </html>
+
+<script>
+// Self-updating outcomes via scans.json + DexScreener API
+(async function() {
+  try {
+    const response = await fetch('scans.json');
+    const scans = await response.json();
+    
+    let verified = 0;
+    let correct = 0;
+    
+    for (const scan of scans) {
+      const scanTime = new Date(scan.timestamp);
+      const now = new Date();
+      const hoursElapsed = (now - scanTime) / (1000 * 60 * 60);
+      
+      if (hoursElapsed >= 24) {
+        try {
+          const priceResp = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${scan.ca}`);
+          const priceData = await priceResp.json();
+          
+          if (priceData.pairs && priceData.pairs.length > 0) {
+            const currentPrice = parseFloat(priceData.pairs[0].priceUsd);
+            const change24h = ((currentPrice - scan.price) / scan.price) * 100;
+            const change48h = hoursElapsed >= 48 ? change24h : null;
+            
+            // Update DOM
+            const rows = document.querySelectorAll('.scan-table tbody tr');
+            for (const row of rows) {
+              const ca = row.querySelector('.token-ca').textContent;
+              if (scan.ca.toLowerCase().includes(ca.toLowerCase().replace('...', '').substring(2))) {
+                const outcome24 = row.querySelectorAll('.outcome')[0];
+                const outcome48 = row.querySelectorAll('.outcome')[1];
+                
+                outcome24.textContent = change24h > 0 ? `+${change24h.toFixed(1)}%` : `${change24h.toFixed(1)}%`;
+                outcome24.className = change24h > 5 ? 'outcome outcome-up' : change24h < -5 ? 'outcome outcome-down' : 'outcome outcome-neutral';
+                
+                if (change48h !== null) {
+                  outcome48.textContent = change48h > 0 ? `+${change48h.toFixed(1)}%` : `${change48h.toFixed(1)}%`;
+                  outcome48.className = change48h > 5 ? 'outcome outcome-up' : change48h < -5 ? 'outcome outcome-down' : 'outcome outcome-neutral';
+                  verified++;
+                  
+                  // Check if conviction >= 7 and outcome matches verdict
+                  if (scan.conviction >= 7) {
+                    const predictedUp = scan.verdict === 'BUY';
+                    const actualUp = change48h > 0;
+                    if (predictedUp === actualUp) correct++;
+                  }
+                }
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Price fetch failed for', scan.token, e);
+        }
+      }
+    }
+    
+    // Update stats
+    document.getElementById('total-scans').textContent = scans.length;
+    document.getElementById('outcomes-verified').textContent = `${verified}/${scans.length}`;
+    if (verified > 0) {
+      const accuracy = (correct / verified * 100).toFixed(0);
+      document.getElementById('accuracy').textContent = `${accuracy}%`;
+      document.getElementById('accuracy').className = 'stat-value accent';
+    }
+  } catch (e) {
+    console.error('Scans loading failed:', e);
+  }
+})();
+</script>
