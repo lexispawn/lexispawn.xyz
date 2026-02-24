@@ -697,6 +697,26 @@ h1 {
       const now = new Date();
       const hoursElapsed = (now - scanTime) / (1000 * 60 * 60);
       
+      // Skip if no CA (can't fetch price)
+      if (!scan.ca || !scan.price) {
+        if (hoursElapsed >= 24) {
+          const rows = document.querySelectorAll('.scan-table tbody tr');
+          for (const row of rows) {
+            const tokenName = row.querySelector('.token-name').textContent;
+            if (tokenName.includes(scan.token)) {
+              row.querySelectorAll('.outcome')[0].textContent = 'No data';
+              row.querySelectorAll('.outcome')[0].className = 'outcome outcome-pending';
+              if (hoursElapsed >= 48) {
+                row.querySelectorAll('.outcome')[1].textContent = 'No data';
+                row.querySelectorAll('.outcome')[1].className = 'outcome outcome-pending';
+              }
+              break;
+            }
+          }
+        }
+        continue;
+      }
+      
       if (hoursElapsed >= 24) {
         try {
           const priceResp = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${scan.ca}`);
@@ -736,6 +756,23 @@ h1 {
           }
         } catch (e) {
           console.error('Price fetch failed for', scan.token, e);
+          
+          // Mark as delisted if CA exists but fetch failed
+          if (scan.ca && hoursElapsed >= 24) {
+            const rows = document.querySelectorAll('.scan-table tbody tr');
+            for (const row of rows) {
+              const tokenName = row.querySelector('.token-name').textContent;
+              if (tokenName.includes(scan.token)) {
+                row.querySelectorAll('.outcome')[0].textContent = 'Delisted';
+                row.querySelectorAll('.outcome')[0].className = 'outcome outcome-pending';
+                if (hoursElapsed >= 48) {
+                  row.querySelectorAll('.outcome')[1].textContent = 'Delisted';
+                  row.querySelectorAll('.outcome')[1].className = 'outcome outcome-pending';
+                }
+                break;
+              }
+            }
+          }
         }
       }
     }

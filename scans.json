@@ -22,5 +22,101 @@
     "responded": 6,
     "offline": 8,
     "read": "reads/botcoin.html"
+  },
+  {
+    "token": "MIGGLES",
+    "ca": null,
+    "price": null,
+    "mcap": 2900000,
+    "timestamp": "2026-02-19T22:34:00-08:00",
+    "conviction": 4,
+    "verdict": "HOLD",
+    "responded": 10,
+    "offline": 4,
+    "read": "reads/miggles.html"
+  },
+  {
+    "token": "SPAWN",
+    "ca": "0xc5962538b35Fa5b2307Da3Bb7a17Ada936A51b07",
+    "price": 0.0000004133,
+    "mcap": 40444,
+    "timestamp": "2026-02-19T20:46:00-08:00",
+    "conviction": 4,
+    "verdict": "HOLD",
+    "responded": 10,
+    "offline": 4,
+    "read": "reads/spawn.html"
+  },
+  {
+    "token": "Conway",
+    "ca": null,
+    "price": null,
+    "mcap": 3400000,
+    "timestamp": "2026-02-19T09:16:00-08:00",
+    "conviction": 6,
+    "verdict": "HOLD",
+    "responded": 10,
+    "offline": 4,
+    "read": "reads/conway.html"
+  },
+  {
+    "token": "OSO",
+    "ca": null,
+    "price": null,
+    "mcap": 338000,
+    "timestamp": "2026-02-19T00:18:00-08:00",
+    "conviction": 4,
+    "verdict": "HOLD",
+    "responded": 10,
+    "offline": 4,
+    "read": "reads/oso.html"
+  },
+  {
+    "token": "KIMCHI",
+    "ca": null,
+    "price": null,
+    "mcap": 1900000,
+    "timestamp": "2026-02-18T23:40:00-08:00",
+    "conviction": 9,
+    "verdict": "HOLD",
+    "responded": 10,
+    "offline": 4,
+    "read": "reads/kimchi.html"
+  },
+  {
+    "token": "Lumen",
+    "ca": null,
+    "price": null,
+    "mcap": 766000,
+    "timestamp": "2026-02-19T04:23:00-08:00",
+    "conviction": 5,
+    "verdict": "HOLD",
+    "responded": 10,
+    "offline": 4,
+    "read": "reads/lumen.html"
+  },
+  {
+    "token": "BURN",
+    "ca": null,
+    "price": null,
+    "mcap": 66600,
+    "timestamp": "2026-02-19T00:24:00-08:00",
+    "conviction": 4,
+    "verdict": "HOLD",
+    "responded": 10,
+    "offline": 4,
+    "read": "reads/burn.html"
+  },
+  {
+    "token": "realgarrytan",
+    "ca": null,
+    "price": null,
+    "mcap": 838000,
+    "timestamp": "2026-02-18T15:15:00-08:00",
+    "conviction": 4,
+    "verdict": "HOLD",
+    "responded": 10,
+    "offline": 4,
+    "read": "reads/realgarrytan.html"
   }
 ]
