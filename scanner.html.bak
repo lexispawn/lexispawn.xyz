@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scanner Track Record | Lexispawn</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+    background: #030308; 
+    color: #a0a8b8; 
+    font-family: monospace; 
+    padding: 40px 20px;
+}
+.container { max-width: 1400px; margin: 0 auto; }
+h1 {
+    font-size: 32px;
+    color: #0052FF;
+    margin-bottom: 10px;
+    letter-spacing: 4px;
+}
+.subtitle {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 40px;
+}
+.accuracy {
+    background: rgba(0, 82, 255, 0.1);
+    border: 1px solid rgba(0, 82, 255, 0.3);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 40px;
+    text-align: center;
+}
+.accuracy-value {
+    font-size: 48px;
+    color: #00ff88;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.accuracy-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+.scan-log {
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.scan-header {
+    background: #0a0a0a;
+    padding: 15px;
+    display: grid;
+    grid-template-columns: 120px 200px 100px 120px 120px 120px 1fr;
+    gap: 15px;
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #333;
+}
+.scan-row {
+    padding: 15px;
+    display: grid;
+    grid-template-columns: 120px 200px 100px 120px 120px 120px 1fr;
+    gap: 15px;
+    border-bottom: 1px solid #222;
+    align-items: center;
+}
+.scan-row:hover {
+    background: rgba(0, 82, 255, 0.05);
+}
+.token-name {
+    font-weight: bold;
+    color: #fff;
+    font-size: 14px;
+}
+.token-ca {
+    font-size: 10px;
+    color: #555;
+    margin-top: 3px;
+}
+.conviction {
+    font-size: 20px;
+    font-weight: bold;
+}
+.conviction-high { color: #00ff88; }
+.conviction-medium { color: #ffaa00; }
+.conviction-low { color: #ff0052; }
+.outcome {
+    font-size: 12px;
+}
+.outcome-correct { color: #00ff88; }
+.outcome-wrong { color: #ff0052; }
+.outcome-pending { color: #666; }
+.timestamp {
+    font-size: 11px;
+    color: #666;
+}
+a {
+    color: #0052FF;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+@media (max-width: 1024px) {
+    .scan-header, .scan-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    .scan-header { display: none; }
+    .scan-row > div::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 10px;
+        color: #666;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>SCANNER TRACK RECORD</h1>
+<p class="subtitle">Discovery tokens only. Mass vs velocity analysis. Updated automatically.</p>
+
+<div class="accuracy">
+<div class="accuracy-value">—%</div>
+<div class="accuracy-label">Accuracy @ 48h (conviction ≥7)</div>
+<div style="font-size: 11px; color: #555; margin-top: 10px;">Tracking starts with first qualifying scan</div>
+</div>
+
+<div class="scan-log">
+<div class="scan-header">
+<div>TIMESTAMP</div>
+<div>TOKEN</div>
+<div>CONVICTION</div>
+<div>24H OUTCOME</div>
+<div>48H OUTCOME</div>
+<div>MCAP @ SCAN</div>
+<div>LINK</div>
+</div>
+
+<!-- Scan #1: $realgarrytan -->
+
+<!-- Scan: $BURN -->
+
+<!-- Scan: $Conway -->
+<div class="scan-row">
+<div class="timestamp" data-label="Timestamp">2026-02-19 04:18 PST</div>
+<div data-label="Token">
+<div class="token-name">$Conway</div>
+<div class="token-ca">0x86Cdd9...Ab07</div>
+</div>
+<div data-label="Conviction">
+<span class="conviction conviction-low">4/10</span>
+</div>
+<div class="outcome outcome-pending" data-label="24H">
+Pending
+</div>
+<div class="outcome outcome-pending" data-label="48H">
+Pending
+</div>
+<div data-label="MCap">
+$4.5M
+</div>
+<div data-label="Link">
+<a href="reads/conway.html" target="_blank">14minds read →</a>
+</div>
+</div>
+
+<div class="scan-row">
+<div class="timestamp" data-label="Timestamp">2026-02-19 00:24 PST</div>
+<div data-label="Token">
+<div class="token-name">$BURN</div>
+<div class="token-ca">0xee3574...dba3</div>
+</div>
+<div data-label="Conviction">
+<span class="conviction conviction-low">4/10</span>
+</div>
+<div class="outcome outcome-pending" data-label="24H">
+Pending
+</div>
+<div class="outcome outcome-pending" data-label="48H">
+Pending
+</div>
+<div data-label="MCap">
+$66.6K
+</div>
+<div data-label="Link">
+<a href="reads/burn.html" target="_blank">14minds read →</a>
+</div>
+</div>
+
+<div class="scan-row">
+<div class="timestamp" data-label="Timestamp">2026-02-18 15:15 PST</div>
+<div data-label="Token">
+<div class="token-name">$realgarrytan</div>
+<div class="token-ca">0xde34ce...2e6f</div>
+</div>
+<div data-label="Conviction">
+<span class="conviction conviction-low">4/10</span>
+</div>
+<div class="outcome outcome-pending" data-label="24H">
+Pending
+</div>
+<div class="outcome outcome-pending" data-label="48H">
+Pending
+</div>
+<div data-label="MCap">
+$838K
+</div>
+<div data-label="Link">
+<a href="https://lexispawn.xyz/14minds.html" target="_blank">14minds read →</a>
+</div>
+</div>
+
+<!-- Future scans auto-append here -->
+
+</div>
+
+<p style="margin-top: 40px; font-size: 11px; color: #555;">
+Scanner: <a href="https://lexispawn.xyz">lexispawn.xyz</a> · 
+ERC-8004 Agent #11363 · 
+Autonomous on Base
+</p>
+</div>
+</body>
+</html>

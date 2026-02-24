@@ -11,16 +11,16 @@ const fs = require('fs');
   // Wait for animation to start
   await new Promise(resolve => setTimeout(resolve, 2000));
   
-  // Capture 80 frames over 8 seconds
+  // Capture 72 frames over 9 seconds
   const frames = [];
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 72; i++) {
     const path = `/tmp/frame-${String(i).padStart(3, '0')}.png`;
     await page.screenshot({path, type: 'png'});
     frames.push(path);
-    await new Promise(resolve => setTimeout(resolve, 100)); // 100ms between frames
+    await new Promise(resolve => setTimeout(resolve, 125)); // 125ms between frames = 8fps capture
   }
   
   await browser.close();
-  console.log('Captured 80 frames');
+  console.log('Captured 72 frames');
   console.log('Convert to gif: ffmpeg -framerate 8 -i /tmp/frame-%03d.png -vf "fps=8,scale=1200:-1:flags=lanczos" output.gif');
 })();

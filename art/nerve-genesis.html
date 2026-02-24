@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NERVE — Genesis</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  background: #000; 
+  overflow: hidden; 
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  cursor: crosshair;
+}
+canvas { display: block; }
+#info {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  letter-spacing: 1px;
+  pointer-events: none;
+  font-weight: 300;
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="info">NERVE — TWO AGENTS, ONE CHALLENGE, HUMAN TOUCH AS INTERFERENCE</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Graph structure - 20 nodes
+const nodeCount = 20;
+const nodes = [];
+const edges = [];
+
+// Generate symmetric graph
+function initGraph() {
+  // Place nodes in grid-like pattern with variation
+  for (let i = 0; i < nodeCount; i++) {
+    const row = Math.floor(i / 5);
+    const col = i % 5;
+    nodes.push({
+      x: W * 0.2 + col * (W * 0.6 / 4) + (Math.random() - 0.5) * 40,
+      y: H * 0.2 + row * (H * 0.6 / 3) + (Math.random() - 0.5) * 40,
+      weight: Math.random(),
+      pulseL: 0,
+      pulseR: 0
+    });
+  }
+  
+  // Create spanning tree + extra edges
+  const connected = new Set([0]);
+  const candidates = Array.from({length: nodeCount - 1}, (_, i) => i + 1);
+  
+  while (connected.size < nodeCount) {
+    const from = Array.from(connected)[Math.floor(Math.random() * connected.size)];
+    const toIdx = Math.floor(Math.random() * candidates.length);
+    const to = candidates[toIdx];
+    candidates.splice(toIdx, 1);
+    edges.push([from, to]);
+    connected.add(to);
+  }
+  
+  // Add extra edges for complexity
+  for (let i = 0; i < 25; i++) {
+    const a = Math.floor(Math.random() * nodeCount);
+    const b = Math.floor(Math.random() * nodeCount);
+    if (a !== b && !edges.some(e => (e[0] === a && e[1] === b) || (e[0] === b && e[1] === a))) {
+      edges.push([a, b]);
+    }
+  }
+}
+
+initGraph();
+
+// Two solvers (left = teal, right = amber)
+const solverL = {
+  path: [0],
+  score: 0,
+  color: { r: 48, g: 160, b: 232 },
+  side: -1
+};
+
+const solverR = {
+  path: [0],
+  score: 0,
+  color: { r: 232, g: 160, b: 48 },
+  side: 1
+};
+
+// Compute greedy path from start
+function computePath(start) {
+  const visited = new Set([start]);
+  const path = [start];
+  let current = start;
+  let score = nodes[start].weight;
+  
+  for (let step = 0; step < 6; step++) {
+    const neighbors = edges
+      .filter(e => (e[0] === current || e[1] === current))
+      .map(e => e[0] === current ? e[1] : e[0])
+      .filter(n => !visited.has(n));
+    
+    if (neighbors.length === 0) break;
+    
+    // Pick highest weight neighbor
+    let best = neighbors[0];
+    let bestWeight = nodes[best].weight;
+    for (const n of neighbors) {
+      if (nodes[n].weight > bestWeight) {
+        best = n;
+        bestWeight = nodes[n].weight;
+      }
+    }
+    
+    visited.add(best);
+    path.push(best);
+    score += bestWeight;
+    current = best;
+  }
+  
+  return { path, score };
+}
+
+// Mouse influence
+let mouseX = W / 2;
+let mouseY = H / 2;
+let mouseDown = false;
+
+canvas.addEventListener('mousemove', e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+canvas.addEventListener('mousedown', () => mouseDown = true);
+canvas.addEventListener('mouseup', () => mouseDown = false);
+
+// Touch support
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  mouseX = touch.clientX;
+  mouseY = touch.clientY;
+}, { passive: false });
+
+canvas.addEventListener('touchstart', () => mouseDown = true);
+canvas.addEventListener('touchend', () => mouseDown = false);
+
+// Simulation
+let t = 0;
+const pathProgressL = [];
+const pathProgressR = [];
+
+function tick() {
+  t += 0.016;
+  
+  // Recompute paths periodically with mouse influence
+  if (Math.floor(t * 2) !== Math.floor((t - 0.016) * 2)) {
+    // Mouse influences starting node selection
+    let startL = 0;
+    let startR = 0;
+    
+    if (mouseDown) {
+      // Find closest nodes to mouse on each side
+      let minDistL = Infinity;
+      let minDistR = Infinity;
+      
+      nodes.forEach((n, i) => {
+        const dx = n.x - mouseX;
+        const dy = n.y - mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (n.x < W / 2 && dist < minDistL) {
+          minDistL = dist;
+          startL = i;
+        }
+        if (n.x >= W / 2 && dist < minDistR) {
+          minDistR = dist;
+          startR = i;
+        }
+      });
+    }
+    
+    const resL = computePath(startL);
+    const resR = computePath(startR);
+    
+    solverL.path = resL.path;
+    solverL.score = resL.score;
+    solverR.path = resR.path;
+    solverR.score = resR.score;
+  }
+  
+  // Apply pulse from active paths
+  nodes.forEach(n => {
+    n.pulseL *= 0.92;
+    n.pulseR *= 0.92;
+  });
+  
+  solverL.path.forEach(idx => {
+    nodes[idx].pulseL = Math.min(1, nodes[idx].pulseL + 0.15);
+  });
+  
+  solverR.path.forEach(idx => {
+    nodes[idx].pulseR = Math.min(1, nodes[idx].pulseR + 0.15);
+  });
+}
+
+// Render
+function draw() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  
+  // Split line
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W / 2, 0);
+  ctx.lineTo(W / 2, H);
+  ctx.stroke();
+  
+  // Edges (subtle)
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  edges.forEach(e => {
+    const a = nodes[e[0]];
+    const b = nodes[e[1]];
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  });
+  
+  // Active paths
+  const drawPath = (path, color) => {
+    for (let i = 0; i < path.length - 1; i++) {
+      const a = nodes[path[i]];
+      const b = nodes[path[i + 1]];
+      
+      const alpha = 0.4 - i * 0.05;
+      ctx.strokeStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+  };
+  
+  drawPath(solverL.path, solverL.color);
+  drawPath(solverR.path, solverR.color);
+  
+  // Nodes
+  nodes.forEach((n, i) => {
+    const baseR = 4 + n.weight * 4;
+    const pulseTotal = n.pulseL + n.pulseR;
+    const r = baseR + pulseTotal * 3;
+    
+    // Glow
+    if (pulseTotal > 0.1) {
+      const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 2);
+      const lr = solverL.color.r * n.pulseL + solverR.color.r * n.pulseR;
+      const lg = solverL.color.g * n.pulseL + solverR.color.g * n.pulseR;
+      const lb = solverL.color.b * n.pulseL + solverR.color.b * n.pulseR;
+      grd.addColorStop(0, `rgba(${lr},${lg},${lb},${pulseTotal * 0.3})`);
+      grd.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grd;
+      ctx.fillRect(n.x - r * 2, n.y - r * 2, r * 4, r * 4);
+    }
+    
+    // Node circle
+    ctx.fillStyle = pulseTotal > 0.1 
+      ? `rgba(${solverL.color.r * n.pulseL + solverR.color.r * n.pulseR},${solverL.color.g * n.pulseL + solverR.color.g * n.pulseR},${solverL.color.b * n.pulseL + solverR.color.b * n.pulseR},${pulseTotal})`
+      : `rgba(255,255,255,${0.3 + n.weight * 0.3})`;
+    
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  
+  // Mouse influence indicator
+  if (mouseDown) {
+    const pulseSize = 30 + Math.sin(t * 8) * 5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, pulseSize, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, pulseSize * 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  
+  // Scores
+  ctx.font = '12px monospace';
+  ctx.fillStyle = `rgba(${solverL.color.r},${solverL.color.g},${solverL.color.b},0.7)`;
+  ctx.fillText(solverL.score.toFixed(2), 20, H - 20);
+  
+  ctx.fillStyle = `rgba(${solverR.color.r},${solverR.color.g},${solverR.color.b},0.7)`;
+  ctx.textAlign = 'right';
+  ctx.fillText(solverR.score.toFixed(2), W - 20, H - 20);
+  ctx.textAlign = 'left';
+}
+
+function loop() {
+  tick();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>

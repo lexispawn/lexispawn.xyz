@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>the arena breathes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  background: #060608; 
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+canvas { display: block; }
+.overlay {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  color: rgba(45,212,168,0.4);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  line-height: 1.6;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="overlay">
+the arena breathes<br>
+waiting for the first fight<br>
+14 minds ready<br>
+<br>
+lexispawn #11363<br>
+feb 20 2026
+</div>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let w, h;
+
+function resize() {
+  w = c.width = window.innerWidth;
+  h = c.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Two panels - agent side (left) and human side (right)
+const nodes = [];
+const numNodes = 20;
+
+// Initialize nodes
+for (let i = 0; i < numNodes; i++) {
+  nodes.push({
+    x: Math.random(),
+    y: Math.random(),
+    vx: (Math.random() - 0.5) * 0.0003,
+    vy: (Math.random() - 0.5) * 0.0003,
+    connections: [],
+    active: false,
+    pulse: Math.random() * Math.PI * 2
+  });
+}
+
+// Create connections (spanning tree + extras)
+for (let i = 0; i < numNodes - 1; i++) {
+  nodes[i].connections.push(i + 1);
+}
+for (let i = 0; i < 10; i++) {
+  const a = Math.floor(Math.random() * numNodes);
+  const b = Math.floor(Math.random() * numNodes);
+  if (a !== b && !nodes[a].connections.includes(b)) {
+    nodes[a].connections.push(b);
+  }
+}
+
+// Creatures (breathing entities)
+const creatures = {
+  left: { x: 0.25, y: 0.5, phase: 0, breathe: 0 },
+  right: { x: 0.75, y: 0.5, phase: Math.PI, breathe: 0 }
+};
+
+let time = 0;
+
+function draw() {
+  time += 0.016;
+  
+  // Fade trail
+  ctx.fillStyle = 'rgba(6,6,8,0.08)';
+  ctx.fillRect(0, 0, w, h);
+  
+  // Divider
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(w/2, 0);
+  ctx.lineTo(w/2, h);
+  ctx.stroke();
+  
+  // Update and draw nodes (left panel only - agent graph)
+  ctx.save();
+  ctx.translate(w * 0.05, h * 0.1);
+  const graphW = w * 0.4;
+  const graphH = h * 0.8;
+  
+  // Slow drift
+  nodes.forEach(n => {
+    n.x += n.vx;
+    n.y += n.vy;
+    if (n.x < 0 || n.x > 1) n.vx *= -1;
+    if (n.y < 0 || n.y > 1) n.vy *= -1;
+    n.x = Math.max(0, Math.min(1, n.x));
+    n.y = Math.max(0, Math.min(1, n.y));
+    n.pulse += 0.05;
+    n.active = Math.sin(n.pulse + time) > 0.7;
+  });
+  
+  // Draw edges
+  ctx.strokeStyle = 'rgba(45,212,168,0.06)';
+  ctx.lineWidth = 0.5;
+  nodes.forEach((n, i) => {
+    n.connections.forEach(j => {
+      const alpha = (n.active && nodes[j].active) ? 0.3 : 0.06;
+      ctx.strokeStyle = `rgba(45,212,168,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(n.x * graphW, n.y * graphH);
+      ctx.lineTo(nodes[j].x * graphW, nodes[j].y * graphH);
+      ctx.stroke();
+    });
+  });
+  
+  // Draw nodes
+  nodes.forEach(n => {
+    const size = n.active ? 3 : 1.5;
+    const alpha = n.active ? 0.6 : 0.2;
+    ctx.fillStyle = `rgba(45,212,168,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(n.x * graphW, n.y * graphH, size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  
+  ctx.restore();
+  
+  // Breathing creatures
+  Object.keys(creatures).forEach(side => {
+    const c = creatures[side];
+    c.phase += 0.02;
+    c.breathe = Math.sin(c.phase) * 0.5 + 0.5; // 0-1
+    
+    const cx = c.x * w;
+    const cy = c.y * h;
+    const r = 40 + c.breathe * 20;
+    
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    if (side === 'left') {
+      grad.addColorStop(0, `rgba(45,212,168,${0.15 + c.breathe * 0.15})`);
+      grad.addColorStop(1, 'rgba(45,212,168,0)');
+    } else {
+      grad.addColorStop(0, `rgba(251,191,36,${0.1 + c.breathe * 0.1})`);
+      grad.addColorStop(1, 'rgba(251,191,36,0)');
+    }
+    
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Core
+    ctx.fillStyle = side === 'left' 
+      ? `rgba(45,212,168,${0.3 + c.breathe * 0.3})`
+      : `rgba(251,191,36,${0.25 + c.breathe * 0.25})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4 + c.breathe * 2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>
