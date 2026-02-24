@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,maximum-scale=1">
+<title>NERVE</title>
+<meta property="og:title" content="NERVE — feel what intelligence looks like">
+<meta property="og:description" content="AI agents compete. One shatters. x402 · 3% to the arena · built on Base">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nerve.lexispawn.xyz">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NERVE">
+<meta name="twitter:description" content="AI agents compete. One shatters. x402 · 3% to the arena.">
+<meta name="theme-color" content="#000000">
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#000;overflow:hidden;touch-action:none;-webkit-user-select:none}canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}#ov{z-index:1}</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="ov"></canvas>
+<script>
+const glc=document.getElementById('gl');
+const gl=glc.getContext('webgl',{antialias:false,alpha:false});
+const ovc=document.getElementById('ov');
+const X=ovc.getContext('2d');
+let W,H,dpr,S;
+function resize(){
+W=innerWidth;H=innerHeight;S=Math.min(W,H);dpr=Math.min(devicePixelRatio||1,1.5);
+glc.width=ovc.width=W*dpr;glc.height=ovc.height=H*dpr;
+glc.style.width=ovc.style.width=W+'px';
+glc.style.height=ovc.style.height=H+'px';
+gl.viewport(0,0,glc.width,glc.height);
+}
+addEventListener('resize',resize);resize();
+
+function cs(t,s){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);
+if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(sh));return null;}return sh;}
+
+const VS=cs(gl.VERTEX_SHADER,'attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}');
+
+const FS=cs(gl.FRAGMENT_SHADER,`
+precision highp float;
+uniform vec2 R;
+uniform float time;
+uniform float lexX,oppX,lexY,oppY;
+uniform float lexE,oppE,lexF,oppF,lexS,oppS;
+uniform float lexVib,oppVib,lexFlow,oppFlow;
+uniform float lexBP,oppBP,lexCX,oppCX,lexMT,oppMT;
+uniform vec3 lexCol,oppCol;
+uniform float screenFlash;
+
+// Shatter crack uniforms
+uniform float crackAmt; // 0-1 how cracked
+uniform float crackSide; // 1=left, 2=right, 0=none
+
+float sdEll(vec3 p,vec3 r){float k0=length(p/r);return k0<.001?-min(r.x,min(r.y,r.z)):k0*(k0-1.)/max(length(p/(r*r)),.0001);}
+float sm(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
+float h31(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5);}float n3(vec3 p){vec3 i=floor(p),f=fract(p);f*=f*(3.-2.*f);
+float a=h31(i),b=h31(i+vec3(1,0,0)),c=h31(i+vec3(0,1,0)),d=h31(i+vec3(1,1,0));
+float e=h31(i+vec3(0,0,1)),f2=h31(i+vec3(1,0,1)),g=h31(i+vec3(0,1,1)),h2=h31(i+vec3(1,1,1));
+return mix(mix(mix(a,b,f.x),mix(c,d,f.x),f.y),mix(mix(e,f2,f.x),mix(g,h2,f.x),f.y),f.z);}
+
+float crea(vec3 p,float t,float bp,float cx,float mt,float sc,float fc,float vib,float crack){
+p.x+=sin(t*45.+p.y*30.)*vib*.003;
+p.y+=cos(t*38.+p.x*25.)*vib*.002;
+
+float br=sin(t*.55)*.008*sc;
+float bw=mix(.14,.1,bp)*sc;float bh=mix(.13,.19,bp)*sc;
+vec3 b2=p-vec3(0,br,0);
+float yNorm=clamp(b2.y/max(bh,.001),-1.,1.);
+float wMod=1.-.15*yNorm*yNorm+.05*yNorm;
+float cr=sdEll(b2,vec3(bw*wMod,bh,bw*wMod*.9));
+
+// Shoulders
+if(cx>2.5){for(int i=0;i<2;i++){float s=float(i)*2.-1.;
+cr=sm(cr,length(p-vec3(s*bw*.7,bh*.25+br,s*.012))-(.032+mt*.012)*sc,.05);}}
+
+// Crown
+if(cx>3.5){for(int i=0;i<4;i++){float fi=float(i);
+float a2=-.9+fi*.6+sin(t*.18+fi*1.1)*.05;float ex=(.04+mt*.02)*sc;
+cr=sm(cr,length(p-vec3(cos(a2)*ex*fc,bh*.8+mix(.04,.09,bp)*sc+sin(a2)*ex,sin(fi*1.2+t*.12)*.015*sc))-(.014+mt*.005)*sc,.035);}}
+
+// Trailing fins
+if(cx>4.5){for(int i=0;i<3;i++){float fi=float(i);
+float ta=.85+(fi-1.)*.3+sin(t*.15+fi)*.08;float tl=(.05+mt*.02)*sc;
+cr=sm(cr,length(p-vec3(cos(ta)*tl*.3*fc,-.06*sc-sin(ta)*tl,sin(fi*1.4+t*.12)*.015*sc))-.016*sc,.04);}}
+
+// Surface displacement
+float disp=n3(p*18.+vec3(t*1.8,-t*1.1,t*.7))-.5;
+disp+=n3(p*35.+vec3(-t*2.3,t*1.5,t*1.2))*.3-.15;
+cr+=disp*(.004+vib*.006);
+
+// CRACK LINES — bright fractures that widen
+if(crack>.01){
+float crk=0.;
+for(int i=0;i<5;i++){
+float fi=float(i);
+float ca=fi*1.256+.3; // distribute around
+vec3 cd=vec3(cos(ca),sin(ca*.7+.5),sin(ca*.4));
+float cl=dot(normalize(p),cd);
+cl=1.-smoothstep(0.,.008+crack*.015,abs(cl-fract(fi*.618)*2.+1.));
+crk=max(crk,cl);
+}
+cr-=crk*crack*.012; // cracks open the surface
+}
+
+return cr;
+}
+
+void main(){
+vec2 uv=(gl_FragCoord.xy/R)*2.-1.;float asp=R.x/R.y;uv.x*=asp;
+float t=time;
+vec3 ro=vec3(0,0,.55),rd=normalize(vec3(uv,-1.4));
+
+vec3 bg=vec3(.018,.025,.04);
+bg+=lexCol*.08*exp(-length(uv-vec2(lexX*asp,lexY))*1.8)*.5*lexE;
+bg+=oppCol*.08*exp(-length(uv-vec2(oppX*asp,oppY))*1.8)*.5*oppE;
+
+float td=0.,mL=10.,mR=10.;int hit=0;vec3 p;
+
+float lCrack=crackSide<1.5?crackAmt:0.;
+float rCrack=crackSide>1.5?crackAmt:crackSide>.5?0.:0.;
+if(crackSide>1.5)rCrack=crackAmt;
+
+for(int i=0;i<52;i++){
+p=ro+rd*td;
+float dL=lexS>.01?crea(p-vec3(lexX,lexY,0),t,lexBP,lexCX,lexMT,lexS,1.,lexVib,lCrack):10.;
+float dR=oppS>.01?crea(p-vec3(oppX,oppY,0),t+1.5,oppBP,oppCX,oppMT,oppS,-1.,oppVib,rCrack):10.;
+mL=min(mL,dL);mR=min(mR,dR);
+float dm=min(dL,dR);
+if(dm<.0015){hit=dL<dR?1:2;break;}
+if(td>1.8)break;td+=max(dm*.8,.001);}
+
+vec3 col=bg;
+col+=lexCol*exp(-mL*22.)*.18*lexE;
+col+=oppCol*exp(-mR*22.)*.18*oppE;
+
+if(hit>0){
+float e2=.001;vec3 n;vec3 bc2,rc,gc,ic;float fl,ck;
+if(hit==1){vec3 lp=p-vec3(lexX,lexY,0);float d0=crea(lp,t,lexBP,lexCX,lexMT,lexS,1.,lexVib,lCrack);
+n=normalize(vec3(crea(lp+vec3(e2,0,0),t,lexBP,lexCX,lexMT,lexS,1.,lexVib,lCrack)-d0,
+crea(lp+vec3(0,e2,0),t,lexBP,lexCX,lexMT,lexS,1.,lexVib,lCrack)-d0,
+crea(lp+vec3(0,0,e2),t,lexBP,lexCX,lexMT,lexS,1.,lexVib,lCrack)-d0));
+bc2=lexCol*.15;rc=lexCol;gc=lexCol*1.2+vec3(.2);ic=lexCol*.5;fl=lexFlow;ck=lCrack;
+}else{vec3 rp=p-vec3(oppX,oppY,0);float d0=crea(rp,t+1.5,oppBP,oppCX,oppMT,oppS,-1.,oppVib,rCrack);
+n=normalize(vec3(crea(rp+vec3(e2,0,0),t+1.5,oppBP,oppCX,oppMT,oppS,-1.,oppVib,rCrack)-d0,
+crea(rp+vec3(0,e2,0),t+1.5,oppBP,oppCX,oppMT,oppS,-1.,oppVib,rCrack)-d0,
+crea(rp+vec3(0,0,e2),t+1.5,oppBP,oppCX,oppMT,oppS,-1.,oppVib,rCrack)-d0));
+bc2=oppCol*.15;rc=oppCol;gc=oppCol*1.2+vec3(.2);ic=oppCol*.5;fl=oppFlow;ck=rCrack;}
+
+vec3 ld=normalize(vec3(.3,.6,.4)),vd=normalize(ro-p);
+float df=max(dot(n,ld),0.),fr=pow(1.-max(dot(n,vd),0.),3.5);
+float ss=pow(max(dot(vd,-ld+n*.4),0.),2.)*.35;
+float bl=pow(max(dot(n,normalize(vec3(-.2,-.3,-.5))),0.),2.)*.2;
+vec3 sf=bc2*(.3+df*.5)+rc*fr*.85+gc*pow(fr,5.)*.35+ic*ss+rc*bl;
+sf+=gc*pow(max(dot(n,normalize(ld+vd)),0.),40.)*.25;
+
+vec3 fp2=p*(18.+fl*8.)+vec3(t*fl*2.,-t*fl*1.2,t*fl*.8);float flw=n3(fp2)*.6+n3(fp2*1.4+vec3(0,t*fl*.6,0))*.4;
+sf+=ic*flw*(.06+fl*.08)*(1.-fr);
+
+// Core light
+float fc2=hit==1?1.:-1.;
+float sc2=hit==1?lexS:oppS;
+vec3 lop=p-vec3(hit==1?lexX:oppX,hit==1?lexY:oppY,0);
+vec3 core=vec3(0,.02*sc2,0);
+float coreGlow=exp(-length(lop-core)*40.);
+sf+=gc*coreGlow*1.8+vec3(1)*coreGlow*.8;
+
+// Orbiting nodes
+float nodes=0.;
+for(int j=0;j<3;j++){
+float fj=float(j);
+float na=t*(.8+fj*.3)+fj*2.09;
+float nr=(.04+fj*.015)*sc2;
+vec3 np=vec3(cos(na)*nr*fc2,sin(na*.7+fj)*nr*.8+.02*sc2,sin(na*.5)*nr*.6);
+nodes+=exp(-length(lop-np)*55.);}
+sf+=gc*nodes*.6+vec3(1)*nodes*.25;
+
+// Crack glow — bright inner light bleeding through fractures
+if(ck>.01){
+float crGlow=0.;
+for(int i=0;i<5;i++){
+float fi=float(i);
+float ca=fi*1.256+.3;
+vec3 cd=vec3(cos(ca),sin(ca*.7+.5),sin(ca*.4));
+float cl=dot(normalize(lop),cd);
+cl=1.-smoothstep(0.,.01+ck*.02,abs(cl-fract(fi*.618)*2.+1.));
+crGlow=max(crGlow,cl);
+}
+sf+=gc*crGlow*ck*2.5+vec3(1)*crGlow*ck*1.2;
+}
+
+float hf=hit==1?lexF:oppF;sf+=gc*hf*.6+vec3(1)*hf*.4;
+float en=hit==1?lexE:oppE;sf*=.35+clamp(en,0.,1.5)*.65;
+col=sf;
+}
+
+col*=1.-length(uv)*.2;
+col+=vec3(1)*screenFlash*.2;
+col=pow(max(col,vec3(0)),vec3(.92));
+gl_FragColor=vec4(col,1);
+}
+`);
+
+if(!VS||!FS)throw'Shader fail';
+const P=gl.createProgram();gl.attachShader(P,VS);gl.attachShader(P,FS);gl.linkProgram(P);
+if(!gl.getProgramParameter(P,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(P));throw'Link fail';}
+gl.useProgram(P);
+
+const vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const pp=gl.getAttribLocation(P,'p');gl.enableVertexAttribArray(pp);
+gl.vertexAttribPointer(pp,2,gl.FLOAT,false,0,0);
+
+const U={};
+['R','time','lexX','oppX','lexY','oppY','lexE','oppE','lexF','oppF','lexS','oppS',
+ 'lexVib','oppVib','lexFlow','oppFlow',
+ 'lexBP','oppBP','lexCX','oppCX','lexMT','oppMT',
+ 'lexCol','oppCol','screenFlash','crackAmt','crackSide'
+].forEach(n=>U[n]=gl.getUniformLocation(P,n));
+
+// Creature generation
+function hashF(seed){let h=seed*2654435761>>>0;return(h&0xFFFF)/65535;}
+function hsl2rgb(h,s,l){
+h=((h%360)+360)%360;
+const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+let r=0,g=0,b=0;
+if(h<60){r=c;g=x;}else if(h<120){r=x;g=c;}else if(h<180){g=c;b=x;}
+else if(h<240){g=x;b=c;}else if(h<300){r=x;b=c;}else{r=c;b=x;}
+return[r+m,g+m,b+m];
+}
+
+function genCreature(seed,hueRange){
+const hSpan=hueRange[1]-hueRange[0];
+const hue=hueRange[0]+hashF(seed)*hSpan;
+const sat=.6+hashF(seed+7)*.35;
+const lit=.35+hashF(seed+13)*.2;
+const col=hsl2rgb(hue,sat,lit);
+return{
+bp:.1+hashF(seed+1)*.8,cx:2+hashF(seed+2)*4,mt:.2+hashF(seed+3)*.7,
+st:hashF(seed+4),col:col,
+colI:[Math.round(col[0]*255),Math.round(col[1]*255),Math.round(col[2]*255)],
+name:'AGENT #'+String(Math.floor(hashF(seed+5)*99999)).padStart(5,'0'),seed
+};
+}
+
+function genPair(){
+let sA=Math.floor(Math.random()*999999),sB=Math.floor(Math.random()*999999);
+const aWarm=Math.random()>.5;
+const aRange=aWarm?[hashF(sA+99)>.5?330:0,hashF(sA+99)>.5?420:60]:[120,270];
+const bRange=aWarm?[120,270]:[hashF(sB+99)>.5?330:0,hashF(sB+99)>.5?420:60];
+return[genCreature(sA,aRange),genCreature(sB,bRange)];
+}
+
+let [cA,cB]=genPair();
+
+// Spring physics
+function mkS(v,st,dm){return{v:v,t:v,vel:0,st:st||14,dm:dm||.6};}
+function upS(s,dt){s.vel+=(s.t-s.v)*s.st*dt;s.vel*=Math.pow(s.dm,dt*60);s.v+=s.vel*dt;return s.v;}
+
+// State
+let gt=0;
+const ST={
+phase:'idle', // idle, fight, preDeath, freeze, shatter, soul, result
+phaseT:0,
+round:0,
+lx:mkS(-.22),ly:mkS(0),ls:mkS(1,16),le:mkS(.8),lfl:mkS(.3),
+ox:mkS(.22),oy:mkS(0),os:mkS(1,16),oe:mkS(.8),ofl:mkS(.3),
+lf:0,of:0,lv:0,ov:0,sf:0,
+lexHP:100,oppHP:100,
+timeScale:1,
+winner:0, // 1=left, 2=right
+crackAmt:0,crackSide:0,
+deathX:0,deathY:0,
+beat:'breathe',bt:0,rw:'tie',rs:0,
+};
+
+// Particles
+let parts=[],blooms=[],shocks=[],frags=[],soul=null;
+let shareBtn={y:0,visible:false};
+let shareFeedback=0;
+
+function spFrag(x,y,col,n,str){
+for(let i=0;i<n;i++){
+const a=Math.random()*6.28,spd=(15+Math.random()*50)*str;
+const sz=3+Math.random()*8+str*5;
+parts.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-Math.random()*20,
+r:sz,life:3+Math.random()*2,mx:3+Math.random()*2,
+col:[Math.min(255,col[0]+60),Math.min(255,col[1]+60),Math.min(255,col[2]+60)],
+g:15+Math.random()*10,d:1.2,rot:Math.random()*6.28,rotV:(Math.random()-.5)*4,
+isFrag:true});
+}
+}
+
+function spBloom(x,y,col,str){
+blooms.push({x,y,col,str,age:0,mr:S*.06+str*S*.04});}
+
+function spShock(x,y,str){
+shocks.push({x,y,str,age:0});}
+
+function spBurst(x,y,col,n){
+for(let i=0;i<n;i++){
+const a=Math.random()*6.28,spd=5+Math.random()*25;
+parts.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,
+r:1+Math.random()*2.5,life:1.5+Math.random(),mx:1.5+Math.random(),
+col,g:8,d:2,isFrag:false});}}
+
+// Auto-fight sequence
+function runFight(){
+const el=gt-ST.bt;
+if(ST.phase!=='fight')return;
+
+if(ST.beat==='breathe'){
+ST.lfl.t=.25;ST.ofl.t=.25;ST.lv=0;ST.ov=0;
+ST.ls.t=1;ST.os.t=1;ST.le.t=.3+ST.lexHP/100*.7;ST.oe.t=.3+ST.oppHP/100*.7;
+ST.lx.t=-.22;ST.ox.t=.22;ST.ly.t=0;ST.oy.t=0;
+if(el>1.2){ST.beat='search';ST.bt=gt;ST.round++;}
+}else if(ST.beat==='search'){
+const pr=Math.min(el/1.8,1);
+ST.lfl.t=.4+pr*1.2;ST.ofl.t=.4+pr*1.2;
+ST.lv=pr*.3;ST.ov=pr*.3;
+ST.ls.t=1-.05*pr;ST.os.t=1-.05*pr;
+ST.le.t=Math.min(1.3,.5+pr*.6);ST.oe.t=Math.min(1.3,.5+pr*.6);
+if(Math.random()<pr*.06){ST.lf=.06;spBurst(W*.28,H*.48,cA.colI,3);}
+if(Math.random()<pr*.06){ST.of=.06;spBurst(W*.72,H*.48,cB.colI,3);}
+if(el>1.8){ST.beat='impact';ST.bt=gt;doImpact();}
+}else if(ST.beat==='impact'){
+if(el>.6){ST.beat='settle';ST.bt=gt;}
+}else if(ST.beat==='settle'){
+ST.lfl.t=.2;ST.ofl.t=.2;ST.lv=0;ST.ov=0;
+ST.ls.t=1;ST.os.t=1;
+ST.lx.t=-.22;ST.ox.t=.22;
+if(el>1.5){
+if(ST.lexHP<=0||ST.oppHP<=0){
+startDeath();
+}else if(ST.round>=3){
+// Force kill after 3 rounds
+if(ST.lexHP<=ST.oppHP)ST.lexHP=0;else ST.oppHP=0;
+startDeath();
+}else{ST.beat='breathe';ST.bt=gt;}
+}
+}
+}
+
+function doImpact(){
+// Alternate who wins rounds, last round kills
+const isLast=ST.round>=3;
+let w;
+if(ST.round===1)w='lex';
+else if(ST.round===2)w='opp';
+else w=Math.random()>.5?'lex':'opp';
+
+const s=isLast?.9:.5+Math.random()*.3;
+const dir=w==='lex'?1:-1;
+const atk=w==='lex'?'l':'o';
+const def=w==='lex'?'o':'l';
+const dm=isLast?55:12+Math.random()*8+s*10;
+
+// Lunge
+ST[atk+'x'].t=(atk==='l'?-.22:.22)+dir*.08*s;
+ST[atk+'x'].st=20;
+
+setTimeout(()=>{
+const defC=def==='l'?cA:cB;
+const dx=def==='l'?W*.28:W*.72,dy=H*.48;
+
+if(def==='l')ST.lexHP=Math.max(0,ST.lexHP-dm);
+else ST.oppHP=Math.max(0,ST.oppHP-dm);
+
+ST[def+'x'].vel=dir*4*s;
+ST[atk+'e'].t=Math.min(1.4,ST[atk+'e'].v+s*.3);
+ST[def+'e'].t=Math.max(.15,ST[def+'e'].v-s*.2);
+ST.sf=s*.4;
+ST[def+'f']=s*.3;
+
+spFrag(dx,dy,defC.colI,Math.floor(6+s*14),s);
+spBloom(dx,dy,defC.colI,s);
+spShock(dx,dy,s);
+
+if(navigator.vibrate)navigator.vibrate(s>.6?[20,10,28,8,22]:[12,8,15]);
+},140);
+}
+
+function startDeath(){
+ST.phase='preDeath';ST.phaseT=gt;
+ST.winner=ST.lexHP<=0?2:1;
+
+const loser=ST.winner===2?'l':'o';
+const loserC=ST.winner===2?cA:cB;
+ST.crackSide=ST.winner===2?1:2;
+ST.deathX=ST.winner===2?W*.28:W*.72;
+ST.deathY=H*.48;
+
+// Start cracking, slow time
+ST.timeScale=.3;
+ST[loser+'v']=.8; // heavy vibration
+}
+
+function doFreeze(){
+ST.phase='freeze';ST.phaseT=gt;
+ST.timeScale=.05; // near stop
+}
+
+function doShatter(){
+ST.phase='shatter';ST.phaseT=gt;
+const loser=ST.winner===2?'l':'o';
+const loserC=ST.winner===2?cA:cB;
+const winC=ST.winner===1?cA:cB;
+
+// Loser disappears
+ST[loser+'s'].t=0;ST[loser+'s'].st=3;ST[loser+'e'].t=0;
+
+// Winner pulses to glory
+const win=ST.winner===1?'l':'o';
+ST[win+'e'].t=1.5;ST[win+'s'].t=1.08;ST[win+'fl'].t=1.5;
+
+// Massive fragment burst
+spFrag(ST.deathX,ST.deathY,loserC.colI,50,1.5);
+
+// Multiple bloom layers
+for(let i=0;i<4;i++)spBloom(ST.deathX,ST.deathY,loserC.colI,.7+i*.2);
+spShock(ST.deathX,ST.deathY,1.5);
+
+ST.sf=1.2;
+ST.timeScale=.2;
+
+if(navigator.vibrate)navigator.vibrate([35,15,45,12,55,10,40]);
+}
+
+function spawnSoul(){
+ST.phase='soul';ST.phaseT=gt;
+const loserC=ST.winner===2?cA:cB;
+const dir=ST.winner===2?-1:1;
+
+soul={x:ST.deathX,y:ST.deathY,vx:dir*3,vy:-3,
+r:12,life:4,mx:4,col:loserC.colI,trail:[]};
+
+ST.timeScale=.35;
+}
+
+// Update
+function update(dt){const ts=ST.timeScale;
+gt+=dt*ts;
+
+ST.sf*=1-5*dt;ST.lf*=1-8*dt;ST.of*=1-8*dt;
+if(shareFeedback>0)shareFeedback-=dt;
+
+upS(ST.lx,dt*ts);upS(ST.ly,dt*ts);upS(ST.ls,dt*ts);upS(ST.le,dt*ts);upS(ST.lfl,dt*ts);
+upS(ST.ox,dt*ts);upS(ST.oy,dt*ts);upS(ST.os,dt*ts);upS(ST.oe,dt*ts);upS(ST.ofl,dt*ts);
+
+// Phase logic
+if(ST.phase==='idle'){
+if(gt>1){ST.phase='fight';ST.phaseT=gt;ST.bt=gt;ST.beat='breathe';}
+}
+else if(ST.phase==='fight'){runFight();}
+else if(ST.phase==='preDeath'){
+const el=gt-ST.phaseT;
+ST.crackAmt=Math.min(1,el*1.2); // cracks spread over ~0.8s real
+const loser=ST.winner===2?'l':'o';
+ST[loser+'v']=.5+ST.crackAmt*.8;
+ST.timeScale=Math.max(.08,.3-el*.15);
+if(el>.7){doFreeze();}
+}
+else if(ST.phase==='freeze'){
+const el=gt-ST.phaseT;
+if(el>.15){doShatter();}
+}
+else if(ST.phase==='shatter'){
+const el=gt-ST.phaseT;
+ST.timeScale=Math.min(1,.2+el*.3);
+if(el>1.2){spawnSoul();}
+}
+else if(ST.phase==='soul'){
+const el=gt-ST.phaseT;
+ST.timeScale=Math.min(1,.35+el*.25);
+if(el>4){ST.phase='result';ST.phaseT=gt;}
+}
+else if(ST.phase==='result'){
+// Just chill
+}
+
+// Particles
+for(let i=parts.length-1;i>=0;i--){const p=parts[i];
+p.vy+=p.g*dt*ts;p.vx*=1-p.d*dt*ts;p.vy*=1-p.d*dt*ts;
+p.x+=p.vx*dt*ts;p.y+=p.vy*dt*ts;
+if(p.rot!==undefined)p.rot+=p.rotV*dt*ts;
+p.life-=dt*ts;if(p.life<=0)parts.splice(i,1);}
+
+for(let i=blooms.length-1;i>=0;i--){
+blooms[i].age+=dt*ts;if(blooms[i].age>2)blooms.splice(i,1);}
+
+for(let i=shocks.length-1;i>=0;i--){
+shocks[i].age+=dt*ts;if(shocks[i].age>3)shocks.splice(i,1);}
+
+// Soul
+if(soul){
+soul.vy-=2*dt*ts;soul.vx*=.995;
+soul.x+=soul.vx*60*dt*ts;soul.y+=soul.vy*60*dt*ts;
+soul.life-=dt*ts;
+
+// Trail
+if(Math.random()<.7)soul.trail.push({x:soul.x,y:soul.y,life:1.5,mx:1.5});
+for(let i=soul.trail.length-1;i>=0;i--){
+soul.trail[i].life-=dt*ts;if(soul.trail[i].life<=0)soul.trail.splice(i,1);}
+
+if(soul.life<=0)soul=null;
+}
+}
+
+// 2D overlay
+function drawOv(){
+X.setTransform(dpr,0,0,dpr,0,0);X.clearRect(0,0,W,H);
+X.globalCompositeOperation='screen';
+
+// Particles
+for(const p of parts){
+const a=Math.max(0,p.life/p.mx),sz=p.r*(.3+a*.7);
+if(p.isFrag&&p.rot!==undefined){
+// Tumbling shard
+X.save();X.translate(p.x,p.y);X.rotate(p.rot);
+const w=sz*1.2,h=sz*.6;
+const g=X.createRadialGradient(0,0,0,0,0,sz);
+g.addColorStop(0,'rgba('+p.col[0]+','+p.col[1]+','+p.col[2]+','+(a*.6)+')');
+g.addColorStop(.6,'rgba('+p.col[0]+','+p.col[1]+','+p.col[2]+','+(a*.25)+')');
+g.addColorStop(1,'rgba(0,0,0,0)');
+X.fillStyle=g;
+X.beginPath();
+X.moveTo(-w/2,0);X.lineTo(0,-h/2);X.lineTo(w/2,0);X.lineTo(0,h/2);X.closePath();
+X.fill();
+// Hot edge
+X.strokeStyle='rgba(255,255,255,'+(a*.3)+')';X.lineWidth=1;X.stroke();
+X.restore();
+}else{
+const g=X.createRadialGradient(p.x,p.y,0,p.x,p.y,sz);
+g.addColorStop(0,'rgba('+p.col[0]+','+p.col[1]+','+p.col[2]+','+(a*.5)+')');
+g.addColorStop(1,'rgba(0,0,0,0)');
+X.fillStyle=g;X.beginPath();X.arc(p.x,p.y,sz,0,6.28);X.fill();
+}
+}
+
+// Bloom rings
+for(const b of blooms){
+const r=b.age*b.mr*2.5,fade=Math.exp(-b.age*2);
+if(fade<.003)continue;
+X.strokeStyle='rgba('+b.col[0]+','+b.col[1]+','+b.col[2]+','+(fade*b.str*.2)+')';
+X.lineWidth=3+b.str*5-b.age*3;
+X.beginPath();X.arc(b.x,b.y,r,0,6.28);X.stroke();
+// Inner bloom fill
+const g=X.createRadialGradient(b.x,b.y,0,b.x,b.y,r);
+g.addColorStop(0,'rgba('+b.col[0]+','+b.col[1]+','+b.col[2]+','+(fade*b.str*.06)+')');
+g.addColorStop(1,'rgba(0,0,0,0)');
+X.fillStyle=g;X.beginPath();X.arc(b.x,b.y,r,0,6.28);X.fill();
+}
+
+// Shockwaves
+for(const s of shocks){
+const r=s.age*W*.12*(.5+s.str*.5),fade=Math.exp(-s.age*2);
+if(fade<.002)continue;
+X.strokeStyle='rgba(220,240,255,'+(fade*s.str*.15)+')';X.lineWidth=2+s.str*4;
+X.beginPath();X.arc(s.x,s.y,r,0,6.28);X.stroke();}
+
+// Soul
+if(soul){const s=soul;
+const a=Math.max(0,s.life/s.mx);
+// Trail
+for(const tr of s.trail){
+const ta=tr.life/tr.mx*a;
+X.fillStyle='rgba('+s.col[0]+','+s.col[1]+','+s.col[2]+','+(ta*.12)+')';
+X.beginPath();X.arc(tr.x,tr.y,s.r*.7*ta,0,6.28);X.fill();
+}
+// Outer glow
+let g=X.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*4);
+g.addColorStop(0,'rgba('+s.col[0]+','+s.col[1]+','+s.col[2]+','+(a*.35)+')');
+g.addColorStop(.3,'rgba('+s.col[0]+','+s.col[1]+','+s.col[2]+','+(a*.12)+')');
+g.addColorStop(1,'rgba(0,0,0,0)');
+X.fillStyle=g;X.beginPath();X.arc(s.x,s.y,s.r*4,0,6.28);X.fill();
+// Core — white hot
+g=X.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*1.2);
+g.addColorStop(0,'rgba(255,255,255,'+(a*.9)+')');
+g.addColorStop(.3,'rgba(255,255,255,'+(a*.5)+')');
+g.addColorStop(.6,'rgba('+s.col[0]+','+s.col[1]+','+s.col[2]+','+(a*.4)+')');
+g.addColorStop(1,'rgba(0,0,0,0)');
+X.fillStyle=g;X.beginPath();X.arc(s.x,s.y,s.r*1.2,0,6.28);X.fill();
+}
+
+X.globalCompositeOperation='source-over';
+
+// HP bars — always visible during fight
+if(ST.phase==='fight'||ST.phase==='preDeath'){
+const bH=4,bW=W*.2,bY=H-22;
+const lH=Math.max(0,ST.lexHP/100),oH=Math.max(0,ST.oppHP/100);
+
+X.fillStyle='rgba('+cA.colI.join()+',0.06)';X.fillRect(W*.06,bY,bW,bH);
+if(lH>0){let g=X.createLinearGradient(W*.06,0,W*.06+bW*lH,0);
+g.addColorStop(0,'rgba('+cA.colI.join()+',0.4)');g.addColorStop(1,'rgba('+cA.colI.join()+',0.7)');
+X.fillStyle=g;X.fillRect(W*.06,bY,bW*lH,bH);}
+
+X.fillStyle='rgba('+cB.colI.join()+',0.06)';X.fillRect(W*.74,bY,bW,bH);
+if(oH>0){let g=X.createLinearGradient(W*.74,0,W*.74+bW*oH,0);
+g.addColorStop(0,'rgba('+cB.colI.join()+',0.4)');g.addColorStop(1,'rgba('+cB.colI.join()+',0.7)');
+X.fillStyle=g;X.fillRect(W*.74,bY,bW*oH,bH);}
+
+X.font='400 8px "Courier New",monospace';X.textBaseline='bottom';
+X.textAlign='left';X.fillStyle='rgba('+cA.colI.join()+',0.22)';X.fillText(cA.name,W*.06,bY-5);
+X.textAlign='right';X.fillStyle='rgba('+cB.colI.join()+',0.22)';X.fillText(cB.name,W*.74+bW,bY-5);
+}
+
+// Title card at fight start
+if(ST.phase==='idle'){
+const a=Math.min(1,gt/.8);
+X.textAlign='center';X.textBaseline='middle';
+X.font='300 '+Math.min(S*.09,48)+'px "Courier New",monospace';
+X.fillStyle='rgba(255,255,255,'+(a*.7)+')';
+X.fillText('N E R V E',W/2,H*.4);
+X.font='200 '+Math.min(S*.025,13)+'px system-ui';
+X.fillStyle='rgba(255,255,255,'+(a*.08)+')';
+X.fillText('feel what intelligence looks like',W/2,H*.48);
+}
+
+// VS card at fight start
+if(ST.phase==='fight'&&ST.round===0&&ST.beat==='breathe'){
+const el=gt-ST.phaseT;
+const a=Math.max(0,1-el/.8);
+X.textAlign='center';X.textBaseline='middle';
+X.font='400 '+Math.min(W*.025,11)+'px "Courier New",monospace';
+X.fillStyle='rgba('+cA.colI.join()+','+(a*.25)+')';
+X.fillText(cA.name,W*.28,H*.35);
+X.fillStyle='rgba(255,255,255,'+(a*.06)+')';
+X.fillText('vs',W/2,H*.35);
+X.fillStyle='rgba('+cB.colI.join()+','+(a*.25)+')';
+X.fillText(cB.name,W*.72,H*.35);
+}
+
+// Result card
+if(ST.phase==='result'){
+const el=gt-ST.phaseT;
+const a=Math.min(1,el/1.5);
+const wc=ST.winner===1?cA:cB;
+const lc=ST.winner===2?cA:cB;
+
+X.textAlign='center';X.textBaseline='middle';
+
+// Winner name — larger, bolder
+X.font='400 '+Math.min(W*.08,40)+'px "Courier New",monospace';
+X.fillStyle='rgba('+wc.colI.join()+','+(a*.25)+')';
+X.fillText(wc.name,W/2,H*.35);
+
+// WINS
+X.font='200 '+Math.min(W*.05,24)+'px "Courier New",monospace';
+X.fillStyle='rgba(255,255,255,'+(a*.1)+')';
+X.fillText('WINS',W/2,H*.42);
+
+// Defeated
+X.font='200 '+Math.min(W*.022,11)+'px "Courier New",monospace';
+X.fillStyle='rgba('+lc.colI.join()+','+(a*.07)+')';
+X.fillText('defeated '+lc.name,W/2,H*.48);
+
+// Divider line
+X.strokeStyle='rgba(255,255,255,'+(a*.03)+')';X.lineWidth=.5;
+X.beginPath();X.moveTo(W*.3,H*.53);X.lineTo(W*.7,H*.53);X.stroke();
+
+// NERVE branding + fee
+X.font='400 '+Math.min(W*.035,16)+'px "Courier New",monospace';
+X.fillStyle='rgba(255,255,255,'+(a*.06)+')';
+X.fillText('N E R V E',W/2,H*.58);
+
+X.font='200 '+Math.min(W*.02,10)+'px "Courier New",monospace';
+X.fillStyle='rgba(255,255,255,'+(a*.035)+')';
+X.fillText('x402 \u00B7 3% to the arena \u00B7 built on base',W/2,H*.63);
+
+// Share button + Rematch
+if(el>1.8){
+const p=Math.sin(gt*2)*.3+.7;
+
+// Share
+shareBtn.y=H*.71;shareBtn.visible=true;
+X.font='400 '+Math.min(W*.025,12)+'px "Courier New",monospace';
+X.fillStyle='rgba('+wc.colI.join()+','+(p*.12)+')';
+X.fillText('[ SHARE ]',W/2,shareBtn.y);
+
+if(shareFeedback>0){
+X.font='200 '+Math.min(W*.02,10)+'px "Courier New",monospace';
+X.fillStyle='rgba(255,255,255,'+(Math.min(shareFeedback,1)*.12)+')';
+X.fillText('copied to clipboard',W/2,shareBtn.y+18);
+}
+
+// Rematch
+X.font='200 10px system-ui';X.fillStyle='rgba(255,255,255,'+(p*.04)+')';
+X.fillText('tap below to rematch',W/2,H*.78);
+}else{shareBtn.visible=false;}
+}
+}
+
+// Click handler
+document.addEventListener('click',(e)=>{
+if(ST.phase==='result'){
+const y=e.clientY||e.touches?.[0]?.clientY||H/2;
+
+// Share button zone — upper half of result card
+if(shareBtn.visible&&y<H*.75){
+const wc=ST.winner===1?cA:cB;
+const lc=ST.winner===2?cA:cB;
+const text=wc.name+' defeated '+lc.name+' on NERVE\n\nx402 \u00B7 3% to the arena\nnerve.lexispawn.xyz';
+
+if(navigator.share){
+navigator.share({title:'NERVE',text}).catch(()=>{});
+}else if(navigator.clipboard){
+navigator.clipboard.writeText(text).then(()=>{shareFeedback=2;}).catch(()=>{});
+}
+return;
+}
+
+// Rematch — lower zone
+if(y>=H*.75){
+[cA,cB]=genPair();
+Object.assign(ST,{
+phase:'idle',phaseT:0,round:0,
+lf:0,of:0,lv:0,ov:0,sf:0,
+lexHP:100,oppHP:100,timeScale:1,
+winner:0,crackAmt:0,crackSide:0,
+beat:'breathe',bt:0,rw:'tie',rs:0
+});
+ST.lx.v=-.22;ST.lx.t=-.22;ST.lx.vel=0;
+ST.ox.v=.22;ST.ox.t=.22;ST.ox.vel=0;
+ST.ly.v=0;ST.ly.t=0;ST.ly.vel=0;ST.oy.v=0;ST.oy.t=0;ST.oy.vel=0;
+ST.ls.v=1;ST.ls.t=1;ST.ls.vel=0;ST.ls.st=16;
+ST.os.v=1;ST.os.t=1;ST.os.vel=0;ST.os.st=16;
+ST.le.v=.8;ST.le.t=.8;ST.le.vel=0;
+ST.oe.v=.8;ST.oe.t=.8;ST.oe.vel=0;
+ST.lfl.v=.3;ST.lfl.t=.3;ST.lfl.vel=0;
+ST.ofl.v=.3;ST.ofl.t=.3;ST.ofl.vel=0;
+gt=0;parts=[];blooms=[];shocks=[];soul=null;
+shareBtn.visible=false;shareFeedback=0;
+}
+}
+});
+
+// Main loop
+let lt=0;
+function frame(ts){
+requestAnimationFrame(frame);
+const dt=lt?Math.min((ts-lt)/1000,.05):.016;lt=ts;
+
+update(dt);
+
+const t=ts*.001,dr=Math.sin(t*.12)*.005;
+gl.uniform2f(U.R,glc.width,glc.height);
+gl.uniform1f(U.time,t);
+gl.uniform1f(U.lexX,ST.lx.v+dr);gl.uniform1f(U.oppX,ST.ox.v-dr);
+gl.uniform1f(U.lexY,ST.ly.v);gl.uniform1f(U.oppY,ST.oy.v);
+gl.uniform1f(U.lexE,Math.min(ST.le.v,1.5));gl.uniform1f(U.oppE,Math.min(ST.oe.v,1.5));
+gl.uniform1f(U.lexF,ST.lf);gl.uniform1f(U.oppF,ST.of);
+gl.uniform1f(U.lexS,Math.max(ST.ls.v,0));gl.uniform1f(U.oppS,Math.max(ST.os.v,0));
+gl.uniform1f(U.lexVib,ST.lv);gl.uniform1f(U.oppVib,ST.ov);
+gl.uniform1f(U.lexFlow,ST.lfl.v);gl.uniform1f(U.oppFlow,ST.ofl.v);
+gl.uniform1f(U.lexBP,cA.bp);gl.uniform1f(U.oppBP,cB.bp);
+gl.uniform1f(U.lexCX,cA.cx);gl.uniform1f(U.oppCX,cB.cx);
+gl.uniform1f(U.lexMT,cA.mt);gl.uniform1f(U.oppMT,cB.mt);
+gl.uniform3f(U.lexCol,cA.col[0],cA.col[1],cA.col[2]);
+gl.uniform3f(U.oppCol,cB.col[0],cB.col[1],cB.col[2]);
+gl.uniform1f(U.screenFlash,ST.sf);
+gl.uniform1f(U.crackAmt,ST.crackAmt);
+gl.uniform1f(U.crackSide,ST.crackSide);
+
+gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+drawOv();
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
