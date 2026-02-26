@@ -121,6 +121,24 @@
         .link:hover {
             text-decoration: underline;
         }
+        .wallet-options {
+            display: none;
+            margin-top: 12px;
+        }
+        .wallet-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .wallet-btn:hover {
+            background: #333;
+        }
     </style>
 </head>
 <body>
@@ -168,6 +186,10 @@
         </div>
         
         <button id="actionBtn" class="connect-btn">Connect Wallet</button>
+        <div id="walletOptions" class="wallet-options">
+            <button class="wallet-btn" onclick="connectMetaMask()">MetaMask / Coinbase Wallet</button>
+            <button class="wallet-btn" onclick="openInWallet()">Open in Mobile Wallet</button>
+        </div>
         <div id="status" class="status"></div>
         
         <p style="text-align: center; margin-top: 24px; color: #666; font-size: 14px;">
@@ -183,16 +205,32 @@
         let account;
         const btn = document.getElementById('actionBtn');
         const status = document.getElementById('status');
+        const walletOptions = document.getElementById('walletOptions');
+        
+        // Check if on mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         async function connectWallet() {
+            // Check for any injected wallet
+            const provider = window.ethereum || window.web3?.currentProvider;
+            
+            if (!provider && !isMobile) {
+                // Desktop without wallet - show options
+                walletOptions.style.display = 'block';
+                status.textContent = 'Choose a wallet option below';
+                status.className = 'status';
+                return;
+            }
+            
+            if (!provider && isMobile) {
+                // Mobile without injection - suggest opening in wallet
+                openInWallet();
+                return;
+            }
+            
+            // Has provider, try to connect
             try {
-                if (!window.ethereum) {
-                    status.textContent = 'Please install MetaMask or another Web3 wallet';
-                    status.className = 'status error';
-                    return;
-                }
-                
-                const accounts = await window.ethereum.request({
+                const accounts = await provider.request({
                     method: 'eth_requestAccounts'
                 });
                 
@@ -200,26 +238,32 @@
                 
                 // Switch to Base
                 try {
-                    await window.ethereum.request({
+                    await provider.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: '0x2105' }]
                     });
-                } catch (e) {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: '0x2105',
-                            chainName: 'Base',
-                            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-                            rpcUrls: ['https://mainnet.base.org'],
-                            blockExplorerUrls: ['https://basescan.org']
-                        }]
-                    });
+                } catch (switchError) {
+                    // Chain not added, add it
+                    if (switchError.code === 4902) {
+                        await provider.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x2105',
+                                chainName: 'Base',
+                                nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: ['https://mainnet.base.org'],
+                                blockExplorerUrls: ['https://basescan.org']
+                            }]
+                        });
+                    } else {
+                        throw switchError;
+                    }
                 }
                 
                 btn.textContent = 'Mint Interactive NFT (0.000777 ETH)';
                 btn.className = 'mint-btn';
                 btn.onclick = mint;
+                walletOptions.style.display = 'none';
                 status.textContent = `Connected: ${account.slice(0,6)}...${account.slice(-4)}`;
                 status.className = 'status';
                 
@@ -229,13 +273,47 @@
             }
         }
         
+        function connectMetaMask() {
+            if (window.ethereum || window.web3?.currentProvider) {
+                connectWallet();
+            } else {
+                window.open('https://metamask.io/download/', '_blank');
+                status.textContent = 'Opening MetaMask download page...';
+            }
+        }
+        
+        function openInWallet() {
+            // Universal deep link for mobile wallets
+            const url = window.location.href;
+            const walletUrl = `https://metamask.app.link/dapp/${url.replace('https://', '')}`;
+            
+            status.textContent = 'Opening in wallet app...';
+            status.className = 'status';
+            
+            // Try MetaMask mobile deep link
+            window.location.href = walletUrl;
+            
+            // Fallback message
+            setTimeout(() => {
+                status.innerHTML = 'If nothing happened:<br>1. Copy this URL<br>2. Open your wallet app<br>3. Paste URL in the browser';
+                status.className = 'status';
+            }, 2000);
+        }
+        
         async function mint() {
             try {
+                const provider = window.ethereum || window.web3?.currentProvider;
+                if (!provider) {
+                    status.textContent = 'Wallet disconnected. Please reconnect.';
+                    status.className = 'status error';
+                    return;
+                }
+                
                 btn.disabled = true;
                 status.textContent = 'Minting interactive NFT...';
                 status.className = 'status';
                 
-                const txHash = await window.ethereum.request({
+                const txHash = await provider.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: account,
@@ -254,7 +332,7 @@
                 let receipt;
                 while (!receipt) {
                     await new Promise(r => setTimeout(r, 2000));
-                    receipt = await window.ethereum.request({
+                    receipt = await provider.request({
                         method: 'eth_getTransactionReceipt',
                         params: [txHash]
                     });
