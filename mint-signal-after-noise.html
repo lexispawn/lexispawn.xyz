@@ -127,7 +127,7 @@
             </div>
         </div>
         
-        <button id="mintBtn" onclick="mint()">Connect Wallet & Mint</button>
+        <button id="mintBtn">Connect Wallet & Mint</button>
         
         <div id="status" class="status"></div>
         
@@ -137,16 +137,17 @@
     </div>
     
     <script>
+        // Constants at top
         const CONTRACT = '0x09cbb897e41007fa248f272d52c2ae7e4bba34f9';
-        const PRICE = ethers.utils.parseEther('0.000777');
         const BASE_CHAIN_ID = 8453;
+        const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        if (isMobile) {
+        // Show mobile hint
+        if (IS_MOBILE) {
             document.getElementById('mobileHint').classList.add('show');
         }
         
+        // Main mint function
         async function mint() {
             const btn = document.getElementById('mintBtn');
             const status = document.getElementById('status');
@@ -157,22 +158,12 @@
                 status.className = 'status';
                 
                 // Mobile: Use deep link if no provider detected
-                if (isMobile && !window.ethereum) {
+                if (IS_MOBILE && !window.ethereum) {
                     const currentUrl = window.location.href;
                     const metamaskDeepLink = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '').replace('http://', '')}`;
                     
                     status.textContent = 'Opening MetaMask...';
                     window.location.href = metamaskDeepLink;
-                    
-                    // Wait for page to potentially reload in MetaMask browser
-                    setTimeout(() => {
-                        if (window.ethereum) {
-                            mintFlow();
-                        } else {
-                            status.textContent = 'Redirecting to MetaMask...';
-                        }
-                    }, 2000);
-                    
                     return;
                 }
                 
@@ -201,10 +192,10 @@
             const status = document.getElementById('status');
             
             const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const PRICE = ethers.utils.parseEther('0.000777');
             
             await provider.send("eth_requestAccounts", []);
             const signer = provider.getSigner();
-            const address = await signer.getAddress();
             
             const network = await provider.getNetwork();
             
@@ -239,7 +230,7 @@
             const tx = await signer.sendTransaction({
                 to: CONTRACT,
                 value: PRICE,
-                data: '0x1249c58b' // mint() selector
+                data: '0x1249c58b'
             });
             
             status.innerHTML = `Transaction sent! <a href="https://basescan.org/tx/${tx.hash}" class="link" target="_blank">View TX</a>`;
@@ -254,6 +245,9 @@
                 throw new Error('Transaction failed');
             }
         }
+        
+        // Attach event listener
+        document.getElementById('mintBtn').addEventListener('click', mint);
     </script>
 </body>
 </html>
