@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug: Wallet Detection Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .log { 
+            background: #111;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 3px solid #0f0;
+        }
+        .error { border-left-color: #f00; color: #f00; }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Wallet Detection Debug</h1>
+    <div id="logs"></div>
+    <button onclick="testWallet()">Test Wallet Connection</button>
+    <button onclick="testMint()">Test Mint Transaction</button>
+    
+    <script>
+        const CONTRACT = '0x09cbb897e41007fa248f272d52c2ae7e4bba34f9';
+        const PRICE = '777000000000000';
+        const BASE_CHAIN_ID = '0x2105';
+        
+        function log(msg, isError = false) {
+            const div = document.createElement('div');
+            div.className = isError ? 'log error' : 'log';
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('logs').appendChild(div);
+        }
+        
+        log('Page loaded');
+        log(`User agent: ${navigator.userAgent}`);
+        log(`window.ethereum exists: ${!!window.ethereum}`);
+        
+        if (window.ethereum) {
+            log(`Provider: ${window.ethereum.isMetaMask ? 'MetaMask' : window.ethereum.isCoinbaseWallet ? 'Coinbase' : 'Unknown'}`);
+        }
+        
+        setTimeout(() => {
+            log(`After 2s: window.ethereum = ${!!window.ethereum}`);
+        }, 2000);
+        
+        async function testWallet() {
+            try {
+                log('Requesting accounts...');
+                
+                if (!window.ethereum) {
+                    log('ERROR: window.ethereum not found', true);
+                    return;
+                }
+                
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                log(`✓ Connected: ${accounts[0]}`);
+                
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                log(`Chain ID: ${chainId} (${chainId === BASE_CHAIN_ID ? 'Base ✓' : 'NOT Base'})`);
+                
+                if (chainId !== BASE_CHAIN_ID) {
+                    log('Switching to Base...');
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: BASE_CHAIN_ID }]
+                    });
+                    log('✓ Switched to Base');
+                }
+                
+                const balance = await window.ethereum.request({
+                    method: 'eth_getBalance',
+                    params: [accounts[0], 'latest']
+                });
+                const ethBalance = parseInt(balance, 16) / 1e18;
+                log(`Balance: ${ethBalance.toFixed(6)} ETH`);
+                
+                if (ethBalance < 0.001) {
+                    log('WARNING: Balance < 0.001 ETH (need for mint + gas)', true);
+                }
+                
+            } catch (error) {
+                log(`ERROR: ${error.message}`, true);
+                log(`Error code: ${error.code}`, true);
+            }
+        }
+        
+        async function testMint() {
+            try {
+                if (!window.ethereum) {
+                    log('ERROR: No wallet found', true);
+                    return;
+                }
+                
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const account = accounts[0];
+                
+                log('Sending mint transaction...');
+                log(`  To: ${CONTRACT}`);
+                log(`  Value: ${PRICE} wei (0.000777 ETH)`);
+                log(`  Data: 0x1249c58b`);
+                
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: account,
+                        to: CONTRACT,
+                        value: '0x' + BigInt(PRICE).toString(16),
+                        data: '0x1249c58b'
+                    }]
+                });
+                
+                log(`✓ TX sent: ${txHash}`);
+                log(`View: https://basescan.org/tx/${txHash}`);
+                
+            } catch (error) {
+                log(`ERROR: ${error.message}`, true);
+                if (error.data) log(`Error data: ${JSON.stringify(error.data)}`, true);
+            }
+        }
+    </script>
+</body>
+</html>
