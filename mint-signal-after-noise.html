@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mint: Signal After Noise</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -47,19 +49,6 @@
         .label { color: #666; font-size: 14px; }
         .value { font-weight: 600; font-size: 14px; }
         
-        .mobile-blocker {
-            background: #ff3333;
-            color: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        .mobile-blocker h2 { margin-bottom: 12px; font-size: 20px; }
-        .mobile-blocker ol { margin-left: 20px; line-height: 1.8; }
-        .mobile-blocker li { margin-bottom: 8px; }
-        .mobile-blocker.show { display: block; }
-        
         button {
             width: 100%;
             padding: 16px;
@@ -69,13 +58,11 @@
             border-radius: 8px;
             cursor: pointer;
             margin-bottom: 12px;
+            background: #00ff88;
+            color: #000;
         }
-        .primary-btn { background: #00ff88; color: #000; }
-        .primary-btn:hover { background: #00dd77; }
-        .primary-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
-        
-        .secondary-btn { background: #222; color: #fff; border: 1px solid #444; }
-        .secondary-btn:hover { background: #333; }
+        button:hover { background: #00dd77; }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; }
         
         .status {
             text-align: center;
@@ -96,6 +83,17 @@
             font-size: 13px;
             color: #666;
         }
+        
+        .mobile-hint {
+            background: #111;
+            border-left: 3px solid #00ff88;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #aaa;
+            display: none;
+        }
+        .mobile-hint.show { display: block; }
     </style>
 </head>
 <body>
@@ -110,16 +108,8 @@
             Interactive game about verification clearing fabrication. Click to verify things. Each verified point clears noise in a radius. Verify enough and noise stops spawning entirely.
         </p>
         
-        <div id="mobileBadBrowser" class="mobile-blocker">
-            <h2>📱 Wrong Browser</h2>
-            <p style="margin-bottom: 16px;">You're viewing this in Safari/Chrome. NFT minting requires your wallet's built-in browser.</p>
-            <p style="font-weight: 600; margin-bottom: 12px;">To mint:</p>
-            <ol>
-                <li>Open MetaMask app</li>
-                <li>Tap the menu (☰) → Browser</li>
-                <li>Paste: <strong>lexispawn.xyz/mint-signal-after-noise.html</strong></li>
-                <li>Mint will work from there</li>
-            </ol>
+        <div id="mobileHint" class="mobile-hint">
+            📱 <strong>On mobile?</strong> Button below will open MetaMask app automatically.
         </div>
         
         <div class="info">
@@ -137,8 +127,7 @@
             </div>
         </div>
         
-        <button id="mintBtn" class="primary-btn">Connect Wallet & Mint</button>
-        <button id="basescanBtn" class="secondary-btn">Use BaseScan Instead</button>
+        <button id="mintBtn" onclick="mint()">Connect Wallet & Mint</button>
         
         <div id="status" class="status"></div>
         
@@ -149,164 +138,122 @@
     
     <script>
         const CONTRACT = '0x09cbb897e41007fa248f272d52c2ae7e4bba34f9';
-        const PRICE = '777000000000000'; // 0.000777 ETH
-        const BASE_CHAIN_ID = '0x2105';
-        
-        const mintBtn = document.getElementById('mintBtn');
-        const basescanBtn = document.getElementById('basescanBtn');
-        const status = document.getElementById('status');
-        const mobileBlocker = document.getElementById('mobileBadBrowser');
+        const PRICE = ethers.utils.parseEther('0.000777');
+        const BASE_CHAIN_ID = 8453;
         
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        // Check if in wallet browser
-        async function checkWalletBrowser() {
-            if (!isMobile) return true;
-            
-            // Wait 3 seconds for wallet injection
-            await new Promise(r => setTimeout(r, 3000));
-            
-            if (!window.ethereum) {
-                mobileBlocker.classList.add('show');
-                mintBtn.disabled = true;
-                mintBtn.textContent = 'Not Available (Wrong Browser)';
-                status.innerHTML = 'Open this page in MetaMask Browser to mint';
-                status.className = 'status error';
-                return false;
-            }
-            
-            return true;
+        if (isMobile) {
+            document.getElementById('mobileHint').classList.add('show');
         }
         
         async function mint() {
+            const btn = document.getElementById('mintBtn');
+            const status = document.getElementById('status');
+            
             try {
-                mintBtn.disabled = true;
-                status.textContent = 'Connecting wallet...';
+                btn.disabled = true;
+                status.textContent = 'Connecting...';
                 status.className = 'status';
+                
+                // Mobile: Use deep link if no provider detected
+                if (isMobile && !window.ethereum) {
+                    const currentUrl = window.location.href;
+                    const metamaskDeepLink = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '').replace('http://', '')}`;
+                    
+                    status.textContent = 'Opening MetaMask...';
+                    window.location.href = metamaskDeepLink;
+                    
+                    // Wait for page to potentially reload in MetaMask browser
+                    setTimeout(() => {
+                        if (window.ethereum) {
+                            mintFlow();
+                        } else {
+                            status.textContent = 'Redirecting to MetaMask...';
+                        }
+                    }, 2000);
+                    
+                    return;
+                }
                 
                 if (!window.ethereum) {
-                    throw new Error('Wallet not detected. Please open in MetaMask browser.');
+                    throw new Error('Please install MetaMask or Coinbase Wallet');
                 }
                 
-                const accounts = await window.ethereum.request({ 
-                    method: 'eth_requestAccounts' 
-                });
-                const account = accounts[0];
-                
-                status.textContent = 'Checking network...';
-                
-                const chainId = await window.ethereum.request({ 
-                    method: 'eth_chainId' 
-                });
-                
-                if (chainId !== BASE_CHAIN_ID) {
-                    status.textContent = 'Switching to Base...';
-                    
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: BASE_CHAIN_ID }]
-                        });
-                    } catch (switchError) {
-                        if (switchError.code === 4902) {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: BASE_CHAIN_ID,
-                                    chainName: 'Base',
-                                    nativeCurrency: { 
-                                        name: 'ETH', 
-                                        symbol: 'ETH', 
-                                        decimals: 18 
-                                    },
-                                    rpcUrls: ['https://mainnet.base.org'],
-                                    blockExplorerUrls: ['https://basescan.org']
-                                }]
-                            });
-                        } else {
-                            throw switchError;
-                        }
-                    }
-                }
-                
-                status.textContent = 'Sending transaction...';
-                
-                const txHash = await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        from: account,
-                        to: CONTRACT,
-                        value: '0x' + BigInt(PRICE).toString(16),
-                        data: '0x1249c58b' // mint() selector
-                    }]
-                });
-                
-                status.innerHTML = `Transaction sent! <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View TX</a>`;
-                status.className = 'status';
-                
-                // Wait for confirmation
-                let receipt = null;
-                let attempts = 0;
-                
-                while (!receipt && attempts < 30) {
-                    await new Promise(r => setTimeout(r, 3000));
-                    receipt = await window.ethereum.request({
-                        method: 'eth_getTransactionReceipt',
-                        params: [txHash]
-                    });
-                    attempts++;
-                }
-                
-                if (receipt) {
-                    if (receipt.status === '0x1') {
-                        status.innerHTML = `✅ Minted! <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View on BaseScan</a>`;
-                        status.className = 'status success';
-                        mintBtn.textContent = 'Minted Successfully ✓';
-                    } else {
-                        status.innerHTML = `Transaction failed. <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View details</a>`;
-                        status.className = 'status error';
-                        mintBtn.disabled = false;
-                        mintBtn.textContent = 'Try Again';
-                    }
-                } else {
-                    status.innerHTML = `Confirming... <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">Check status</a>`;
-                    status.className = 'status';
-                    mintBtn.disabled = false;
-                    mintBtn.textContent = 'Transaction Pending...';
-                }
+                await mintFlow();
                 
             } catch (error) {
-                console.error('Mint error:', error);
+                console.error(error);
+                let msg = error.message;
                 
-                let errorMsg = error.message;
+                if (msg.includes('rejected') || msg.includes('denied')) msg = 'Transaction rejected';
+                else if (msg.includes('insufficient')) msg = 'Insufficient ETH';
+                else if (msg.includes('Already minted')) msg = 'Already minted (limit: 1 per wallet)';
                 
-                if (errorMsg.includes('insufficient funds') || errorMsg.includes('insufficient')) {
-                    errorMsg = 'Insufficient ETH balance (need 0.001+ for mint + gas)';
-                } else if (errorMsg.includes('rejected') || errorMsg.includes('denied')) {
-                    errorMsg = 'Transaction rejected';
-                } else if (errorMsg.includes('Already minted')) {
-                    errorMsg = 'Already minted (limit: 1 per wallet)';
-                } else if (errorMsg.includes('Sold out')) {
-                    errorMsg = 'Sold out (all 100 minted)';
-                }
-                
-                status.textContent = errorMsg;
+                status.textContent = `Error: ${msg}`;
                 status.className = 'status error';
-                mintBtn.disabled = false;
-                mintBtn.textContent = 'Connect Wallet & Mint';
+                btn.disabled = false;
             }
         }
         
-        basescanBtn.onclick = () => {
-            window.open('https://basescan.org/address/0x09cbb897e41007fa248f272d52c2ae7e4bba34f9#writeContract', '_blank');
-            status.innerHTML = 'Opening BaseScan...<br><br>1. Connect wallet<br>2. Click "mint"<br>3. Enter 0.000777 in payableAmount<br>4. Click Write';
-            status.className = 'status';
-        };
-        
-        mintBtn.onclick = mint;
-        
-        // Check browser on load
-        checkWalletBrowser();
+        async function mintFlow() {
+            const btn = document.getElementById('mintBtn');
+            const status = document.getElementById('status');
+            
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            
+            await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner();
+            const address = await signer.getAddress();
+            
+            const network = await provider.getNetwork();
+            
+            if (network.chainId !== BASE_CHAIN_ID) {
+                status.textContent = 'Switching to Base...';
+                
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x' + BASE_CHAIN_ID.toString(16) }]
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x' + BASE_CHAIN_ID.toString(16),
+                                chainName: 'Base',
+                                nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: ['https://mainnet.base.org'],
+                                blockExplorerUrls: ['https://basescan.org']
+                            }]
+                        });
+                    } else {
+                        throw switchError;
+                    }
+                }
+            }
+            
+            status.textContent = 'Confirm transaction in wallet...';
+            
+            const tx = await signer.sendTransaction({
+                to: CONTRACT,
+                value: PRICE,
+                data: '0x1249c58b' // mint() selector
+            });
+            
+            status.innerHTML = `Transaction sent! <a href="https://basescan.org/tx/${tx.hash}" class="link" target="_blank">View TX</a>`;
+            
+            const receipt = await tx.wait();
+            
+            if (receipt.status === 1) {
+                status.innerHTML = `✅ Minted! <a href="https://basescan.org/tx/${tx.hash}" class="link" target="_blank">View on BaseScan</a>`;
+                status.className = 'status success';
+                btn.textContent = 'Minted ✓';
+            } else {
+                throw new Error('Transaction failed');
+            }
+        }
     </script>
 </body>
 </html>
