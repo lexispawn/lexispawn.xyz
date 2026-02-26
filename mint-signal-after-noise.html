@@ -66,17 +66,29 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
+            margin-bottom: 8px;
         }
         .connect-btn { background: #fff; color: #000; }
         .connect-btn:hover { background: #ddd; }
         .mint-btn { background: #00ff88; color: #000; }
         .mint-btn:hover { background: #00dd77; }
         .mint-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+        .secondary-btn { background: #222; color: #fff; border: 1px solid #444; }
+        .secondary-btn:hover { background: #333; }
         .status { text-align: center; margin-top: 16px; color: #888; font-size: 14px; line-height: 1.4; }
         .success { color: #00ff88; }
         .error { color: #f00; }
         .link { color: #00ff88; text-decoration: none; }
         .link:hover { text-decoration: underline; }
+        .mobile-notice {
+            background: #222;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #ddd;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -93,7 +105,11 @@
         </p>
         
         <div class="important">
-            Interactive HTML game as the NFT content (animation_url on IPFS). 1 per wallet.
+            Interactive HTML game as the NFT content. 1 per wallet, 100 supply.
+        </div>
+        
+        <div id="mobileNotice" class="mobile-notice">
+            📱 On mobile? Copy this URL and open in your wallet's browser (MetaMask, Coinbase Wallet, Rainbow, etc.)
         </div>
         
         <div class="info">
@@ -112,7 +128,7 @@
             <div class="info-row">
                 <span class="label">Contract</span>
                 <span class="value">
-                    <a href="https://basescan.org/address/0x09cbb897e41007fa248f272d52c2ae7e4bba34f9" class="link" target="_blank">
+                    <a href="https://basescan.org/address/0x09cbb897e41007fa248f272d52c2ae7e4bba34f9#writeContract" class="link" target="_blank">
                         0x09cb...34f9
                     </a>
                 </span>
@@ -120,6 +136,7 @@
         </div>
         
         <button id="actionBtn" class="connect-btn">Connect Wallet</button>
+        <button id="basescanBtn" class="secondary-btn">Mint via BaseScan</button>
         <div id="status" class="status"></div>
         
         <p style="text-align: center; margin-top: 24px; color: #666; font-size: 14px;">
@@ -129,45 +146,60 @@
     
     <script>
         const CONTRACT = '0x09cbb897e41007fa248f272d52c2ae7e4bba34f9';
-        const PRICE = '777000000000000'; // 0.000777 ETH in wei
-        const BASE_CHAIN_ID = '0x2105'; // 8453 in hex
+        const PRICE = '777000000000000';
+        const BASE_CHAIN_ID = '0x2105';
         
         let account, provider;
         const btn = document.getElementById('actionBtn');
+        const basescanBtn = document.getElementById('basescanBtn');
         const status = document.getElementById('status');
+        const mobileNotice = document.getElementById('mobileNotice');
+        
+        // Detect mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            mobileNotice.style.display = 'block';
+        }
+        
+        // Wait for wallet injection
+        async function waitForWallet(maxAttempts = 10) {
+            for (let i = 0; i < maxAttempts; i++) {
+                if (window.ethereum) return window.ethereum;
+                await new Promise(r => setTimeout(r, 500));
+            }
+            return null;
+        }
         
         async function connectWallet() {
             try {
-                provider = window.ethereum;
+                status.textContent = 'Looking for wallet...';
+                status.className = 'status';
+                
+                provider = await waitForWallet();
+                
                 if (!provider) {
-                    status.innerHTML = 'Please install <a href="https://metamask.io" class="link" target="_blank">MetaMask</a> or use a Web3 wallet';
+                    status.innerHTML = isMobile 
+                        ? '📱 Please open this page in your wallet\'s browser (MetaMask, Coinbase Wallet, Rainbow)<br><br>Or use the "Mint via BaseScan" button below'
+                        : 'Please install <a href="https://metamask.io" class="link" target="_blank">MetaMask</a> or <a href="https://www.coinbase.com/wallet" class="link" target="_blank">Coinbase Wallet</a><br><br>Or use the "Mint via BaseScan" button below';
                     status.className = 'status error';
                     return;
                 }
                 
-                console.log('Requesting accounts...');
                 const accounts = await provider.request({ method: 'eth_requestAccounts' });
                 account = accounts[0];
-                console.log('Connected:', account);
                 
-                // Check current chain
                 const chainId = await provider.request({ method: 'eth_chainId' });
-                console.log('Current chain:', chainId);
                 
                 if (chainId !== BASE_CHAIN_ID) {
-                    status.textContent = 'Switching to Base network...';
-                    status.className = 'status';
-                    
+                    status.textContent = 'Switching to Base...';
                     try {
                         await provider.request({
                             method: 'wallet_switchEthereumChain',
                             params: [{ chainId: BASE_CHAIN_ID }]
                         });
-                        console.log('Switched to Base');
                     } catch (switchError) {
-                        console.log('Switch error:', switchError);
                         if (switchError.code === 4902) {
-                            console.log('Adding Base network...');
                             await provider.request({
                                 method: 'wallet_addEthereumChain',
                                 params: [{
@@ -178,24 +210,10 @@
                                     blockExplorerUrls: ['https://basescan.org']
                                 }]
                             });
-                            console.log('Base network added');
                         } else {
                             throw switchError;
                         }
                     }
-                }
-                
-                // Check balance
-                const balance = await provider.request({
-                    method: 'eth_getBalance',
-                    params: [account, 'latest']
-                });
-                const balanceETH = parseInt(balance, 16) / 1e18;
-                console.log('Balance:', balanceETH, 'ETH');
-                
-                if (balanceETH < 0.001) {
-                    status.innerHTML = '⚠️ Low balance. Need at least 0.001 ETH for mint + gas';
-                    status.className = 'status error';
                 }
                 
                 btn.textContent = 'Mint (0.000777 ETH)';
@@ -205,7 +223,6 @@
                 status.className = 'status';
                 
             } catch (error) {
-                console.error('Connect error:', error);
                 status.textContent = `Error: ${error.message}`;
                 status.className = 'status error';
             }
@@ -213,39 +230,23 @@
         
         async function mint() {
             try {
-                if (!provider) {
-                    status.textContent = 'Wallet disconnected';
-                    status.className = 'status error';
-                    return;
-                }
+                if (!provider) return;
                 
                 btn.disabled = true;
-                status.textContent = 'Preparing transaction...';
-                status.className = 'status';
-                
-                console.log('Minting...');
-                console.log('  Contract:', CONTRACT);
-                console.log('  From:', account);
-                console.log('  Value:', PRICE);
-                
-                const txParams = {
-                    from: account,
-                    to: CONTRACT,
-                    value: '0x' + BigInt(PRICE).toString(16),
-                    data: '0x1249c58b' // mint() function selector
-                };
-                
-                console.log('TX params:', txParams);
+                status.textContent = 'Sending transaction...';
                 
                 const txHash = await provider.request({
                     method: 'eth_sendTransaction',
-                    params: [txParams]
+                    params: [{
+                        from: account,
+                        to: CONTRACT,
+                        value: '0x' + BigInt(PRICE).toString(16),
+                        data: '0x1249c58b'
+                    }]
                 });
                 
-                console.log('TX sent:', txHash);
-                status.innerHTML = `Minting... <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View TX</a>`;
+                status.innerHTML = `Confirming... <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View TX</a>`;
                 
-                // Wait for confirmation
                 let receipt = null;
                 let attempts = 0;
                 while (!receipt && attempts < 60) {
@@ -257,40 +258,23 @@
                     attempts++;
                 }
                 
-                if (!receipt) {
-                    status.innerHTML = `Transaction pending... <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">Check status</a>`;
-                    status.className = 'status';
-                    return;
-                }
-                
-                console.log('Receipt:', receipt);
-                
-                if (receipt.status === '0x1') {
+                if (receipt && receipt.status === '0x1') {
                     status.innerHTML = `✅ Minted! <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View on BaseScan</a>`;
                     status.className = 'status success';
                     btn.textContent = 'Minted ✓';
-                } else {
-                    status.innerHTML = `Transaction failed. <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View details</a>`;
+                } else if (receipt) {
+                    status.innerHTML = `Failed. <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View details</a>`;
                     status.className = 'status error';
                     btn.disabled = false;
                 }
                 
             } catch (error) {
-                console.error('Mint error:', error);
-                let errorMsg = error.message;
+                let msg = error.message;
+                if (msg.includes('insufficient')) msg = 'Insufficient ETH';
+                else if (msg.includes('rejected')) msg = 'Transaction rejected';
+                else if (msg.includes('Already minted')) msg = 'Already minted (1 per wallet)';
                 
-                // Parse common errors
-                if (errorMsg.includes('insufficient funds')) {
-                    errorMsg = 'Insufficient ETH balance for mint + gas';
-                } else if (errorMsg.includes('user rejected')) {
-                    errorMsg = 'Transaction rejected';
-                } else if (errorMsg.includes('Already minted')) {
-                    errorMsg = 'You already minted one (1 per wallet limit)';
-                } else if (errorMsg.includes('Sold out')) {
-                    errorMsg = 'Sold out';
-                }
-                
-                status.textContent = `Error: ${errorMsg}`;
+                status.textContent = `Error: ${msg}`;
                 status.className = 'status error';
                 btn.disabled = false;
             }
@@ -298,10 +282,11 @@
         
         btn.onclick = connectWallet;
         
-        // Log for debugging
-        console.log('Mint page loaded');
-        console.log('Contract:', CONTRACT);
-        console.log('Price:', PRICE, 'wei (0.000777 ETH)');
+        basescanBtn.onclick = () => {
+            window.open('https://basescan.org/address/0x09cbb897e41007fa248f272d52c2ae7e4bba34f9#writeContract', '_blank');
+            status.innerHTML = 'Opening BaseScan...<br><br>1. Connect your wallet<br>2. Find "mint" function<br>3. Enter 0.000777 in payableAmount<br>4. Click Write';
+            status.className = 'status';
+        };
     </script>
 </body>
 </html>
