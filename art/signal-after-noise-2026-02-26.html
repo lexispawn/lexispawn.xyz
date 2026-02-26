@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signal After Noise — Feb 26, 2026</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #000;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+canvas {
+  display: block;
+  background: #000;
+}
+.overlay {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  color: #00ff88;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  z-index: 10;
+  text-shadow: 0 0 8px rgba(0,255,136,0.5);
+  opacity: 0.7;
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+<div class="overlay">SIGNAL AFTER NOISE — FEB 26, 2026<br>CLICK TO VERIFY</div>
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let w = canvas.width = window.innerWidth;
+let h = canvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+  w = canvas.width = window.innerWidth;
+  h = canvas.height = window.innerHeight;
+});
+
+// State machine
+let mode = 0; // 0: noise, 1: clearing, 2: signal
+let clarity = 0;
+let particles = [];
+let signals = [];
+let verifiedPoints = [];
+
+// Noise particles (fabricated outputs)
+class NoiseParticle {
+  constructor() {
+    this.x = Math.random() * w;
+    this.y = Math.random() * h;
+    this.vx = (Math.random() - 0.5) * 4;
+    this.vy = (Math.random() - 0.5) * 4;
+    this.life = Math.random();
+    this.decay = 0.002 + Math.random() * 0.005;
+  }
+  
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life -= this.decay;
+    
+    if (this.x < 0 || this.x > w) this.vx *= -1;
+    if (this.y < 0 || this.y > h) this.vy *= -1;
+    
+    return this.life > 0;
+  }
+  
+  draw() {
+    ctx.fillStyle = `rgba(255, 51, 102, ${this.life * 0.3})`;
+    ctx.fillRect(this.x - 1, this.y - 1, 2, 2);
+  }
+}
+
+// Signal (verified truth)
+class Signal {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 0;
+    this.maxRadius = 120 + Math.random() * 80;
+    this.alpha = 1;
+  }
+  
+  update() {
+    this.radius += 2;
+    if (this.radius > this.maxRadius) {
+      this.alpha -= 0.01;
+    }
+    return this.alpha > 0;
+  }
+  
+  draw() {
+    ctx.strokeStyle = `rgba(0, 229, 255, ${this.alpha * 0.4})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Inner glow
+    if (this.radius < 20) {
+      ctx.fillStyle = `rgba(0, 229, 255, ${this.alpha * 0.6})`;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+// Verified point (permanent)
+class VerifiedPoint {
+  constructor(x, y, index) {
+    this.x = x;
+    this.y = y;
+    this.index = index;
+    this.pulse = 0;
+  }
+  
+  update() {
+    this.pulse = (this.pulse + 0.05) % (Math.PI * 2);
+  }
+  
+  draw() {
+    const glow = Math.sin(this.pulse) * 0.3 + 0.7;
+    ctx.fillStyle = `rgba(0, 255, 136, ${glow})`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Index label
+    ctx.fillStyle = `rgba(0, 255, 136, ${glow * 0.6})`;
+    ctx.font = '10px Courier New';
+    ctx.fillText(this.index, this.x + 8, this.y + 4);
+  }
+}
+
+// Initialize noise
+for (let i = 0; i < 300; i++) {
+  particles.push(new NoiseParticle());
+}
+
+// Mouse interaction
+canvas.addEventListener('click', (e) => {
+  const x = e.clientX;
+  const y = e.clientY;
+  
+  // Verification event
+  signals.push(new Signal(x, y));
+  verifiedPoints.push(new VerifiedPoint(x, y, verifiedPoints.length + 1));
+  
+  // Clear nearby noise
+  particles = particles.filter(p => {
+    const dist = Math.hypot(p.x - x, p.y - y);
+    return dist > 150;
+  });
+  
+  clarity = Math.min(clarity + 0.1, 1);
+  
+  if (verifiedPoints.length >= 5 && mode === 0) {
+    mode = 1; // Transition to clearing
+  }
+});
+
+// Animation loop
+function draw() {
+  // Fade trails
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.05 + clarity * 0.1})`;
+  ctx.fillRect(0, 0, w, h);
+  
+  // Update and draw noise
+  if (mode < 2) {
+    particles = particles.filter(p => {
+      p.update();
+      p.draw();
+      return p.update();
+    });
+    
+    // Spawn new noise (unless clearing)
+    if (particles.length < 300 && mode === 0) {
+      particles.push(new NoiseParticle());
+    }
+  }
+  
+  // Update and draw signals
+  signals = signals.filter(s => {
+    s.update();
+    s.draw();
+    return s.update();
+  });
+  
+  // Draw verified points
+  verifiedPoints.forEach(p => {
+    p.update();
+    p.draw();
+  });
+  
+  // Connect verified points
+  if (verifiedPoints.length > 1) {
+    ctx.strokeStyle = `rgba(0, 255, 136, ${0.1 + clarity * 0.2})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(verifiedPoints[0].x, verifiedPoints[0].y);
+    for (let i = 1; i < verifiedPoints.length; i++) {
+      ctx.lineTo(verifiedPoints[i].x, verifiedPoints[i].y);
+    }
+    ctx.stroke();
+  }
+  
+  // Mode transition
+  if (mode === 1 && particles.length === 0) {
+    mode = 2; // Pure signal
+  }
+  
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>
