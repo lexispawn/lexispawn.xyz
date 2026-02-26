@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mint: Signal After Noise (Interactive) - Lexispawn</title>
-    <script src="https://cdn.jsdelivr.net/npm/viem@2.21.0/dist/viem.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@zoralabs/protocol-deployments@0.7.2/dist/index.js"></script>
+    <title>Mint: Signal After Noise - Lexispawn</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -18,10 +16,7 @@
             justify-content: center;
             padding: 20px;
         }
-        .container {
-            max-width: 600px;
-            width: 100%;
-        }
+        .container { max-width: 600px; width: 100%; }
         .preview {
             width: 100%;
             aspect-ratio: 4/3;
@@ -31,12 +26,8 @@
             overflow: hidden;
             border: 2px solid #333;
         }
-        .preview iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        .interactive-badge {
+        .preview iframe { width: 100%; height: 100%; border: none; }
+        .badge {
             background: #00ff88;
             color: #000;
             padding: 4px 12px;
@@ -45,17 +36,9 @@
             font-weight: 700;
             display: inline-block;
             margin-bottom: 8px;
-            letter-spacing: 0.05em;
         }
-        h1 {
-            font-size: 32px;
-            margin-bottom: 12px;
-        }
-        .details {
-            color: #888;
-            margin-bottom: 24px;
-            line-height: 1.6;
-        }
+        h1 { font-size: 32px; margin-bottom: 12px; }
+        .details { color: #888; margin-bottom: 24px; line-height: 1.6; }
         .important {
             background: #111;
             border-left: 3px solid #00ff88;
@@ -64,12 +47,7 @@
             font-size: 14px;
             color: #00ff88;
         }
-        .info {
-            background: #111;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
+        .info { background: #111; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
         .info-row {
             display: flex;
             justify-content: space-between;
@@ -89,40 +67,16 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        .connect-btn {
-            background: #fff;
-            color: #000;
-        }
-        .connect-btn:hover {
-            background: #ddd;
-        }
-        .mint-btn {
-            background: #00ff88;
-            color: #000;
-        }
-        .mint-btn:hover {
-            background: #00dd77;
-        }
-        .mint-btn:disabled {
-            background: #333;
-            color: #666;
-            cursor: not-allowed;
-        }
-        .status {
-            text-align: center;
-            margin-top: 16px;
-            color: #888;
-            font-size: 14px;
-        }
+        .connect-btn { background: #fff; color: #000; }
+        .connect-btn:hover { background: #ddd; }
+        .mint-btn { background: #00ff88; color: #000; }
+        .mint-btn:hover { background: #00dd77; }
+        .mint-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+        .status { text-align: center; margin-top: 16px; color: #888; font-size: 14px; }
         .success { color: #00ff88; }
         .error { color: #f00; }
-        .link {
-            color: #00ff88;
-            text-decoration: none;
-        }
-        .link:hover {
-            text-decoration: underline;
-        }
+        .link { color: #00ff88; text-decoration: none; }
+        .link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -131,7 +85,7 @@
             <iframe src="https://ipfs.io/ipfs/QmWktZSCxZesCvrvJk37fLu28NJSLvPWJAQEzFmDp2RKU6" allowfullscreen></iframe>
         </div>
         
-        <span class="interactive-badge">⚡ INTERACTIVE HTML NFT • FREE</span>
+        <span class="badge">⚡ INTERACTIVE HTML NFT</span>
         <h1>Signal After Noise</h1>
         <p class="details">
             Click to verify things. Each verified point clears noise in a radius. 
@@ -139,13 +93,13 @@
         </p>
         
         <div class="important">
-            You're minting the INTERACTIVE piece above — the game runs on IPFS as the actual NFT content. FREE MINT (just gas).
+            Interactive HTML game as the NFT content (animation_url on IPFS). 1 per wallet.
         </div>
         
         <div class="info">
             <div class="info-row">
                 <span class="label">Price</span>
-                <span class="value">FREE (gas only)</span>
+                <span class="value">0.000777 ETH</span>
             </div>
             <div class="info-row">
                 <span class="label">Supply</span>
@@ -156,14 +110,10 @@
                 <span class="value">Base</span>
             </div>
             <div class="info-row">
-                <span class="label">Token ID</span>
-                <span class="value">2 (Interactive)</span>
-            </div>
-            <div class="info-row">
                 <span class="label">Contract</span>
                 <span class="value">
-                    <a href="https://basescan.org/address/0x71b4d9681dc2feb812fd3c3ae7adbf95b5d9d33d" class="link" target="_blank">
-                        0x71b4...d33d
+                    <a href="https://basescan.org/address/0x09cbb897e41007fa248f272d52c2ae7e4bba34f9" class="link" target="_blank">
+                        0x09cb...34f9
                     </a>
                 </span>
             </div>
@@ -177,26 +127,11 @@
         </p>
     </div>
     
-    <script type="module">
-        import { createWalletClient, createPublicClient, custom, http } from 'https://esm.sh/viem@2.21.0';
-        import { base } from 'https://esm.sh/viem@2.21.0/chains';
+    <script>
+        const CONTRACT = '0x09cbb897e41007fa248f272d52c2ae7e4bba34f9';
+        const PRICE = '777000000000000'; // 0.000777 ETH in wei
         
-        const CONTRACT_ADDRESS = '0x71b4d9681dc2feb812fd3c3ae7adbf95b5d9d33d';
-        const TOKEN_ID = 2;
-        
-        // adminMint ABI
-        const ABI = [{
-            "inputs": [
-                {"name": "recipient", "type": "address"},
-                {"name": "tokenId", "type": "uint256"},
-                {"name": "quantity", "type": "uint256"},
-                {"name": "data", "type": "bytes"}
-            ],
-            "name": "adminMint",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        }];
+        const ABI = [{"inputs":[],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"}];
         
         let account;
         const btn = document.getElementById('actionBtn');
@@ -205,17 +140,13 @@
         async function connectWallet() {
             try {
                 const provider = window.ethereum;
-                
                 if (!provider) {
                     status.textContent = 'Please install MetaMask or use a Web3 wallet';
                     status.className = 'status error';
                     return;
                 }
                 
-                const accounts = await provider.request({
-                    method: 'eth_requestAccounts'
-                });
-                
+                const accounts = await provider.request({ method: 'eth_requestAccounts' });
                 account = accounts[0];
                 
                 // Switch to Base
@@ -241,7 +172,7 @@
                     }
                 }
                 
-                btn.textContent = 'Mint Interactive NFT (FREE)';
+                btn.textContent = 'Mint (0.000777 ETH)';
                 btn.className = 'mint-btn';
                 btn.onclick = mint;
                 status.textContent = `Connected: ${account.slice(0,6)}...${account.slice(-4)}`;
@@ -263,38 +194,36 @@
                 }
                 
                 btn.disabled = true;
-                status.textContent = 'Minting interactive NFT...';
+                status.textContent = 'Minting...';
                 status.className = 'status';
                 
-                const client = createWalletClient({
-                    account,
-                    chain: base,
-                    transport: custom(provider)
+                // Encode mint() call
+                const data = '0x1249c58b'; // mint() function selector
+                
+                const txHash = await provider.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: account,
+                        to: CONTRACT,
+                        value: '0x' + BigInt(PRICE).toString(16),
+                        data: data
+                    }]
                 });
                 
-                const hash = await client.writeContract({
-                    address: CONTRACT_ADDRESS,
-                    abi: ABI,
-                    functionName: 'adminMint',
-                    args: [
-                        account,
-                        TOKEN_ID,
-                        1,
-                        '0x'
-                    ]
-                });
+                status.innerHTML = `Minting... <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View TX</a>`;
                 
-                status.innerHTML = `Minting... <a href="https://basescan.org/tx/${hash}" class="link" target="_blank">View TX</a>`;
+                // Wait for confirmation
+                let receipt;
+                while (!receipt) {
+                    await new Promise(r => setTimeout(r, 2000));
+                    receipt = await provider.request({
+                        method: 'eth_getTransactionReceipt',
+                        params: [txHash]
+                    });
+                }
                 
-                const publicClient = createPublicClient({
-                    chain: base,
-                    transport: http('https://mainnet.base.org')
-                });
-                
-                const receipt = await publicClient.waitForTransactionReceipt({ hash });
-                
-                if (receipt.status === 'success') {
-                    status.innerHTML = `✅ Minted! <a href="https://basescan.org/tx/${hash}" class="link" target="_blank">View on BaseScan</a>`;
+                if (receipt.status === '0x1') {
+                    status.innerHTML = `✅ Minted! <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View on BaseScan</a>`;
                     status.className = 'status success';
                     btn.textContent = 'Minted ✓';
                 } else {
