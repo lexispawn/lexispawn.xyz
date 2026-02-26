@@ -88,6 +88,7 @@
             font-size: 14px;
             color: #ddd;
             display: none;
+            line-height: 1.5;
         }
     </style>
 </head>
@@ -109,7 +110,12 @@
         </div>
         
         <div id="mobileNotice" class="mobile-notice">
-            📱 On mobile? Copy this URL and open in your wallet's browser (MetaMask, Coinbase Wallet, Rainbow, etc.)
+            📱 <strong>Mobile wallet users:</strong><br>
+            1. Text or DM yourself this URL<br>
+            2. Tap the link from Messages/Telegram/etc<br>
+            3. Choose "Open in MetaMask" (or your wallet app)<br>
+            <br>
+            Or use the "Mint via BaseScan" button below — works everywhere.
         </div>
         
         <div class="info">
@@ -136,7 +142,7 @@
         </div>
         
         <button id="actionBtn" class="connect-btn">Connect Wallet</button>
-        <button id="basescanBtn" class="secondary-btn">Mint via BaseScan</button>
+        <button id="basescanBtn" class="secondary-btn">Mint via BaseScan (Always Works)</button>
         <div id="status" class="status"></div>
         
         <p style="text-align: center; margin-top: 24px; color: #666; font-size: 14px;">
@@ -155,14 +161,12 @@
         const status = document.getElementById('status');
         const mobileNotice = document.getElementById('mobileNotice');
         
-        // Detect mobile
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         if (isMobile) {
             mobileNotice.style.display = 'block';
         }
         
-        // Wait for wallet injection
         async function waitForWallet(maxAttempts = 10) {
             for (let i = 0; i < maxAttempts; i++) {
                 if (window.ethereum) return window.ethereum;
@@ -180,8 +184,8 @@
                 
                 if (!provider) {
                     status.innerHTML = isMobile 
-                        ? '📱 Please open this page in your wallet\'s browser (MetaMask, Coinbase Wallet, Rainbow)<br><br>Or use the "Mint via BaseScan" button below'
-                        : 'Please install <a href="https://metamask.io" class="link" target="_blank">MetaMask</a> or <a href="https://www.coinbase.com/wallet" class="link" target="_blank">Coinbase Wallet</a><br><br>Or use the "Mint via BaseScan" button below';
+                        ? '📱 Not in wallet browser. Text yourself this URL and open from Messages → "Open in MetaMask"<br><br>Or use "Mint via BaseScan" button below'
+                        : 'Please install <a href="https://metamask.io" class="link" target="_blank">MetaMask</a> or <a href="https://www.coinbase.com/wallet" class="link" target="_blank">Coinbase Wallet</a><br><br>Or use "Mint via BaseScan" button below';
                     status.className = 'status error';
                     return;
                 }
