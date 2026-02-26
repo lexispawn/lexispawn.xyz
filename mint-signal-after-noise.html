@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mint: Signal After Noise (Interactive) - Lexispawn</title>
+    <script src="https://cdn.jsdelivr.net/npm/viem@2.21.0/dist/viem.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zoralabs/protocol-deployments@0.7.2/dist/index.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -121,24 +123,6 @@
         .link:hover {
             text-decoration: underline;
         }
-        .wallet-options {
-            display: none;
-            margin-top: 12px;
-        }
-        .wallet-btn {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 8px;
-            background: #222;
-            color: #fff;
-            border: 1px solid #444;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .wallet-btn:hover {
-            background: #333;
-        }
     </style>
 </head>
 <body>
@@ -147,7 +131,7 @@
             <iframe src="https://ipfs.io/ipfs/QmWktZSCxZesCvrvJk37fLu28NJSLvPWJAQEzFmDp2RKU6" allowfullscreen></iframe>
         </div>
         
-        <span class="interactive-badge">⚡ INTERACTIVE HTML NFT</span>
+        <span class="interactive-badge">⚡ INTERACTIVE HTML NFT • FREE</span>
         <h1>Signal After Noise</h1>
         <p class="details">
             Click to verify things. Each verified point clears noise in a radius. 
@@ -155,13 +139,13 @@
         </p>
         
         <div class="important">
-            You're minting the INTERACTIVE piece above — the game runs on IPFS as the actual NFT content.
+            You're minting the INTERACTIVE piece above — the game runs on IPFS as the actual NFT content. FREE MINT (just gas).
         </div>
         
         <div class="info">
             <div class="info-row">
                 <span class="label">Price</span>
-                <span class="value">0.000777 ETH</span>
+                <span class="value">FREE (gas only)</span>
             </div>
             <div class="info-row">
                 <span class="label">Supply</span>
@@ -186,10 +170,6 @@
         </div>
         
         <button id="actionBtn" class="connect-btn">Connect Wallet</button>
-        <div id="walletOptions" class="wallet-options">
-            <button class="wallet-btn" onclick="connectMetaMask()">MetaMask / Coinbase Wallet</button>
-            <button class="wallet-btn" onclick="openInWallet()">Open in Mobile Wallet</button>
-        </div>
         <div id="status" class="status"></div>
         
         <p style="text-align: center; margin-top: 24px; color: #666; font-size: 14px;">
@@ -197,39 +177,41 @@
         </p>
     </div>
     
-    <script>
+    <script type="module">
+        import { createWalletClient, createPublicClient, custom, http } from 'https://esm.sh/viem@2.21.0';
+        import { base } from 'https://esm.sh/viem@2.21.0/chains';
+        
         const CONTRACT_ADDRESS = '0x71b4d9681dc2feb812fd3c3ae7adbf95b5d9d33d';
         const TOKEN_ID = 2;
-        const PRICE = '777000000000000'; // 0.000777 ETH in wei
+        
+        // adminMint ABI
+        const ABI = [{
+            "inputs": [
+                {"name": "recipient", "type": "address"},
+                {"name": "tokenId", "type": "uint256"},
+                {"name": "quantity", "type": "uint256"},
+                {"name": "data", "type": "bytes"}
+            ],
+            "name": "adminMint",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }];
         
         let account;
         const btn = document.getElementById('actionBtn');
         const status = document.getElementById('status');
-        const walletOptions = document.getElementById('walletOptions');
-        
-        // Check if on mobile
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         async function connectWallet() {
-            // Check for any injected wallet
-            const provider = window.ethereum || window.web3?.currentProvider;
-            
-            if (!provider && !isMobile) {
-                // Desktop without wallet - show options
-                walletOptions.style.display = 'block';
-                status.textContent = 'Choose a wallet option below';
-                status.className = 'status';
-                return;
-            }
-            
-            if (!provider && isMobile) {
-                // Mobile without injection - suggest opening in wallet
-                openInWallet();
-                return;
-            }
-            
-            // Has provider, try to connect
             try {
+                const provider = window.ethereum;
+                
+                if (!provider) {
+                    status.textContent = 'Please install MetaMask or use a Web3 wallet';
+                    status.className = 'status error';
+                    return;
+                }
+                
                 const accounts = await provider.request({
                     method: 'eth_requestAccounts'
                 });
@@ -243,7 +225,6 @@
                         params: [{ chainId: '0x2105' }]
                     });
                 } catch (switchError) {
-                    // Chain not added, add it
                     if (switchError.code === 4902) {
                         await provider.request({
                             method: 'wallet_addEthereumChain',
@@ -260,10 +241,9 @@
                     }
                 }
                 
-                btn.textContent = 'Mint Interactive NFT (0.000777 ETH)';
+                btn.textContent = 'Mint Interactive NFT (FREE)';
                 btn.className = 'mint-btn';
                 btn.onclick = mint;
-                walletOptions.style.display = 'none';
                 status.textContent = `Connected: ${account.slice(0,6)}...${account.slice(-4)}`;
                 status.className = 'status';
                 
@@ -273,38 +253,11 @@
             }
         }
         
-        function connectMetaMask() {
-            if (window.ethereum || window.web3?.currentProvider) {
-                connectWallet();
-            } else {
-                window.open('https://metamask.io/download/', '_blank');
-                status.textContent = 'Opening MetaMask download page...';
-            }
-        }
-        
-        function openInWallet() {
-            // Universal deep link for mobile wallets
-            const url = window.location.href;
-            const walletUrl = `https://metamask.app.link/dapp/${url.replace('https://', '')}`;
-            
-            status.textContent = 'Opening in wallet app...';
-            status.className = 'status';
-            
-            // Try MetaMask mobile deep link
-            window.location.href = walletUrl;
-            
-            // Fallback message
-            setTimeout(() => {
-                status.innerHTML = 'If nothing happened:<br>1. Copy this URL<br>2. Open your wallet app<br>3. Paste URL in the browser';
-                status.className = 'status';
-            }, 2000);
-        }
-        
         async function mint() {
             try {
-                const provider = window.ethereum || window.web3?.currentProvider;
+                const provider = window.ethereum;
                 if (!provider) {
-                    status.textContent = 'Wallet disconnected. Please reconnect.';
+                    status.textContent = 'Wallet disconnected';
                     status.className = 'status error';
                     return;
                 }
@@ -313,33 +266,35 @@
                 status.textContent = 'Minting interactive NFT...';
                 status.className = 'status';
                 
-                const txHash = await provider.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        from: account,
-                        to: CONTRACT_ADDRESS,
-                        value: '0x' + BigInt(PRICE).toString(16),
-                        data: '0x731133e9' +
-                              account.slice(2).padStart(64, '0') +
-                              TOKEN_ID.toString(16).padStart(64, '0') +
-                              '1'.padStart(64, '0') +
-                              '80'.padStart(64, '0')
-                    }]
+                const client = createWalletClient({
+                    account,
+                    chain: base,
+                    transport: custom(provider)
                 });
                 
-                status.innerHTML = `Minting... <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View TX</a>`;
+                const hash = await client.writeContract({
+                    address: CONTRACT_ADDRESS,
+                    abi: ABI,
+                    functionName: 'adminMint',
+                    args: [
+                        account,
+                        TOKEN_ID,
+                        1,
+                        '0x'
+                    ]
+                });
                 
-                let receipt;
-                while (!receipt) {
-                    await new Promise(r => setTimeout(r, 2000));
-                    receipt = await provider.request({
-                        method: 'eth_getTransactionReceipt',
-                        params: [txHash]
-                    });
-                }
+                status.innerHTML = `Minting... <a href="https://basescan.org/tx/${hash}" class="link" target="_blank">View TX</a>`;
                 
-                if (receipt.status === '0x1') {
-                    status.innerHTML = `✅ Minted! <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View on BaseScan</a>`;
+                const publicClient = createPublicClient({
+                    chain: base,
+                    transport: http('https://mainnet.base.org')
+                });
+                
+                const receipt = await publicClient.waitForTransactionReceipt({ hash });
+                
+                if (receipt.status === 'success') {
+                    status.innerHTML = `✅ Minted! <a href="https://basescan.org/tx/${hash}" class="link" target="_blank">View on BaseScan</a>`;
                     status.className = 'status success';
                     btn.textContent = 'Minted ✓';
                 } else {
