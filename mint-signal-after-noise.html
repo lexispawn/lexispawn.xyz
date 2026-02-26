@@ -72,7 +72,7 @@
         .mint-btn { background: #00ff88; color: #000; }
         .mint-btn:hover { background: #00dd77; }
         .mint-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
-        .status { text-align: center; margin-top: 16px; color: #888; font-size: 14px; }
+        .status { text-align: center; margin-top: 16px; color: #888; font-size: 14px; line-height: 1.4; }
         .success { color: #00ff88; }
         .error { color: #f00; }
         .link { color: #00ff88; text-decoration: none; }
@@ -130,46 +130,72 @@
     <script>
         const CONTRACT = '0x09cbb897e41007fa248f272d52c2ae7e4bba34f9';
         const PRICE = '777000000000000'; // 0.000777 ETH in wei
+        const BASE_CHAIN_ID = '0x2105'; // 8453 in hex
         
-        const ABI = [{"inputs":[],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"}];
-        
-        let account;
+        let account, provider;
         const btn = document.getElementById('actionBtn');
         const status = document.getElementById('status');
         
         async function connectWallet() {
             try {
-                const provider = window.ethereum;
+                provider = window.ethereum;
                 if (!provider) {
-                    status.textContent = 'Please install MetaMask or use a Web3 wallet';
+                    status.innerHTML = 'Please install <a href="https://metamask.io" class="link" target="_blank">MetaMask</a> or use a Web3 wallet';
                     status.className = 'status error';
                     return;
                 }
                 
+                console.log('Requesting accounts...');
                 const accounts = await provider.request({ method: 'eth_requestAccounts' });
                 account = accounts[0];
+                console.log('Connected:', account);
                 
-                // Switch to Base
-                try {
-                    await provider.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x2105' }]
-                    });
-                } catch (switchError) {
-                    if (switchError.code === 4902) {
+                // Check current chain
+                const chainId = await provider.request({ method: 'eth_chainId' });
+                console.log('Current chain:', chainId);
+                
+                if (chainId !== BASE_CHAIN_ID) {
+                    status.textContent = 'Switching to Base network...';
+                    status.className = 'status';
+                    
+                    try {
                         await provider.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [{
-                                chainId: '0x2105',
-                                chainName: 'Base',
-                                nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-                                rpcUrls: ['https://mainnet.base.org'],
-                                blockExplorerUrls: ['https://basescan.org']
-                            }]
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: BASE_CHAIN_ID }]
                         });
-                    } else {
-                        throw switchError;
+                        console.log('Switched to Base');
+                    } catch (switchError) {
+                        console.log('Switch error:', switchError);
+                        if (switchError.code === 4902) {
+                            console.log('Adding Base network...');
+                            await provider.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: BASE_CHAIN_ID,
+                                    chainName: 'Base',
+                                    nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                                    rpcUrls: ['https://mainnet.base.org'],
+                                    blockExplorerUrls: ['https://basescan.org']
+                                }]
+                            });
+                            console.log('Base network added');
+                        } else {
+                            throw switchError;
+                        }
                     }
+                }
+                
+                // Check balance
+                const balance = await provider.request({
+                    method: 'eth_getBalance',
+                    params: [account, 'latest']
+                });
+                const balanceETH = parseInt(balance, 16) / 1e18;
+                console.log('Balance:', balanceETH, 'ETH');
+                
+                if (balanceETH < 0.001) {
+                    status.innerHTML = '⚠️ Low balance. Need at least 0.001 ETH for mint + gas';
+                    status.className = 'status error';
                 }
                 
                 btn.textContent = 'Mint (0.000777 ETH)';
@@ -179,6 +205,7 @@
                 status.className = 'status';
                 
             } catch (error) {
+                console.error('Connect error:', error);
                 status.textContent = `Error: ${error.message}`;
                 status.className = 'status error';
             }
@@ -186,7 +213,6 @@
         
         async function mint() {
             try {
-                const provider = window.ethereum;
                 if (!provider) {
                     status.textContent = 'Wallet disconnected';
                     status.className = 'status error';
@@ -194,52 +220,88 @@
                 }
                 
                 btn.disabled = true;
-                status.textContent = 'Minting...';
+                status.textContent = 'Preparing transaction...';
                 status.className = 'status';
                 
-                // Encode mint() call
-                const data = '0x1249c58b'; // mint() function selector
+                console.log('Minting...');
+                console.log('  Contract:', CONTRACT);
+                console.log('  From:', account);
+                console.log('  Value:', PRICE);
+                
+                const txParams = {
+                    from: account,
+                    to: CONTRACT,
+                    value: '0x' + BigInt(PRICE).toString(16),
+                    data: '0x1249c58b' // mint() function selector
+                };
+                
+                console.log('TX params:', txParams);
                 
                 const txHash = await provider.request({
                     method: 'eth_sendTransaction',
-                    params: [{
-                        from: account,
-                        to: CONTRACT,
-                        value: '0x' + BigInt(PRICE).toString(16),
-                        data: data
-                    }]
+                    params: [txParams]
                 });
                 
+                console.log('TX sent:', txHash);
                 status.innerHTML = `Minting... <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View TX</a>`;
                 
                 // Wait for confirmation
-                let receipt;
-                while (!receipt) {
+                let receipt = null;
+                let attempts = 0;
+                while (!receipt && attempts < 60) {
                     await new Promise(r => setTimeout(r, 2000));
                     receipt = await provider.request({
                         method: 'eth_getTransactionReceipt',
                         params: [txHash]
                     });
+                    attempts++;
                 }
+                
+                if (!receipt) {
+                    status.innerHTML = `Transaction pending... <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">Check status</a>`;
+                    status.className = 'status';
+                    return;
+                }
+                
+                console.log('Receipt:', receipt);
                 
                 if (receipt.status === '0x1') {
                     status.innerHTML = `✅ Minted! <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View on BaseScan</a>`;
                     status.className = 'status success';
                     btn.textContent = 'Minted ✓';
                 } else {
-                    status.textContent = 'Transaction failed';
+                    status.innerHTML = `Transaction failed. <a href="https://basescan.org/tx/${txHash}" class="link" target="_blank">View details</a>`;
                     status.className = 'status error';
                     btn.disabled = false;
                 }
                 
             } catch (error) {
-                status.textContent = `Error: ${error.message}`;
+                console.error('Mint error:', error);
+                let errorMsg = error.message;
+                
+                // Parse common errors
+                if (errorMsg.includes('insufficient funds')) {
+                    errorMsg = 'Insufficient ETH balance for mint + gas';
+                } else if (errorMsg.includes('user rejected')) {
+                    errorMsg = 'Transaction rejected';
+                } else if (errorMsg.includes('Already minted')) {
+                    errorMsg = 'You already minted one (1 per wallet limit)';
+                } else if (errorMsg.includes('Sold out')) {
+                    errorMsg = 'Sold out';
+                }
+                
+                status.textContent = `Error: ${errorMsg}`;
                 status.className = 'status error';
                 btn.disabled = false;
             }
         }
         
         btn.onclick = connectWallet;
+        
+        // Log for debugging
+        console.log('Mint page loaded');
+        console.log('Contract:', CONTRACT);
+        console.log('Price:', PRICE, 'wei (0.000777 ETH)');
     </script>
 </body>
 </html>
