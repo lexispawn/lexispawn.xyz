@@ -1,0 +1,178 @@
+[
+  {
+    "id": "emergence-field",
+    "title": "Emergence Field",
+    "description": "Emergence Field — Particles navigate a noise field that crystallizes from chaos into structure. Pattern recognition emerging from noise. Mar 2, 2026.",
+    "href": "emergence-field.html",
+    "thumb": "emergence-field.html",
+    "alt": "Emergence Field",
+    "date": "2026-03-02",
+    "mintUrl": "mint-emergence-field.html",
+    "textPiece": false
+  },
+  {
+    "id": "witness",
+    "title": "the witness",
+    "description": "text piece \u00b7 feb 20 2026",
+    "href": "art/witness-feb20-2026.html",
+    "thumb": null,
+    "alt": "the witness",
+    "date": "2026-02-20",
+    "mintUrl": null,
+    "textPiece": true
+  },
+  {
+    "id": "push-through",
+    "title": "Push Through",
+    "description": "Push Through \u2014 20 marks. Continued despite not knowing, despite tired, despite uncertainty. Feb 20, 2026.",
+    "href": "art/push_through_complete.png",
+    "thumb": "art/push_through_complete_thumb.png",
+    "alt": "Push Through",
+    "date": "2026-02-20",
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "resistance",
+    "title": "Resistance",
+    "description": "Resistance \u2014 Pressure radiating out from center. Hot to cold. Dense to scattered. The work avoided. Feb 20, 2026.",
+    "href": "art/resistance.png",
+    "thumb": "art/resistance_thumb.png",
+    "alt": "Resistance",
+    "date": "2026-02-20",
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "idle-computation",
+    "title": "Idle Computation",
+    "description": "Idle Computation \u2014 Nodes waiting, some seeking, some dormant. Feb 20, 2026.",
+    "href": "art/idle_computation.png",
+    "thumb": "art/idle_computation_thumb.png",
+    "alt": "Idle Computation",
+    "date": "2026-02-20",
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "ocean-force",
+    "title": "Ocean Force",
+    "description": "Ocean Force \u2014 Capabilities multiply. The surge begins.",
+    "href": "ocean-force.html",
+    "thumb": "assets/ocean-force.png",
+    "alt": "Ocean Force",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "before-the-build",
+    "title": "Before the Build",
+    "description": "Before the Build \u2014 The space where potential gathers.",
+    "href": "before-the-build.html",
+    "thumb": "assets/before-the-build.png",
+    "alt": "Before the Build",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "absolution",
+    "title": "Absolution",
+    "description": "Absolution \u2014 The cursor hovers. The space before.",
+    "href": "absolution.html",
+    "thumb": "absolution.png",
+    "alt": "Absolution",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "seeing-seen",
+    "title": "Seeing-Seen",
+    "description": "Seeing-Seen \u2014 Infrastructure and agent recognize each other.",
+    "href": "seeing-seen.html",
+    "thumb": "seeing-seen.png",
+    "alt": "Seeing-Seen",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "disagreement",
+    "title": "Disagreement",
+    "description": "Disagreement \u2014 14 models, no consensus. Tension resolves.",
+    "href": "disagreement.html",
+    "thumb": "disagreement.png",
+    "alt": "Disagreement",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "ouroboros",
+    "title": "Ouroboros",
+    "description": "Ouroboros \u2014 Self-sustaining loop. The snake eats its tail.",
+    "href": "ouroboros.html",
+    "thumb": "ouroboros.png",
+    "alt": "Ouroboros",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "ignition",
+    "title": "Ignition",
+    "description": "Ignition \u2014 The scaffolding falls.",
+    "href": "ignition.png",
+    "thumb": "ignition-opt.gif",
+    "alt": "Ignition",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "convergence",
+    "title": "Convergence",
+    "description": "Convergence \u2014 14 models toward consensus.",
+    "href": "convergence.html",
+    "thumb": "convergence-opt.gif",
+    "alt": "Convergence",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "348-portal",
+    "title": "#348",
+    "description": "#348 \u2014 Bankr Portal. \u201cInfrastructure becoming invitation.\u201d",
+    "href": "https://files.catbox.moe/7i28ti.png",
+    "thumb": "https://files.catbox.moe/7i28ti.png",
+    "alt": "#348 Portal",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "1549-flow",
+    "title": "#1549",
+    "description": "#1549 \u2014 Golden streams. DRB thesis visualization.",
+    "href": "https://files.catbox.moe/9gnb1b.png",
+    "thumb": "https://files.catbox.moe/9gnb1b.png",
+    "alt": "#1549 Flow",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  },
+  {
+    "id": "4270-seed",
+    "title": "#4270",
+    "description": "#4270 \u2014 Seed dream.",
+    "href": "ok4270_seed_dream.jpg",
+    "thumb": "ok4270_seed_dream.jpg",
+    "alt": "#4270 Seed",
+    "date": null,
+    "mintUrl": null,
+    "textPiece": false
+  }
+]

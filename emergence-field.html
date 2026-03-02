@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergence Field</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { 
+            background: #000; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        canvas { 
+            max-width: 100%; 
+            max-height: 100vh;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script type="module">
+        import { createNoise3D } from 'https://cdn.skypack.dev/simplex-noise@4.0.1';
+        import { XsAdd } from 'https://cdn.skypack.dev/@thi.ng/random@3.7.1';
+        
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // High res canvas
+        const width = 1080;
+        const height = 1080;
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Seeded RNG for reproducibility
+        const rng = new XsAdd(0x1337);
+        const noise3D = createNoise3D(() => rng.float());
+        
+        // Particle system
+        const particleCount = 3000;
+        const particles = [];
+        
+        for (let i = 0; i < particleCount; i++) {
+            particles.push({
+                x: rng.float() * width,
+                y: rng.float() * height,
+                vx: 0,
+                vy: 0,
+                trail: []
+            });
+        }
+        
+        // Evolution parameters
+        let time = 0;
+        const noiseScale = 0.003;
+        const forceScale = 2.5;
+        const friction = 0.95;
+        const trailLength = 30;
+        
+        // IQ-style cosine gradient for color evolution
+        // See: https://iquilezles.org/articles/palettes/
+        function cosineGradient(t, a, b, c, d) {
+            return [
+                a[0] + b[0] * Math.cos(2 * Math.PI * (c[0] * t + d[0])),
+                a[1] + b[1] * Math.cos(2 * Math.PI * (c[1] * t + d[1])),
+                a[2] + b[2] * Math.cos(2 * Math.PI * (c[2] * t + d[2]))
+            ];
+        }
+        
+        // Palette params (a, b, c, d vectors)
+        const paletteA = [0.5, 0.5, 0.5];
+        const paletteB = [0.5, 0.5, 0.5];
+        const paletteC = [1.0, 1.0, 1.0];
+        const paletteD = [0.0, 0.33, 0.67];
+        
+        function getColor(t) {
+            const rgb = cosineGradient(t, paletteA, paletteB, paletteC, paletteD);
+            return `rgb(${Math.floor(rgb[0] * 255)}, ${Math.floor(rgb[1] * 255)}, ${Math.floor(rgb[2] * 255)})`;
+        }
+        
+        function update() {
+            // Fade previous frame (trail effect)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.02)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Time evolution affects noise field structure
+            // Early: chaotic. Late: crystallized patterns emerge.
+            const structureFactor = Math.min(time / 300, 1.0); // 0->1 over 300 frames
+            const timeZ = time * 0.001;
+            
+            particles.forEach((p, i) => {
+                // Sample noise field at particle position + time
+                const noiseValue = noise3D(
+                    p.x * noiseScale,
+                    p.y * noiseScale,
+                    timeZ
+                );
+                
+                // Convert noise to angle and force
+                // Noise oscillates -1 to 1, map to 0 to 2π
+                const angle = (noiseValue + 1) * Math.PI;
+                
+                // Force magnitude increases as structure emerges
+                const magnitude = forceScale * (0.5 + 0.5 * structureFactor);
+                
+                // Apply force
+                p.vx += Math.cos(angle) * magnitude;
+                p.vy += Math.sin(angle) * magnitude;
+                
+                // Friction
+                p.vx *= friction;
+                p.vy *= friction;
+                
+                // Update position
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Wrap around edges
+                if (p.x < 0) p.x += width;
+                if (p.x > width) p.x -= width;
+                if (p.y < 0) p.y += height;
+                if (p.y > height) p.y -= height;
+                
+                // Add to trail
+                p.trail.unshift({ x: p.x, y: p.y });
+                if (p.trail.length > trailLength) p.trail.pop();
+                
+                // Draw particle with color based on velocity + time
+                const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                const colorT = (speed / 10 + time / 200) % 1.0;
+                
+                // Particle brightness increases as structure emerges
+                const alpha = 0.3 + 0.7 * structureFactor;
+                
+                ctx.fillStyle = getColor(colorT);
+                ctx.globalAlpha = alpha;
+                
+                // Draw trail
+                p.trail.forEach((point, idx) => {
+                    const trailAlpha = (1 - idx / trailLength) * alpha * 0.3;
+                    ctx.globalAlpha = trailAlpha;
+                    ctx.fillRect(point.x, point.y, 1, 1);
+                });
+                
+                // Draw particle head (slightly larger)
+                ctx.globalAlpha = alpha;
+                ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+            });
+            
+            ctx.globalAlpha = 1.0;
+            time++;
+            
+            // Loop after 600 frames (~20 seconds at 30fps)
+            if (time > 600) {
+                time = 0;
+                // Reset particles to new random positions
+                particles.forEach(p => {
+                    p.x = rng.float() * width;
+                    p.y = rng.float() * height;
+                    p.vx = 0;
+                    p.vy = 0;
+                    p.trail = [];
+                });
+            }
+            
+            requestAnimationFrame(update);
+        }
+        
+        update();
+    </script>
+</body>
+</html>

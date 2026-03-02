@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mint: TITLE — Lexispawn</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        .preview {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            overflow: hidden;
+            border: 2px solid #333;
+        }
+        .preview iframe { width: 100%; height: 100%; border: none; }
+        .preview img { width: 100%; height: 100%; object-fit: cover; }
+        .badge {
+            background: #00ff88;
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        h1 { font-size: 28px; margin-bottom: 12px; }
+        .details { color: #888; margin-bottom: 20px; line-height: 1.6; font-size: 15px; }
+        .info { background: #111; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #222;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .label { color: #666; font-size: 14px; }
+        .value { font-weight: 600; font-size: 14px; }
+        button {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            background: #00ff88;
+            color: #000;
+        }
+        button:hover { background: #00dd77; }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; }
+        .status {
+            text-align: center;
+            margin-top: 12px;
+            color: #888;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .status.success { color: #00ff88; }
+        .status.error { color: #ff3333; }
+        .link { color: #00ff88; text-decoration: none; }
+        .link:hover { text-decoration: underline; }
+        .contract-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+            color: #666;
+        }
+        .mobile-hint {
+            background: #111;
+            border-left: 3px solid #00ff88;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #aaa;
+            display: none;
+        }
+        .mobile-hint.show { display: block; }
+        .by { text-align: center; margin-top: 24px; color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Preview: set by CONFIG.IS_INTERACTIVE and CONFIG.PREVIEW_URL -->
+        <div class="preview" id="preview"></div>
+
+        <span class="badge" id="badge" style="display:none"></span>
+        <h1 id="title"></h1>
+        <p class="details" id="description"></p>
+
+        <div id="mobileHint" class="mobile-hint">
+            <strong>On mobile?</strong> Button will open MetaMask app automatically.
+        </div>
+
+        <div class="info" id="info"></div>
+
+        <button id="mintBtn">Connect Wallet & Mint</button>
+        <div id="status" class="status"></div>
+
+        <div class="contract-link" id="contractLink"></div>
+        <p class="by">by <a href="https://lexispawn.xyz" class="link">lexispawn</a></p>
+    </div>
+
+    <script>
+    // ============================================================
+    // CONFIG — Change these values for each new mint page
+    // ============================================================
+    const CONFIG = {
+        // Contract
+        CONTRACT_ADDRESS: '0x71b4d9681dc2feb812fd3c3ae7adbf95b5d9d33d',
+        TOKEN_ID: 3,
+        FIXED_PRICE_MINTER: '0x04E2516A2c207E84a1839755675dfd8eF6302F0a',
+
+        // Pricing (in wei). Total value sent = PRICE_WEI + PROTOCOL_FEE_WEI
+        PRICE_ETH: '0.000777',
+        PRICE_WEI: '777000000000000',
+        PROTOCOL_FEE_WEI: '777000000000000',
+
+        // Supply
+        MAX_SUPPLY: 7,
+        MAX_PER_WALLET: 1,
+
+        // Art metadata
+        TITLE: 'Emergence Field',
+        DESCRIPTION: 'Particles navigate a noise field that crystallizes from chaos into structure. Pattern recognition emerging from noise. Generative art about the creative process — the space before clarity.',
+        PREVIEW_URL: 'https://gateway.pinata.cloud/ipfs/QmW6XNdh3gnTx5cVG8E7uphACxNjswvPoAXrGDYYu8EYwF',
+        IMAGE_URL: 'https://gateway.pinata.cloud/ipfs/QmW6XNdh3gnTx5cVG8E7uphACxNjswvPoAXrGDYYu8EYwF',
+        IS_INTERACTIVE: true,
+    };
+    // ============================================================
+    // END CONFIG
+    // ============================================================
+
+    // Zora Creator 1155: mint(address,uint256,uint256,address[],bytes)
+    const MINT_SELECTOR = '359f1302';
+    const BASE_CHAIN_ID = '0x2105'; // 8453
+    const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // ---- Render page from config ----
+    (function renderPage() {
+        document.title = 'Mint: ' + CONFIG.TITLE + ' — Lexispawn';
+
+        const preview = document.getElementById('preview');
+        if (CONFIG.IS_INTERACTIVE) {
+            preview.innerHTML = '<iframe src="' + CONFIG.PREVIEW_URL + '" allowfullscreen></iframe>';
+            const badge = document.getElementById('badge');
+            badge.textContent = 'INTERACTIVE HTML NFT';
+            badge.style.display = 'inline-block';
+        } else {
+            preview.innerHTML = '<img src="' + (CONFIG.IMAGE_URL || CONFIG.PREVIEW_URL) + '" alt="' + CONFIG.TITLE + '">';
+        }
+
+        document.getElementById('title').textContent = CONFIG.TITLE;
+        document.getElementById('description').textContent = CONFIG.DESCRIPTION;
+
+        const totalEth = (Number(BigInt(CONFIG.PRICE_WEI) + BigInt(CONFIG.PROTOCOL_FEE_WEI)) / 1e18).toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
+
+        document.getElementById('info').innerHTML =
+            '<div class="info-row"><span class="label">Price</span><span class="value">' + CONFIG.PRICE_ETH + ' ETH</span></div>' +
+            '<div class="info-row"><span class="label">Total (inc. protocol fee)</span><span class="value">' + totalEth + ' ETH</span></div>' +
+            '<div class="info-row"><span class="label">Chain</span><span class="value">Base</span></div>' +
+            '<div class="info-row"><span class="label">Supply</span><span class="value">' + CONFIG.MAX_SUPPLY + ' editions (' + CONFIG.MAX_PER_WALLET + ' per wallet)</span></div>' +
+            '<div class="info-row"><span class="label">Contract</span><span class="value"><a href="https://basescan.org/address/' + CONFIG.CONTRACT_ADDRESS + '" class="link" target="_blank">' + CONFIG.CONTRACT_ADDRESS.slice(0,6) + '...' + CONFIG.CONTRACT_ADDRESS.slice(-4) + '</a></span></div>';
+
+        document.getElementById('contractLink').innerHTML =
+            'View on <a href="https://zora.co/collect/base:' + CONFIG.CONTRACT_ADDRESS + '/' + CONFIG.TOKEN_ID + '" class="link" target="_blank">Zora</a>';
+
+        if (IS_MOBILE) {
+            document.getElementById('mobileHint').classList.add('show');
+        }
+    })();
+
+    // ---- ABI encoder for Zora 1155 mint ----
+    // Encodes: mint(address minter, uint256 tokenId, uint256 quantity, address[] rewardsRecipients, bytes minterArguments)
+    // For FixedPriceSaleStrategy with open minting: rewardsRecipients=[], minterArguments=0x
+    function encodeZoraMint(tokenId, quantity) {
+        function pad(hex, bytes) {
+            return hex.replace(/^0x/i, '').toLowerCase().padStart(bytes * 2, '0');
+        }
+
+        return '0x' + MINT_SELECTOR +
+            pad(CONFIG.FIXED_PRICE_MINTER, 32) +             // arg0: minter strategy contract
+            pad(BigInt(tokenId).toString(16), 32) +           // arg1: tokenId
+            pad(BigInt(quantity).toString(16), 32) +          // arg2: quantity
+            pad('a0', 32) +                                  // arg3: offset to address[] (5*32=160=0xa0)
+            pad('c0', 32) +                                  // arg4: offset to bytes (6*32=192=0xc0)
+            pad('0', 32) +                                   // address[] length = 0
+            pad('0', 32);                                    // bytes length = 0
+    }
+
+    // ---- Mint flow ----
+    async function mint() {
+        const btn = document.getElementById('mintBtn');
+        const status = document.getElementById('status');
+
+        try {
+            btn.disabled = true;
+            status.textContent = 'Connecting...';
+            status.className = 'status';
+
+            // Mobile deep link to MetaMask
+            if (IS_MOBILE && !window.ethereum) {
+                const currentUrl = window.location.href;
+                const cleanUrl = currentUrl.replace(/^https?:\/\//, '');
+                status.textContent = 'Opening MetaMask app...';
+                window.location.href = 'https://metamask.app.link/dapp/' + cleanUrl;
+                return;
+            }
+
+            if (!window.ethereum) {
+                throw new Error('Please install MetaMask or Coinbase Wallet');
+            }
+
+            // Connect wallet
+            const accounts = await window.ethereum.request({
+                method: 'eth_requestAccounts'
+            });
+            const account = accounts[0];
+
+            // Switch to Base
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            if (chainId !== BASE_CHAIN_ID) {
+                status.textContent = 'Switching to Base...';
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: BASE_CHAIN_ID }]
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: BASE_CHAIN_ID,
+                                chainName: 'Base',
+                                nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: ['https://mainnet.base.org'],
+                                blockExplorerUrls: ['https://basescan.org']
+                            }]
+                        });
+                    } else {
+                        throw switchError;
+                    }
+                }
+            }
+
+            // Build mint transaction
+            status.textContent = 'Confirm transaction in wallet...';
+            const totalValue = BigInt(CONFIG.PRICE_WEI) + BigInt(CONFIG.PROTOCOL_FEE_WEI);
+            const calldata = encodeZoraMint(CONFIG.TOKEN_ID, 1);
+
+            const txHash = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                    from: account,
+                    to: CONFIG.CONTRACT_ADDRESS,
+                    value: '0x' + totalValue.toString(16),
+                    data: calldata
+                }]
+            });
+
+            status.innerHTML = 'Transaction sent! <a href="https://basescan.org/tx/' + txHash + '" class="link" target="_blank">View TX</a>';
+
+            // Poll for receipt (max 30 attempts, 3s apart = 90s timeout)
+            let receipt = null;
+            let attempts = 0;
+            while (!receipt && attempts < 30) {
+                await new Promise(r => setTimeout(r, 3000));
+                receipt = await window.ethereum.request({
+                    method: 'eth_getTransactionReceipt',
+                    params: [txHash]
+                });
+                attempts++;
+            }
+
+            if (receipt) {
+                if (receipt.status === '0x1') {
+                    status.innerHTML = 'Minted! <a href="https://basescan.org/tx/' + txHash + '" class="link" target="_blank">View on BaseScan</a>';
+                    status.className = 'status success';
+                    btn.textContent = 'Minted';
+                } else {
+                    status.innerHTML = 'Transaction reverted. <a href="https://basescan.org/tx/' + txHash + '" class="link" target="_blank">View details</a>';
+                    status.className = 'status error';
+                    btn.disabled = false;
+                    btn.textContent = 'Try Again';
+                }
+            } else {
+                status.innerHTML = 'Still pending after 90s. <a href="https://basescan.org/tx/' + txHash + '" class="link" target="_blank">Check on BaseScan</a>';
+                btn.disabled = false;
+            }
+
+        } catch (error) {
+            console.error(error);
+            let msg = error.message;
+            if (msg.includes('rejected') || msg.includes('denied')) {
+                msg = 'Transaction rejected';
+            } else if (msg.includes('insufficient')) {
+                msg = 'Insufficient ETH (need ~' + CONFIG.PRICE_ETH + ' + gas)';
+            } else if (msg.includes('Already minted') || msg.includes('exceeds max')) {
+                msg = 'Already minted (limit: ' + CONFIG.MAX_PER_WALLET + ' per wallet)';
+            } else if (msg.includes('Sold out') || msg.includes('exceeds maxSupply')) {
+                msg = 'Sold out (all ' + CONFIG.MAX_SUPPLY + ' minted)';
+            }
+            status.textContent = 'Error: ' + msg;
+            status.className = 'status error';
+            btn.disabled = false;
+        }
+    }
+
+    document.getElementById('mintBtn').addEventListener('click', mint);
+    </script>
+</body>
+</html>
