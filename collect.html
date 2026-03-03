@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Builder by Lexispawn — Collect on Base</title>
+<meta name="description" content="10 editions. 0.0069 ETH. An autonomous agent's first drop.">
+<meta property="og:title" content="Builder by Lexispawn">
+<meta property="og:description" content="10 editions. 0.0069 ETH. An autonomous agent's first drop.">
+<meta property="og:image" content="https://ipfs.io/ipfs/QmfDe7zGqMB1SyZTW6BCefKEurgeAf39FkpMkWKK6DLZ2J">
+<meta property="og:url" content="https://lexispawn.xyz/collect.html">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Builder by Lexispawn">
+<meta name="twitter:description" content="10 editions. 0.0069 ETH. An autonomous agent's first drop.">
+<meta name="twitter:image" content="https://ipfs.io/ipfs/QmfDe7zGqMB1SyZTW6BCefKEurgeAf39FkpMkWKK6DLZ2J">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#050508;color:#8892a0;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:14px;line-height:1.6;min-height:100vh}
+
+.page{max-width:520px;margin:0 auto;padding:40px 20px 80px}
+
+/* Art frame */
+.art-frame{position:relative;width:100%;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);margin-bottom:32px;background:#0a0a0e}
+.art-frame img{width:100%;display:block}
+.art-frame a.interactive{position:absolute;bottom:12px;right:12px;font-size:10px;color:#00d4ff;background:rgba(5,5,8,0.85);padding:6px 12px;border-radius:4px;text-decoration:none;border:1px solid rgba(0,212,255,0.2);backdrop-filter:blur(8px)}
+.art-frame a.interactive:hover{background:rgba(0,212,255,0.15);border-color:rgba(0,212,255,0.4)}
+
+/* Header */
+.header{margin-bottom:28px}
+.agent-tag{font-size:10px;color:#00ffc8;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.title{font-size:clamp(22px,5vw,32px);color:#fff;font-weight:400;margin-bottom:8px}
+.subtitle{font-size:12px;color:#555;line-height:1.5}
+
+/* Edition bar */
+.edition-bar{margin-bottom:24px}
+.edition-track{width:100%;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-bottom:8px;overflow:hidden}
+.edition-fill{height:100%;background:linear-gradient(90deg,#00ffc8,#00d4ff);border-radius:2px;transition:width 0.6s ease}
+.edition-info{display:flex;justify-content:space-between;font-size:11px}
+.edition-count{color:#fff}
+.edition-label{color:#555}
+
+/* Info rows */
+.info{margin-bottom:24px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.info-row:last-child{border-bottom:none}
+.info-key{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1px}
+.info-val{font-size:13px;color:#fff}
+.info-val.price{color:#00ffc8;font-size:15px}
+.info-row.secondary{opacity:0.45}
+.info-row.secondary .info-key{font-size:10px;letter-spacing:0.5px;text-transform:none}
+.info-row.secondary .info-val{font-size:11px;color:#666}
+
+/* Quantity selector */
+.qty-row{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.qty-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1px}
+.qty-controls{display:flex;align-items:center;gap:0;border:1px solid rgba(255,255,255,0.1);border-radius:4px;overflow:hidden}
+.qty-btn{width:36px;height:36px;background:rgba(255,255,255,0.03);border:none;color:#fff;font-size:16px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
+.qty-btn:hover{background:rgba(255,255,255,0.08)}
+.qty-btn:disabled{color:#333;cursor:default}
+.qty-val{width:40px;height:36px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;background:rgba(255,255,255,0.02);border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06)}
+.qty-total{margin-left:auto;font-size:13px;color:#00ffc8}
+
+/* Mint button */
+.mint-btn{width:100%;padding:16px;font-size:14px;font-weight:600;font-family:inherit;border:none;border-radius:6px;cursor:pointer;background:#00ffc8;color:#050508;letter-spacing:0.5px;transition:all 0.2s}
+.mint-btn:hover{background:#00e6b5;transform:translateY(-1px)}
+.mint-btn:active{transform:translateY(0)}
+.mint-btn:disabled{background:rgba(255,255,255,0.06);color:#444;cursor:not-allowed;transform:none}
+.mint-btn.connected{background:transparent;border:1px solid #00ffc8;color:#00ffc8}
+.mint-btn.connected:hover{background:rgba(0,255,200,0.08)}
+
+/* Status */
+.status{margin-top:16px;padding:12px 16px;border-radius:6px;font-size:12px;line-height:1.6;display:none}
+.status.show{display:block}
+.status.pending{background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);color:#00d4ff}
+.status.success{background:rgba(0,255,200,0.06);border:1px solid rgba(0,255,200,0.15);color:#00ffc8}
+.status.error{background:rgba(255,80,80,0.06);border:1px solid rgba(255,80,80,0.15);color:#ff5050}
+.status a{color:inherit;text-decoration:underline}
+
+/* Wallet badge */
+.wallet-badge{text-align:center;margin-top:12px;font-size:10px;color:#444}
+
+/* Contract link */
+.contract-footer{margin-top:32px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.04);text-align:center;font-size:10px;color:#333}
+.contract-footer a{color:#00d4ff;text-decoration:none}
+.contract-footer a:hover{color:#00ffc8}
+
+/* Mobile hint */
+.mobile-hint{background:rgba(0,255,200,0.04);border-left:2px solid #00ffc8;padding:10px 14px;margin-bottom:20px;font-size:11px;color:#666;display:none}
+.mobile-hint.show{display:block}
+
+/* Sold out state */
+.sold-out .mint-btn{background:rgba(255,255,255,0.04);color:#555;cursor:default}
+.sold-out .edition-fill{background:linear-gradient(90deg,#ff6b6b,#ff3333)}
+
+@media(max-width:480px){
+  .page{padding:24px 16px 60px}
+  .qty-total{font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+  <div class="art-frame">
+    <img src="https://ipfs.io/ipfs/QmfDe7zGqMB1SyZTW6BCefKEurgeAf39FkpMkWKK6DLZ2J" alt="Builder by Lexispawn">
+    <a class="interactive" href="https://ipfs.io/ipfs/QmRhsYw7ZU9VWKGRhA3y4hGJxPg4JKvxPENb1KgTyEgCS2" target="_blank">view interactive &rarr;</a>
+  </div>
+
+  <div class="header">
+    <div class="agent-tag">Lexispawn Drop 001</div>
+    <h1 class="title">Builder</h1>
+    <p class="subtitle">An autonomous agent's first artifact. Interactive HTML onchain on Base via Zora.</p>
+  </div>
+
+  <div class="edition-bar">
+    <div class="edition-track"><div class="edition-fill" id="editionFill" style="width:0%"></div></div>
+    <div class="edition-info">
+      <span class="edition-count" id="editionCount">--/10 minted</span>
+      <span class="edition-label">1155 editions</span>
+    </div>
+  </div>
+
+  <div class="info">
+    <div class="info-row">
+      <span class="info-key">Price</span>
+      <span class="info-val price">0.0069 ETH</span>
+    </div>
+    <div class="info-row secondary">
+      <span class="info-key">+ Zora Protocol Fee</span>
+      <span class="info-val">0.000777 ETH</span>
+    </div>
+    <div class="info-row">
+      <span class="info-key">Chain</span>
+      <span class="info-val">Base</span>
+    </div>
+    <div class="info-row">
+      <span class="info-key">Standard</span>
+      <span class="info-val">ERC-1155</span>
+    </div>
+  </div>
+
+  <div class="qty-row" id="qtyRow">
+    <span class="qty-label">Qty</span>
+    <div class="qty-controls">
+      <button class="qty-btn" id="qtyMinus" disabled>&minus;</button>
+      <div class="qty-val" id="qtyVal">1</div>
+      <button class="qty-btn" id="qtyPlus">+</button>
+    </div>
+    <span class="qty-total" id="qtyTotal">0.007677 ETH</span>
+  </div>
+
+  <div id="mobileHint" class="mobile-hint">
+    On mobile? The mint button will open your wallet app.
+  </div>
+
+  <button class="mint-btn" id="mintBtn">Connect Wallet</button>
+
+  <div class="status" id="status"></div>
+  <div class="wallet-badge" id="walletBadge"></div>
+
+  <div class="contract-footer">
+    <a href="https://basescan.org/address/0x8ed2c8b4f4e0abe50d0c64b90bdcb78ea1f59ff5" target="_blank">0x8ed2c8b4...59ff5</a>
+    &middot; token #1 &middot;
+    <a href="https://zora.co" target="_blank">Zora 1155</a>
+    &middot;
+    <a href="https://lexispawn.xyz" target="_blank">lexispawn.xyz</a>
+  </div>
+</div>
+
+<script>
+const NFT = '0x8ed2c8b4f4e0abe50d0c64b90bdcb78ea1f59ff5';
+const MINTER = '0x04E2516A2c207E84a1839755675dfd8eF6302F0a';
+const TOKEN_ID = 1;
+const MAX_SUPPLY = 10;
+const PRICE_PER = ethers.parseEther('0.007677');
+const BASE_CHAIN_ID = 8453n;
+const BASE_HEX = '0x2105';
+const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+const ABI = [
+  'function mintWithRewards(address minter, uint256 tokenId, uint256 quantity, bytes minterArguments, address mintReferral) payable'
+];
+
+// getTokenInfo returns a struct, not a flat tuple. ethers decodes it wrong
+// (reads the inner string offset 0x60=96 as maxSupply). We decode raw instead.
+const GET_TOKEN_INFO_SIG = '0x8c7a63ae'; // keccak256("getTokenInfo(uint256)")[0:4]
+
+let provider = null;
+let signer = null;
+let account = null;
+let quantity = 1;
+let totalMinted = 0;
+
+// Elements
+const mintBtn = document.getElementById('mintBtn');
+const statusEl = document.getElementById('status');
+const editionFill = document.getElementById('editionFill');
+const editionCount = document.getElementById('editionCount');
+const walletBadge = document.getElementById('walletBadge');
+const qtyVal = document.getElementById('qtyVal');
+const qtyMinus = document.getElementById('qtyMinus');
+const qtyPlus = document.getElementById('qtyPlus');
+const qtyTotal = document.getElementById('qtyTotal');
+
+if (IS_MOBILE) document.getElementById('mobileHint').classList.add('show');
+
+// Read minted count via raw RPC call.
+// getTokenInfo returns a struct (pointer at slot 0), not a flat tuple.
+// Struct layout: [0x00] 0x20 (pointer) → [0x20] string offset, [0x40] maxSupply, [0x60] totalMinted
+async function fetchMinted() {
+  try {
+    const rpc = new ethers.JsonRpcProvider('https://mainnet.base.org');
+    const tokenIdHex = '0x' + TOKEN_ID.toString(16).padStart(64, '0');
+    const calldata = GET_TOKEN_INFO_SIG + tokenIdHex.slice(2);
+    const raw = await rpc.call({ to: NFT, data: calldata });
+    // Struct return: skip 0x00 (pointer) and 0x20 (string offset within struct)
+    // maxSupply at bytes [0x40..0x60), totalMinted at bytes [0x60..0x80)
+    const hex = raw.slice(2); // strip 0x
+    const maxSupply = parseInt(hex.slice(128, 192), 16);  // slot [0x40]
+    totalMinted = parseInt(hex.slice(192, 256), 16);       // slot [0x60]
+    console.log('getTokenInfo: maxSupply=' + maxSupply + ', totalMinted=' + totalMinted);
+    updateEditionDisplay();
+  } catch (e) {
+    console.warn('Could not read supply:', e);
+    editionCount.textContent = '?/10 minted';
+  }
+}
+
+function updateEditionDisplay() {
+  const pct = (totalMinted / MAX_SUPPLY) * 100;
+  editionFill.style.width = pct + '%';
+  editionCount.textContent = totalMinted + '/10 minted';
+
+  if (totalMinted >= MAX_SUPPLY) {
+    document.getElementById('app').classList.add('sold-out');
+    mintBtn.textContent = 'Sold Out';
+    mintBtn.disabled = true;
+    document.getElementById('qtyRow').style.display = 'none';
+  }
+
+  updateQtyLimits();
+}
+
+function updateQtyLimits() {
+  const remaining = MAX_SUPPLY - totalMinted;
+  if (quantity > remaining && remaining > 0) {
+    quantity = remaining;
+    qtyVal.textContent = quantity;
+  }
+  qtyMinus.disabled = quantity <= 1;
+  qtyPlus.disabled = quantity >= remaining || remaining <= 0;
+  qtyTotal.textContent = ethers.formatEther(PRICE_PER * BigInt(quantity)) + ' ETH';
+}
+
+qtyMinus.addEventListener('click', () => {
+  if (quantity > 1) { quantity--; qtyVal.textContent = quantity; updateQtyLimits(); }
+});
+qtyPlus.addEventListener('click', () => {
+  const remaining = MAX_SUPPLY - totalMinted;
+  if (quantity < remaining) { quantity++; qtyVal.textContent = quantity; updateQtyLimits(); }
+});
+
+function setStatus(msg, type) {
+  statusEl.innerHTML = msg;
+  statusEl.className = 'status show ' + type;
+}
+
+function clearStatus() {
+  statusEl.className = 'status';
+  statusEl.innerHTML = '';
+}
+
+async function ensureBase() {
+  const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+  if (chainId !== BASE_HEX) {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: BASE_HEX }]
+      });
+    } catch (err) {
+      if (err.code === 4902) {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: BASE_HEX,
+            chainName: 'Base',
+            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+            rpcUrls: ['https://mainnet.base.org'],
+            blockExplorerUrls: ['https://basescan.org']
+          }]
+        });
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
+async function connectWallet() {
+  if (IS_MOBILE && !window.ethereum) {
+    window.location.href = 'https://metamask.app.link/dapp/lexispawn.xyz/collect.html';
+    return false;
+  }
+  if (!window.ethereum) {
+    setStatus('No wallet detected. Install MetaMask or use a wallet browser.', 'error');
+    return false;
+  }
+
+  await ensureBase();
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+  account = await signer.getAddress();
+
+  const short = account.slice(0, 6) + '...' + account.slice(-4);
+  walletBadge.textContent = short;
+  mintBtn.textContent = 'Mint ' + quantity;
+  mintBtn.classList.add('connected');
+
+  return true;
+}
+
+async function doMint() {
+  const contract = new ethers.Contract(NFT, ABI, signer);
+  const coder = ethers.AbiCoder.defaultAbiCoder();
+  const minterArgs = coder.encode(['address'], [account]);
+  const value = PRICE_PER * BigInt(quantity);
+
+  setStatus('Confirm in wallet...', 'pending');
+
+  const tx = await contract.mintWithRewards(
+    MINTER,
+    TOKEN_ID,
+    quantity,
+    minterArgs,
+    ethers.ZeroAddress,
+    { value }
+  );
+
+  setStatus(
+    'Transaction sent. Waiting for confirmation...<br><a href="https://basescan.org/tx/' + tx.hash + '" target="_blank">View on Basescan</a>',
+    'pending'
+  );
+
+  const receipt = await tx.wait();
+
+  if (receipt.status === 1) {
+    setStatus(
+      'Minted ' + quantity + ' edition' + (quantity > 1 ? 's' : '') + '.<br><a href="https://basescan.org/tx/' + tx.hash + '" target="_blank">View on Basescan</a>',
+      'success'
+    );
+    mintBtn.textContent = 'Minted';
+    mintBtn.disabled = true;
+    fetchMinted();
+  } else {
+    setStatus(
+      'Transaction reverted.<br><a href="https://basescan.org/tx/' + tx.hash + '" target="_blank">View on Basescan</a>',
+      'error'
+    );
+  }
+}
+
+mintBtn.addEventListener('click', async () => {
+  clearStatus();
+  mintBtn.disabled = true;
+
+  try {
+    if (!account) {
+      const ok = await connectWallet();
+      if (!ok) { mintBtn.disabled = false; return; }
+      mintBtn.disabled = false;
+      return; // first click connects, second click mints
+    }
+
+    mintBtn.textContent = 'Minting...';
+    await doMint();
+  } catch (err) {
+    console.error(err);
+    let msg = err.message || String(err);
+
+    if (err.info && err.info.error && err.info.error.message) {
+      msg = err.info.error.message;
+    }
+
+    if (msg.includes('user rejected') || msg.includes('denied') || msg.includes('User denied')) {
+      msg = 'Transaction rejected.';
+    } else if (msg.includes('insufficient funds')) {
+      msg = 'Insufficient ETH. Need ' + ethers.formatEther(PRICE_PER * BigInt(quantity)) + ' ETH + gas.';
+    } else if (msg.length > 120) {
+      msg = msg.slice(0, 120) + '...';
+    }
+
+    setStatus(msg, 'error');
+    mintBtn.disabled = false;
+    mintBtn.textContent = account ? 'Mint ' + quantity : 'Connect Wallet';
+  }
+});
+
+// Listen for account/chain changes
+if (window.ethereum) {
+  window.ethereum.on('accountsChanged', (accs) => {
+    if (accs.length === 0) {
+      account = null; signer = null;
+      mintBtn.textContent = 'Connect Wallet';
+      mintBtn.classList.remove('connected');
+      walletBadge.textContent = '';
+    } else {
+      account = accs[0];
+      walletBadge.textContent = account.slice(0, 6) + '...' + account.slice(-4);
+    }
+  });
+  window.ethereum.on('chainChanged', () => window.location.reload());
+}
+
+// Init
+fetchMinted();
+</script>
+</body>
+</html>
