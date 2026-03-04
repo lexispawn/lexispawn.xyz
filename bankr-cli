@@ -1,0 +1,73 @@
+#!/bin/bash
+# bankr-cli - Reusable Bankr LLM Gateway CLI
+# Install: cp bankr-cli /usr/local/bin/bankr-cli && chmod +x /usr/local/bin/bankr-cli
+# Usage: bankr-cli "Send 0.01 ETH to 0xABC... on Base"
+
+BANKR_API="https://api.bankr.bot"
+BANKR_KEY="${BANKR_API_KEY:-bk_6XR5WFYULUYTWVXQ6MSXBCZPUEMZ4G2R}"
+MAX_POLL=30
+POLL_INTERVAL=2
+
+if [ -z "$1" ]; then
+  echo "Usage: bankr-cli \"<natural language prompt>\""
+  echo ""
+  echo "Examples:"
+  echo "  bankr-cli \"Send 0.01 ETH to 0xac98D5a995B0D54e70C8757A6892e1A4B6b0362f on Base\""
+  echo "  bankr-cli \"Buy \$5 worth of token 0xABC on Base. Use max 10% slippage.\""
+  echo "  bankr-cli \"Swap 0.005 ETH for USDC on Base\""
+  echo ""
+  echo "Environment:"
+  echo "  BANKR_API_KEY  Override default API key"
+  exit 1
+fi
+
+PROMPT="$1"
+
+echo "[bankr] Submitting: $PROMPT"
+
+# Submit the prompt
+SUBMIT=$(curl -s -X POST "$BANKR_API/agent/prompt" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $BANKR_KEY" \
+  -d "{\"prompt\":\"$PROMPT\"}")
+
+JOB_ID=$(echo "$SUBMIT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('jobId',''))" 2>/dev/null)
+SUCCESS=$(echo "$SUBMIT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('success',''))" 2>/dev/null)
+
+if [ "$SUCCESS" != "True" ] || [ -z "$JOB_ID" ]; then
+  echo "[bankr] ERROR: Submit failed"
+  echo "$SUBMIT" | python3 -m json.tool 2>/dev/null || echo "$SUBMIT"
+  exit 1
+fi
+
+echo "[bankr] Job: $JOB_ID — polling..."
+
+# Poll for completion
+ATTEMPT=0
+while [ $ATTEMPT -lt $MAX_POLL ]; do
+  sleep $POLL_INTERVAL
+  ATTEMPT=$((ATTEMPT + 1))
+
+  RESULT=$(curl -s "$BANKR_API/agent/job/$JOB_ID" \
+    -H "X-API-Key: $BANKR_KEY")
+
+  STATUS=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))" 2>/dev/null)
+
+  if [ "$STATUS" = "completed" ]; then
+    RESPONSE=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('response',''))" 2>/dev/null)
+    PROCESSING=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('processingTime',''))" 2>/dev/null)
+    echo "[bankr] DONE (${PROCESSING}ms)"
+    echo ""
+    echo "$RESPONSE"
+    exit 0
+  elif [ "$STATUS" = "failed" ]; then
+    echo "[bankr] FAILED"
+    echo "$RESULT" | python3 -m json.tool 2>/dev/null || echo "$RESULT"
+    exit 1
+  fi
+
+  echo "[bankr] Poll $ATTEMPT/$MAX_POLL — status: $STATUS"
+done
+
+echo "[bankr] TIMEOUT after $MAX_POLL attempts"
+exit 1
