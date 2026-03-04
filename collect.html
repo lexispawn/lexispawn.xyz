@@ -129,7 +129,7 @@ body{background:#050508;color:#8892a0;font-family:'SF Mono','Fira Code','Courier
     </div>
     <div class="info-row secondary">
       <span class="info-key">+ Zora Protocol Fee</span>
-      <span class="info-val">0.000777 ETH</span>
+      <span class="info-val">0.000111 ETH</span>
     </div>
     <div class="info-row">
       <span class="info-key">Chain</span>
@@ -148,7 +148,7 @@ body{background:#050508;color:#8892a0;font-family:'SF Mono','Fira Code','Courier
       <div class="qty-val" id="qtyVal">1</div>
       <button class="qty-btn" id="qtyPlus">+</button>
     </div>
-    <span class="qty-total" id="qtyTotal">0.007677 ETH</span>
+    <span class="qty-total" id="qtyTotal">0.007011 ETH</span>
   </div>
 
   <div id="mobileHint" class="mobile-hint">
@@ -174,13 +174,14 @@ const NFT = '0x8ed2c8b4f4e0abe50d0c64b90bdcb78ea1f59ff5';
 const MINTER = '0x04E2516A2c207E84a1839755675dfd8eF6302F0a';
 const TOKEN_ID = 1;
 const MAX_SUPPLY = 10;
-const PRICE_PER = ethers.parseEther('0.007677');
+const MINT_FEE = ethers.parseEther('0.000111');
+const PRICE_PER = ethers.parseEther('0.0069') + MINT_FEE; // 0.007011 ETH
 const BASE_CHAIN_ID = 8453n;
 const BASE_HEX = '0x2105';
 const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 const ABI = [
-  'function mintWithRewards(address minter, uint256 tokenId, uint256 quantity, bytes minterArguments, address mintReferral) payable'
+  'function mint(address minter, uint256 tokenId, uint256 quantity, address[] rewardsRecipients, bytes minterArguments) payable'
 ];
 
 // getTokenInfo returns a struct, not a flat tuple. ethers decodes it wrong
@@ -330,12 +331,12 @@ async function doMint() {
 
   setStatus('Confirm in wallet...', 'pending');
 
-  const tx = await contract.mintWithRewards(
+  const tx = await contract.mint(
     MINTER,
     TOKEN_ID,
     quantity,
+    [],          // rewardsRecipients (no referral)
     minterArgs,
-    ethers.ZeroAddress,
     { value }
   );
 
